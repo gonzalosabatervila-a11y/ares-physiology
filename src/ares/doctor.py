@@ -13,7 +13,8 @@ import httpx
 
 from . import db
 from .config import Settings, get_secret, keyring_backend_name
-from .connectors.intervals import BASE_URL
+from .connectors.intervals import BASE_URL as INTERVALS_URL
+from .connectors.tredict import BASE_URL as TREDICT_URL
 
 
 @dataclass(frozen=True)
@@ -79,31 +80,33 @@ def run(
     usable = "fail" not in backend.lower() and "null" not in backend.lower()
     checks.append(Check("Almacén de secretos", usable, backend))
 
-    try:
-        has_key = bool(secret_getter("intervals_api_key"))
-    except Exception as exc:
-        has_key = False
-        backend = f"error: {exc}"
+    client = http or httpx.Client(timeout=15.0)
+
+    def secret_check(name: str) -> bool:
+        try:
+            return bool(secret_getter(name))
+        except Exception:
+            return False
+
+    has_intervals_key = secret_check("intervals_api_key")
     checks.append(
         Check(
             "Secreto intervals_api_key",
-            has_key,
+            has_intervals_key,
             "presente (valor no mostrado)"
-            if has_key
+            if has_intervals_key
             else "falta: ares secret set intervals_api_key",
         )
     )
-
     if offline:
         checks.append(Check("Red · intervals.icu", True, "omitida (--offline)"))
-    elif not has_key:
+    elif not has_intervals_key:
         checks.append(Check("Red · intervals.icu", False, "sin clave, no se puede probar"))
     else:
-        client = http or httpx.Client(timeout=15.0)
         today = date.today().isoformat()
         try:
             r = client.get(
-                f"{BASE_URL}/athlete/{settings.intervals_athlete_id}/wellness",
+                f"{INTERVALS_URL}/athlete/{settings.intervals_athlete_id}/wellness",
                 params={"oldest": today, "newest": today},
                 auth=("API_KEY", secret_getter("intervals_api_key") or ""),
             )
@@ -117,6 +120,42 @@ def run(
             )
         except Exception as exc:
             checks.append(Check("Red · intervals.icu", False, f"sin conexión: {exc}"))
+
+    has_tredict_token = secret_check("tredict_token")
+    checks.append(
+        Check(
+            "Secreto tredict_token",
+            has_tredict_token,
+            "presente (valor no mostrado)"
+            if has_tredict_token
+            else "falta: ares secret set tredict_token",
+        )
+    )
+    if offline:
+        checks.append(Check("Red · Tredict", True, "omitida (--offline)"))
+    elif not has_tredict_token:
+        checks.append(Check("Red · Tredict", False, "sin token, no se puede probar"))
+    else:
+        try:
+            r = client.get(
+                f"{TREDICT_URL}/activityList",
+                params={"pageSize": 50},
+                headers={
+                    "Authorization": f"Bearer {secret_getter('tredict_token') or ''}",
+                    "Accept": "application/json;charset=UTF-8",
+                },
+            )
+            checks.append(
+                Check(
+                    "Red · Tredict",
+                    r.status_code == 200,
+                    f"HTTP {r.status_code}"
+                    + (" (token rechazado)" if r.status_code in (401, 403) else ""),
+                )
+            )
+        except Exception as exc:
+            checks.append(Check("Red · Tredict", False, f"sin conexión: {exc}"))
+
     return checks
 
 

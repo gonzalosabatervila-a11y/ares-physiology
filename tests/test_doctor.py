@@ -22,3 +22,4 @@ def test_doctor_detecta_base_sin_migrar_y_falta_de_clave(settings, monkeypatch):
     checks = {c.name: c for c in doctor.run(settings, offline=True, secret_getter=lambda n: None)}
     assert not checks["Base de datos"].ok and "init-db" in checks["Base de datos"].detail
     assert not checks["Secreto intervals_api_key"].ok
+    assert not checks["Secreto tredict_token"].ok

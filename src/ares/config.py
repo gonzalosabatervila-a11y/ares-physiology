@@ -65,8 +65,18 @@ def load_settings(env_file: Path | None = None) -> Settings:
     )
 
 
+class KeyringUnavailable(RuntimeError):
+    """No hay Llavero/Credenciales de Windows disponible en este sistema."""
+
+
 def get_secret(name: str) -> str | None:
-    return keyring.get_password(KEYRING_SERVICE, name)
+    try:
+        return keyring.get_password(KEYRING_SERVICE, name)
+    except keyring.errors.NoKeyringError as exc:
+        raise KeyringUnavailable(
+            "No hay un almacén de secretos disponible (Llavero / Credenciales de Windows). "
+            "Ejecuta: ares doctor"
+        ) from exc
 
 
 def set_secret(name: str, value: str) -> None:

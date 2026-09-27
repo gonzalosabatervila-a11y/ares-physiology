@@ -5,11 +5,13 @@ from __future__ import annotations
 import argparse
 import getpass
 import sys
+from typing import Any
 
 from . import __version__, db, doctor, jobs, log
-from .config import KNOWN_SECRETS, get_secret, load_settings, set_secret
+from .config import KNOWN_SECRETS, KeyringUnavailable, get_secret, load_settings, set_secret
 from .connectors.base import HttpClient
 from .connectors.intervals import sync_wellness
+from .connectors.tredict import sync_activities
 
 
 def cmd_init_db(args: argparse.Namespace) -> int:
@@ -26,24 +28,37 @@ def cmd_init_db(args: argparse.Namespace) -> int:
 
 
 def cmd_secret(args: argparse.Namespace) -> int:
-    if args.action == "set":
-        value = getpass.getpass(f"Valor de {args.name} (no se mostrará): ").strip()
-        if not value:
-            print("Vacío: no se guarda nada.")
-            return 1
-        set_secret(args.name, value)
-        print(f"{args.name} guardado en el almacén del sistema.")
-    else:
-        print(f"{args.name}: {'presente' if get_secret(args.name) else 'no configurado'}")
+    try:
+        if args.action == "set":
+            value = getpass.getpass(f"Valor de {args.name} (no se mostrará): ").strip()
+            if not value:
+                print("Vacío: no se guarda nada.")
+                return 1
+            set_secret(args.name, value)
+            print(f"{args.name} guardado en el almacén del sistema.")
+        else:
+            print(f"{args.name}: {'presente' if get_secret(args.name) else 'no configurado'}")
+    except KeyringUnavailable as exc:
+        print(str(exc))
+        return 1
     return 0
+
+
+SOURCE_SECRETS = {"intervals": "intervals_api_key", "tredict": "tredict_token"}
+SOURCE_LABELS = {"intervals": ("intervals.icu", "wellness"), "tredict": ("Tredict", "activity")}
 
 
 def cmd_sync(args: argparse.Namespace) -> int:
     s = load_settings()
     logger = log.setup(s.log_dir)
-    key = get_secret("intervals_api_key")
+    secret_name = SOURCE_SECRETS[args.source]
+    try:
+        key = get_secret(secret_name)
+    except KeyringUnavailable as exc:
+        print(str(exc))
+        return 1
     if not key:
-        print("Falta la clave: ares secret set intervals_api_key")
+        print(f"Falta la clave: ares secret set {secret_name}")
         return 1
     conn = db.connect(s.db_path)
     try:
@@ -51,19 +66,24 @@ def cmd_sync(args: argparse.Namespace) -> int:
         if pending:
             print("La base no está al día: ejecuta ares init-db")
             return 1
-        run_id = jobs.start(conn, "sync_intervals", s.rules_version)
+        label, endpoint = SOURCE_LABELS[args.source]
+        run_id = jobs.start(conn, f"sync_{args.source}", s.rules_version)
         try:
-            res = sync_wellness(conn, HttpClient(), key, s.intervals_athlete_id, args.days)
+            res: Any
+            if args.source == "intervals":
+                res = sync_wellness(conn, HttpClient(), key, s.intervals_athlete_id, args.days)
+            else:
+                res = sync_activities(conn, HttpClient(), key, args.days)
         except Exception as exc:
             jobs.finish(conn, run_id, "error", {"error": str(exc)})
-            logger.error("sync_failed", source="intervals", endpoint="wellness", error=str(exc))
+            logger.error("sync_failed", source=args.source, endpoint=endpoint, error=str(exc))
             print(f"Error: {exc}")
             return 1
         detail = {"days": args.days, "fetched": res.fetched, "inserted": res.inserted}
         jobs.finish(conn, run_id, "ok", detail)
-        logger.info("sync_ok", source="intervals", endpoint="wellness", **detail)
+        logger.info("sync_ok", source=args.source, endpoint=endpoint, **detail)
         print(
-            f"intervals.icu · {res.fetched} días recibidos · {res.inserted} nuevos · "
+            f"{label} · {res.fetched} recibidos · {res.inserted} nuevos · "
             f"{res.unchanged} sin cambios"
         )
     finally:
@@ -118,7 +138,7 @@ def build_parser() -> argparse.ArgumentParser:
     ps.set_defaults(func=cmd_secret)
 
     py = sub.add_parser("sync", help="sincroniza una fuente")
-    py.add_argument("source", choices=["intervals"])
+    py.add_argument("source", choices=["intervals", "tredict"])
     py.add_argument("--days", type=int, default=3)
     py.set_defaults(func=cmd_sync)
 
