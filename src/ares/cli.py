@@ -1,17 +1,16 @@
-"""CLI de ARES · Bootstrap v0.1: init-db, secret, sync intervals, doctor, stats."""
+"""CLI de ARES · Bootstrap v0.3.1: init-db, secret, sync, doctor, stats, serve, polar-auth."""
 
 from __future__ import annotations
 
 import argparse
 import getpass
 import sys
-from typing import Any
+from datetime import UTC, date, datetime
+from zoneinfo import ZoneInfo
 
-from . import __version__, db, doctor, jobs, log
+from . import __version__, db, doctor, log, runner, serve
 from .config import KNOWN_SECRETS, KeyringUnavailable, get_secret, load_settings, set_secret
-from .connectors.base import HttpClient
-from .connectors.intervals import sync_wellness
-from .connectors.tredict import sync_activities
+from .connectors import polar_oauth, polar_probe, polar_tokens
 
 
 def cmd_init_db(args: argparse.Namespace) -> int:
@@ -44,47 +43,29 @@ def cmd_secret(args: argparse.Namespace) -> int:
     return 0
 
 
-SOURCE_SECRETS = {"intervals": "intervals_api_key", "tredict": "tredict_token"}
-SOURCE_LABELS = {"intervals": ("intervals.icu", "wellness"), "tredict": ("Tredict", "activity")}
+SOURCE_LABELS = {"intervals": "intervals.icu", "tredict": "Tredict"}
 
 
 def cmd_sync(args: argparse.Namespace) -> int:
     s = load_settings()
     logger = log.setup(s.log_dir)
-    secret_name = SOURCE_SECRETS[args.source]
-    try:
-        key = get_secret(secret_name)
-    except KeyringUnavailable as exc:
-        print(str(exc))
-        return 1
-    if not key:
-        print(f"Falta la clave: ares secret set {secret_name}")
-        return 1
     conn = db.connect(s.db_path)
     try:
         pending = db.verify(conn, db.discover(s.migrations_dir))
         if pending:
             print("La base no está al día: ejecuta ares init-db")
             return 1
-        label, endpoint = SOURCE_LABELS[args.source]
-        run_id = jobs.start(conn, f"sync_{args.source}", s.rules_version)
         try:
-            res: Any
-            if args.source == "intervals":
-                res = sync_wellness(conn, HttpClient(), key, s.intervals_athlete_id, args.days)
-            else:
-                res = sync_activities(conn, HttpClient(), key, args.days)
+            res = runner.run_source_sync(conn, args.source, s, logger=logger, days=args.days)
+        except runner.SyncSkipped as exc:
+            print(str(exc))
+            return 1
         except Exception as exc:
-            jobs.finish(conn, run_id, "error", {"error": str(exc)})
-            logger.error("sync_failed", source=args.source, endpoint=endpoint, error=str(exc))
             print(f"Error: {exc}")
             return 1
-        detail = {"days": args.days, "fetched": res.fetched, "inserted": res.inserted}
-        jobs.finish(conn, run_id, "ok", detail)
-        logger.info("sync_ok", source=args.source, endpoint=endpoint, **detail)
         print(
-            f"{label} · {res.fetched} recibidos · {res.inserted} nuevos · "
-            f"{res.unchanged} sin cambios"
+            f"{SOURCE_LABELS[args.source]} · {res.fetched} recibidos · "
+            f"{res.inserted} nuevos · {res.fetched - res.inserted} sin cambios"
         )
     finally:
         conn.close()
@@ -123,8 +104,56 @@ def cmd_stats(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_serve(args: argparse.Namespace) -> int:
+    return serve.run(run_once=args.once)
+
+
+def cmd_polar_auth(args: argparse.Namespace) -> int:
+    s = load_settings()
+    try:
+        client_id = get_secret("polar_client_id")
+        client_secret = get_secret("polar_client_secret")
+    except KeyringUnavailable as exc:
+        print(str(exc))
+        return 1
+    if not client_id or not client_secret:
+        print(
+            "Faltan las credenciales del cliente. Créalo en admin.polaraccesslink.com "
+            f"con redirect_uri = {s.polar_redirect_uri}, luego:\n"
+            "  ares secret set polar_client_id\n"
+            "  ares secret set polar_client_secret"
+        )
+        return 1
+    print("Abriendo el navegador para autorizar ARES en Polar Flow...")
+    try:
+        tokens = polar_oauth.authorize(client_id, client_secret, s.polar_redirect_uri)
+    except polar_oauth.OAuthError as exc:
+        print(f"Error: {exc}")
+        return 1
+    set_secret("polar_access_token", tokens.access_token)
+    set_secret("polar_refresh_token", tokens.refresh_token)
+    set_secret("polar_token_expiry", tokens.expires_at.isoformat())
+    print(f"Autorizado. El token expira: {tokens.expires_at.isoformat()}")
+    return 0
+
+
+def cmd_polar_probe(args: argparse.Namespace) -> int:
+    s = load_settings()
+    try:
+        token = polar_tokens.get_access_token()
+    except (KeyringUnavailable, polar_tokens.TokenError, polar_oauth.OAuthError) as exc:
+        print(f"Error: {exc}")
+        return 1
+    day = date.fromisoformat(args.day) if args.day else datetime.now(ZoneInfo(s.tz)).date()
+    out_dir = s.data_dir / "probe" / datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    results = polar_probe.run_probe(token, day, out_dir)
+    print(f"Sonda de Polar v4 · día {day} · solo lectura, no escribe en la base\n")
+    print(polar_probe.render(results, out_dir))
+    return 0 if any(r.status == 200 for r in results) else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="ares", description="ARES Physiology · Bootstrap v0.1")
+    p = argparse.ArgumentParser(prog="ares", description="ARES Physiology · Bootstrap v0.3.1")
     p.add_argument("--version", action="version", version=f"ares {__version__}")
     sub = p.add_subparsers(dest="cmd", required=True)
 
@@ -137,9 +166,14 @@ def build_parser() -> argparse.ArgumentParser:
     ps.add_argument("name", choices=KNOWN_SECRETS)
     ps.set_defaults(func=cmd_secret)
 
-    py = sub.add_parser("sync", help="sincroniza una fuente")
+    py = sub.add_parser("sync", help="sincroniza una fuente (manual, fuera del planificador)")
     py.add_argument("source", choices=["intervals", "tredict"])
-    py.add_argument("--days", type=int, default=3)
+    py.add_argument(
+        "--days",
+        type=int,
+        default=None,
+        help="por defecto: incremental (3 d) o backfill si hace falta",
+    )
     py.set_defaults(func=cmd_sync)
 
     pd = sub.add_parser("doctor", help="comprueba Python, base, secretos, configuración y red")
@@ -149,6 +183,23 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("stats", help="resumen de la capa bruta y últimas ejecuciones").set_defaults(
         func=cmd_stats
     )
+
+    pv = sub.add_parser("serve", help="proceso único: base + planificador interno")
+    pv.add_argument(
+        "--once", action="store_true", help="una pasada de sincronización y salir (para pruebas)"
+    )
+    pv.set_defaults(func=cmd_serve)
+
+    sub.add_parser(
+        "polar-auth", help="autorización OAuth inicial con Polar (una sola vez)"
+    ).set_defaults(func=cmd_polar_auth)
+
+    pp = sub.add_parser(
+        "polar-probe",
+        help="primera llamada real a Polar: enseña la estructura de lo que devuelve (solo lectura)",
+    )
+    pp.add_argument("--day", help="día a sondear (AAAA-MM-DD); por defecto, hoy")
+    pp.set_defaults(func=cmd_polar_probe)
     return p
 
 

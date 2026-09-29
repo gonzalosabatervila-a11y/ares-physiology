@@ -3,11 +3,31 @@
 ## v0.1 — completado
 repo → DuckDB → migraciones → keyring → intervals.icu real ✅
 
-## v0.2 — este paquete
+## v0.2 — completado
 + conector de Tredict (lista de actividades, paginada) → capa bruta ✅
 
-Sigue sin completar la semana 0: falta el HP con el servicio, Tailscale en el HP y el cliente
-de Polar. Referencia: *ARES Physiology — Implementation Plan v0.2 FINAL — FROZEN*.
+## v0.3 — este paquete
++ `ares serve`: proceso único, propietario de DuckDB, con planificador interno
+  (mañana 06:00–10:30 cada 30 min, día 11:00–23:00 cada hora) ✅
++ Lógica de sincronización compartida (`runner.py`) entre `ares sync` manual y el
+  planificador, con decisión incremental/backfill automática ✅
++ `ares polar-auth`: autorización OAuth2 con Polar (servidor local en el
+  `redirect_uri`, intercambio y renovación de tokens) ✅
++ `timeutil.py`: UTC interno + `local_sleep_date` en Europe/Madrid, probado contra
+  la noche del cambio de hora (24→25 oct 2026) ✅
++ Paquete de servicio de Windows (`ops/windows/`, con NSSM) ✅
+
+## v0.3.1 — sonda de Polar
++ `ares polar-probe`: primera llamada real a los ocho endpoints que ARES va a usar ✅
++ Gestor de token de Polar (`polar_tokens.py`): renueva antes de caducar y guarda el par nuevo ✅
++ Renovación robusta: si Polar no envía un refresh token nuevo, se conserva el anterior ✅
+
+**El conector de Polar en sí (`polar.py`: PPI, Nightly Recharge, sueño → capa
+bruta) no está en este paquete.** La forma exacta del JSON de `/ppi-samples` no
+está confirmada contra una respuesta real; se escribe mañana, con el cliente ya
+creado y la primera llamada real hecha contigo delante — no antes.
+
+Referencia: *ARES Physiology — Implementation Plan v0.2 FINAL — FROZEN*.
 
 ## Los cinco comandos (MacBook Air)
 
@@ -69,6 +89,9 @@ no duplica nada.
 | `ares sync intervals --days N` | Descarga el bienestar de intervals.icu a la capa bruta (solo añadir) |
 | `ares sync tredict --days N` | Descarga la lista de actividades de Tredict a la capa bruta (solo añadir) |
 | `ares doctor [--offline]` | Python, zona horaria, carpeta de datos, schema_version, secretos y red (ambas fuentes) |
+| `ares polar-auth` | Autorización OAuth2 inicial con Polar (una sola vez; abre el navegador) |
+| `ares polar-probe [--day AAAA-MM-DD]` | Primera llamada real a Polar: enseña la estructura de lo que devuelve (claves, tipos, rangos, no valores) y guarda las respuestas en bruto en `<datos>/probe/`. Solo lectura |
+| `ares serve [--once]` | Proceso único con el planificador interno; `--once` hace una pasada y sale (pruebas) |
 | `ares stats` | Filas de la capa bruta por fuente y últimas ejecuciones |
 
 ## Qué hay dentro

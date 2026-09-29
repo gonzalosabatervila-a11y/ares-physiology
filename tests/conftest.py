@@ -19,6 +19,7 @@ def settings(tmp_path: Path) -> Settings:
         intervals_athlete_id="0",
         backfill_max_days=30,
         migrations_dir=REPO_ROOT / "migrations",
+        polar_redirect_uri="http://localhost:8765/callback",
     )
 
 
