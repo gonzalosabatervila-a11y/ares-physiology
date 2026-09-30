@@ -17,10 +17,10 @@ from apscheduler.triggers.cron import CronTrigger
 from . import runner
 from .config import Settings
 
-# Horarios de Implementation Plan v0.2 FINAL §7. Copia y backup quedan fuera del
-# alcance de v0.3 (necesitan CHECKPOINT/EXPORT DATABASE, aún no escritos).
-MORNING_TRIGGER = CronTrigger(hour="6-10", minute="0,30")
-DAY_TRIGGER = CronTrigger(hour="11-23", minute=0)
+# ARES mantiene los datos frescos durante el día. La sincronización se ejecuta
+# cada 10 minutos entre las 06:00 y las 23:50 (Europe/Madrid por defecto).
+# El bloqueo interno evita que dos pasadas se solapen.
+SYNC_TRIGGER = CronTrigger(hour="6-23", minute="*/10")
 
 
 class AresScheduler:
@@ -58,17 +58,9 @@ class AresScheduler:
     def start(self) -> None:
         self._scheduler.add_job(
             self._tick,
-            MORNING_TRIGGER,
-            kwargs={"job": "morning"},
-            id="morning",
-            replace_existing=True,
-            misfire_grace_time=600,
-        )
-        self._scheduler.add_job(
-            self._tick,
-            DAY_TRIGGER,
-            kwargs={"job": "day"},
-            id="day",
+            SYNC_TRIGGER,
+            kwargs={"job": "sync10"},
+            id="sync10",
             replace_existing=True,
             misfire_grace_time=600,
         )

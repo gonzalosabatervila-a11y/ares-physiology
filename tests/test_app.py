@@ -197,9 +197,23 @@ def test_rutas_http(client, conn):
     assert lab["gate"]["level"] == "sin evaluar" and lab["versions"]["schema"] == 3
     page = client.get("/")
     assert page.status_code == 200 and "ARES" in page.text
-    assert page.headers["cache-control"] == "no-store"
-    assert client.get("/static/app.js").status_code == 200
+    assert page.headers["cache-control"].startswith("no-store")
+    js = client.get("/static/app.js")
+    assert js.status_code == 200 and js.headers["cache-control"].startswith("no-store")
     assert client.get("/docs").status_code == 404  # sin documentación pública de la API
+
+
+def test_sync_manual_llama_al_scheduler(conn, settings):
+    calls = []
+    c = TestClient(create_app(lambda: conn, settings, sync_now=lambda: calls.append(1)))
+    r = c.post("/api/sync")
+    assert r.status_code == 200 and r.json() == {"ok": True}
+    assert calls == [1]
+
+
+def test_sync_manual_no_disponible_en_app_suelta(client):
+    r = client.post("/api/sync")
+    assert r.status_code == 503
 
 
 def test_fmt_hm():

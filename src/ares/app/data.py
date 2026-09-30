@@ -51,7 +51,7 @@ def intervals_days(conn: duckdb.DuckDBPyConnection, limit: int = 60) -> list[dic
     rows = conn.execute(
         """SELECT day, body FROM raw_payload
            WHERE source = 'intervals' AND endpoint = 'wellness'
-           QUALIFY row_number() OVER (PARTITION BY day ORDER BY fetched_at DESC) = 1
+           QUALIFY row_number() OVER (PARTITION BY day ORDER BY fetched_at DESC, rowid DESC) = 1
            ORDER BY day DESC LIMIT ?""",
         [limit],
     ).fetchall()
@@ -254,7 +254,7 @@ def _dur_s(v: Any) -> float | None:
 def _polar_bodies(conn: duckdb.DuckDBPyConnection, endpoint: str, limit: int) -> dict[str, Any]:
     rows = conn.execute(
         """SELECT day, body FROM raw_payload WHERE source = 'polar' AND endpoint = ?
-           QUALIFY row_number() OVER (PARTITION BY day ORDER BY fetched_at DESC) = 1
+           QUALIFY row_number() OVER (PARTITION BY day ORDER BY fetched_at DESC, rowid DESC) = 1
            ORDER BY day DESC LIMIT ?""",
         [endpoint, limit],
     ).fetchall()

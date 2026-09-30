@@ -8,7 +8,7 @@ repo → DuckDB → migraciones → keyring → intervals.icu real ✅
 
 ## v0.3 — este paquete
 + `ares serve`: proceso único, propietario de DuckDB, con planificador interno
-  (mañana 06:00–10:30 cada 30 min, día 11:00–23:00 cada hora) ✅
+  (06:00–23:50 cada 10 min, sin solapamientos) ✅
 + Lógica de sincronización compartida (`runner.py`) entre `ares sync` manual y el
   planificador, con decisión incremental/backfill automática ✅
 + `ares polar-auth`: autorización OAuth2 con Polar (servidor local en el
@@ -26,6 +26,12 @@ repo → DuckDB → migraciones → keyring → intervals.icu real ✅
 + `ares serve` lleva dentro la app y serializa las sincronizaciones (una a la vez) ✅
 + Aviso claro si otro proceso tiene la base abierta ✅
 + Conector de Polar (`ares sync polar`) con los PPI en filas normalizadas ✅
+
+## v0.6 — interfaz y refresco
++ Sincronización automática cada 10 minutos entre 06:00 y 23:50 ✅
++ Botón de refresco que ejecuta una sincronización real antes de recargar la vista ✅
++ Inicio rediseñado: hero runner, gauges más limpios, fuentes compactas y navegación más ligera ✅
++ Assets de la app con `Cache-Control: no-store` para que los cambios visuales lleguen al iPhone ✅
 
 ## v0.3.2 — primera rebanada de la app
 + `ares app`: Inicio, Progreso y Lab de la UX v1 congelada, leyendo tu base real ✅
