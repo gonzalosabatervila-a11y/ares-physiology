@@ -35,6 +35,7 @@ class Settings:
     migrations_dir: Path
     polar_redirect_uri: str
     app_bind: str = "127.0.0.1:8443"
+    wellness_source: str = "loop"  # loop | intervals
 
     @property
     def db_path(self) -> Path:
@@ -66,6 +67,11 @@ def load_settings(env_file: Path | None = None) -> Settings:
         migrations_dir=migrations.expanduser(),
         polar_redirect_uri=_clean(env.get("POLAR_REDIRECT_URI", "http://localhost:8765/callback")),
         app_bind=_clean(env.get("APP_BIND", "127.0.0.1:8443")),
+        wellness_source=(
+            "intervals"
+            if _clean(env.get("WELLNESS_SOURCE", "loop")).lower() == "intervals"
+            else "loop"
+        ),
     )
 
 

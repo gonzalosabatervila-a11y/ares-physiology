@@ -31,7 +31,7 @@ def create_app(get_conn: Callable[[], duckdb.DuckDBPyConnection], settings: Sett
 
     @app.get("/api/home")
     def api_home() -> dict:
-        return data.home(cursor())
+        return data.home(cursor(), source=settings.wellness_source)
 
     @app.get("/api/progreso")
     def api_progreso() -> dict:

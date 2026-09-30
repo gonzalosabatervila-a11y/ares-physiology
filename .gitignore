@@ -14,3 +14,5 @@ h10/
 *.csv
 *.fit
 *.tcx
+
+.DS_Store

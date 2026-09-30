@@ -6,6 +6,7 @@ const sheetBody = document.getElementById('sheet-body');
 const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
   ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+const dias = (n) => `${n} ${n === 1 ? 'día' : 'días'}`;
 const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 const COLOR = {ok: '#45D4E5', warn: '#F0A33A', bad: '#E8573A', none: '#8C979B'};
 
@@ -184,7 +185,7 @@ function sourceSheet(name, sources) {
   if (s.last_ok) rows.push(['Última sincronización correcta', new Date(s.last_ok).toLocaleString('es-ES', {dateStyle: 'medium', timeStyle: 'short'})]);
   if (s.endpoint && s.endpoint !== '—') rows.push(['Datos', s.endpoint]);
   const extra = s.level === 'none'
-    ? '<p>Todavía no hay conector de Polar en el servicio. La Loop se ha sondeado a mano; el conector definitivo se escribe con las respuestas reales.</p>'
+    ? '<p>Polar aún no ha sincronizado con este servicio. Cuando lo haga, aparecerá aquí con su hora.</p>'
     : s.error ? `<p style="color:#E8573A">${esc(s.error)}</p>` : '';
   openSheet(`<h3 id="sheet-title">${esc(SRC_NAME[name] || name)}</h3><div class="kv">${rows.map(([k, v]) => `<div class="r"><span>${esc(k)}</span><span>${esc(v)}</span></div>`).join('')}</div>${extra}`);
 }
@@ -235,7 +236,7 @@ function baseline(e) {
   return `<section class="card base" aria-label="Línea base"><div class="ic">${svg('db')}</div>
 <div><div class="top2"><span class="eyebrow">Línea base</span><span class="mono" style="font-size:11px;color:var(--sig)">${pct} %</span></div><h3>${e.mode === 'sombra' ? 'Construyendo tu referencia' : 'Referencia disponible'}</h3></div>
 <div class="full"><div class="bar" role="progressbar" aria-valuenow="${e.nights}" aria-valuemin="0" aria-valuemax="${e.target}" aria-label="Noches válidas"><i style="width:${pct}%"></i></div>
-<div class="muted"><b style="color:var(--txt)">${e.nights} de ${e.target}</b> noches válidas. Las noches empezarán a contar cuando la Loop tenga su conector.</div></div></section>`;
+<div class="muted"><b style="color:var(--txt)">${e.nights} de ${e.target}</b> noches válidas. Empezarán a contar cuando ARES procese cada noche de la Loop (siguiente paso).</div></div></section>`;
 }
 function sigRow(s) {
   const [title, sub] = s.label.split(' · ');
@@ -246,8 +247,8 @@ function sigRow(s) {
 function renderInicio(d) {
   ROUTE_STATE.sources = d.sources;
   const steps = d.steps === null
-    ? '<span class="muted">Sin datos de pasos. Apple Salud aún no está conectado.</span>'
-    : `<div><div class="eyebrow">Pasos · ${esc(shortDate(d.last_day))}</div><div class="big">${d.steps.toLocaleString('es-ES')}</div></div><span class="muted">intervals.icu</span>`;
+    ? '<span class="muted">Sin pasos todavía.</span>'
+    : `<div><div class="eyebrow">Pasos · ${esc(shortDate(d.steps_day || d.last_day))}</div><div class="big">${d.steps.toLocaleString('es-ES')}</div></div><span class="muted">${esc(d.steps_source || 'intervals.icu')}</span>`;
   view.innerHTML = pageTop(d.sources) + chips(d.sources) + hero(d.estado) +
     `<div class="gauges" role="group" aria-label="Indicadores principales">${d.dials.map(gauge).join('')}</div>
 <button class="howto" data-howto>${svg('info')}Cómo leer estos indicadores</button>` + baseline(d.estado) +
@@ -269,8 +270,8 @@ function renderSenal(d) {
   const lvl = d.level;
   const stateTxt = d.kind === 'trend' ? `Tendencia: ${d.state}`
     : d.range === null ? 'Sin rango' : `${d.agg === 'mean7' ? 'Media 7 d' : 'Última noche'} · ${d.state}`;
-  const rows = [['Fuente', 'intervals.icu'], ['Naturaleza', d.nature], ['Actualizado', cap(ageText(d.updated_min))],
-    ['Serie utilizada', `${d.available_days} días`]];
+  const rows = [['Fuente', d.source_label || 'intervals.icu'], ['Naturaleza', d.nature], ['Actualizado', cap(ageText(d.updated_min))],
+    ['Serie utilizada', dias(d.available_days)]];
   if (d.range) {
     rows.push(['Media de referencia', `${d.mean_ref} (${d.n_ref} d)`], ['Rango habitual', `${d.range.lo_s} – ${d.range.hi_s}`]);
   }
@@ -281,7 +282,7 @@ function renderSenal(d) {
     `<section class="card"><div class="hval"><span class="n">${splitUnit(d.value)}</span><span class="state ${lvl === 'ok' ? 'ok' : lvl === 'warn' ? 'warn' : ''}">${esc(stateTxt)}</span></div>
 <p class="muted" style="margin:6px 0 var(--sp3)">Último valor (${esc(shortDate(d.date))})${d.mean_ref ? ` · media ${d.n_ref} d: ${esc(d.mean_ref)}` : ''}</p>
 ${lineChart([{pts: d.series, color: '#45D4E5'}], {band: d.range ? [d.range.lo, d.range.hi] : null, label: `${d.label}, últimos ${d.days} días`})}
-${d.partial ? `<p class="muted" style="margin:8px 0 0">Solo hay ${d.available_days} días de datos en la base; el periodo de ${d.days === 365 ? '1 año' : d.days + ' días'} se completará con el tiempo.</p>` : ''}</section>
+${d.partial ? `<p class="muted" style="margin:8px 0 0">Solo hay ${dias(d.available_days)} de datos en la base; el periodo de ${d.days === 365 ? '1 año' : d.days + ' días'} se completará con el tiempo.</p>` : ''}</section>
 <section class="card"><div class="stats"><div><small>Mín</small><b>${esc(s.min)}</b></div><div><small>Media</small><b>${esc(s.mean)}</b></div><div><small>Máx</small><b>${esc(s.max)}</b></div><div><small>Último</small><b>${esc(s.last)}</b></div></div></section>
 <section class="card callout ${lvl === 'warn' ? 'warn' : ''}"><h3>${esc(d.interpretation.title)}</h3><p>${esc(d.interpretation.text)}</p></section>
 <section class="card"><div class="eyebrow" style="margin-bottom:6px">Procedencia</div><div class="kv">${rows.map(([k, v]) => `<div class="r"><span>${esc(k)}</span><span>${esc(v)}</span></div>`).join('')}</div></section>

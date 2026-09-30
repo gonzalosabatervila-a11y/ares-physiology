@@ -149,7 +149,7 @@ def test_fuentes_frescura_y_polar_sin_conector(conn):
     by = {s["source"]: s for s in data.sources(conn, now)}
     assert by["intervals"]["level"] == "ok" and by["intervals"]["age_min"] >= 120
     assert by["tredict"]["level"] == "bad" and by["tredict"]["error"] == "HTTP 401"
-    assert by["polar"]["level"] == "none" and "sin conector" in by["polar"]["error"]
+    assert by["polar"]["level"] == "none" and "no ha sincronizado" in by["polar"]["error"]
     old = datetime.now(UTC) + timedelta(hours=20)
     assert {s["source"]: s["level"] for s in data.sources(conn, old)}["intervals"] == "warn"
 
@@ -426,3 +426,208 @@ def test_la_pagina_declara_el_icono_de_iphone_y_el_manifiesto(client):
     assert "apple-mobile-web-app-capable" in html
     png = client.get("/static/icon-180.png").content
     assert _png_size(png) == (180, 180)
+
+
+# ------------------------------------------- sueño, VFC, pulso y pasos desde la Loop
+
+
+def _sleep_doc(day, secs):
+    return {
+        "nightSleeps": [
+            {
+                "sleepDate": day,
+                "sleepResult": {"hypnogram": {}},
+                "sleepEvaluation": {"sleepSpan": f"{secs + 1800}s", "asleepDuration": f"{secs}s"},
+            }
+        ]
+    }
+
+
+def _nr_doc(day, rmssd, rri):
+    return {
+        "nightlyRechargeResults": [
+            {
+                "sleepResultDate": day,
+                "meanNightlyRecoveryRmssd": rmssd,
+                "meanNightlyRecoveryRri": rri,
+            }
+        ]
+    }
+
+
+def _act_doc(day, *devices):
+    """devices: [(deviceId, [pasos por minuto…]), …]"""
+    return {
+        "activityDays": [
+            {
+                "date": day,
+                "activitiesPerDevice": [
+                    {
+                        "deviceReference": {"deviceId": dev},
+                        "activitySamples": [
+                            {
+                                "stepSamples": {
+                                    "startTime": "00:00:00",
+                                    "interval": 60000,
+                                    "steps": steps,
+                                }
+                            }
+                        ],
+                    }
+                    for dev, steps in devices
+                ],
+            }
+        ]
+    }
+
+
+def seed_loop(
+    conn,
+    n: int = 10,
+    *,
+    secs=lambda i: 26000 + 300 * (i % 4),
+    rmssd=lambda i: 60 + (i % 5),
+    steps=lambda i: [3, 4, 5 + i],
+) -> None:
+    for i in range(n):
+        d = date(2026, 9, 20) + timedelta(days=i)
+        day = d.isoformat()
+        store_raw(conn, source="polar", endpoint="sleeps", day=d, body=_sleep_doc(day, secs(i)))
+        store_raw(
+            conn,
+            source="polar",
+            endpoint="nightly-recharge-results",
+            day=d,
+            body=_nr_doc(day, rmssd(i), 1100 + 10 * (i % 3)),
+        )
+        store_raw(
+            conn,
+            source="polar",
+            endpoint="activity",
+            day=d,
+            body=_act_doc(day, ("LOOP0001", steps(i))),
+        )
+
+
+def test_loop_days_lee_sueno_vfc_pulso_y_pasos(conn):
+    d = date(2026, 9, 30)
+    store_raw(conn, source="polar", endpoint="sleeps", day=d, body=_sleep_doc("2026-09-30", 26400))
+    store_raw(
+        conn,
+        source="polar",
+        endpoint="nightly-recharge-results",
+        day=d,
+        body=_nr_doc("2026-09-30", 65, 1100),
+    )
+    store_raw(
+        conn,
+        source="polar",
+        endpoint="activity",
+        day=d,
+        body=_act_doc("2026-09-30", ("A", [1, 2, 3]), ("B", [10, 20])),
+    )
+    (rec,) = data.loop_days(conn)
+    assert rec["date"] == "2026-09-30" and rec["sleep_s"] == 26400.0 and rec["nr_rmssd"] == 65.0
+    assert rec["nr_hr"] == pytest.approx(60000 / 1100)
+    assert rec["steps"] == 30  # dos dispositivos: se toma el de más pasos, no la suma (6 + 30)
+
+
+def test_los_valores_vacios_de_polar_no_cuentan_como_datos(conn):
+    d = date(2026, 9, 28)
+    store_raw(
+        conn,
+        source="polar",
+        endpoint="nightly-recharge-results",
+        day=d,
+        body=_nr_doc("2026-09-28", 0, 0),
+    )
+    store_raw(
+        conn, source="polar", endpoint="activity", day=d, body=_act_doc("2026-09-28", ("A", []))
+    )
+    (rec,) = data.loop_days(conn)
+    assert rec["nr_rmssd"] is None and rec["nr_hr"] is None and rec["steps"] is None
+
+
+def test_home_con_la_loop_usa_la_loop_y_conserva_la_carga_de_intervals(conn):
+    seed_days(conn, 30)  # intervals.icu: solo debe aportar la carga
+    seed_loop(conn, 10)
+    h = data.home(conn, source="loop")
+    noche, nervioso, carga = h["dials"]
+    assert (noche["origin"], nervioso["origin"], carga["origin"]) == ("POLAR", "POLAR", "INTERVALS")
+    assert (nervioso["tag"], carga["tag"]) == ("CALC", "CALC")
+    assert noche["signal"] == "loop_sleep" and nervioso["signal"] == "loop_hrv"
+    assert [s["key"] for s in h["signals"]] == ["loop_hrv", "loop_hr", "loop_sleep", "ctl"]
+    assert {s["key"]: s["origin"] for s in h["signals"]}["ctl"] == "INTERVALS"
+    assert h["steps_source"] == "Polar Loop" and h["steps"] == 5 + 9 + 7 and h["source"] == "loop"
+    assert h["steps_day"] == "2026-09-29"
+
+
+def test_la_loop_no_mezcla_datos_del_reloj(conn):
+    seed_days(conn, 30)  # solo hay reloj: sueño, VFC y pasos de intervals no deben colarse
+    h = data.home(conn, source="loop")
+    assert h["dials"][0]["state"] == "sin datos" and h["dials"][1]["state"] == "sin datos"
+    assert h["steps"] is None and h["dials"][2]["value"] != "—"  # la carga sí sale de intervals
+
+
+def test_una_sola_noche_de_la_loop_no_inventa_un_rango(conn):
+    seed_loop(conn, 1)
+    noche, nervioso, _ = data.home(conn, source="loop")["dials"]
+    assert noche["state"].startswith("sin rango") and "1/7" in noche["state"]
+    assert noche["value"] != "—" and nervioso["value"] != "—" and noche["band"] is None
+
+
+def test_con_diez_noches_de_la_loop_ya_hay_rango_y_estado(conn):
+    seed_loop(conn, 10)
+    noche, nervioso, _ = data.home(conn, source="loop")["dials"]
+    assert noche["state"] in {"en rango", "por encima", "por debajo"} and noche["band"] is not None
+    assert nervioso["state"] in {"en rango", "por encima", "por debajo"}
+
+
+def test_detalle_de_una_senal_de_la_loop(conn):
+    seed_loop(conn, 10)
+    mark_status(conn, source="polar", endpoint="sleeps", ok=True)
+    hrv = data.signal_detail(conn, "loop_hrv", 28)
+    assert (hrv["origin"], hrv["source_label"], hrv["label"]) == ("POLAR", "Polar Loop", "VFC")
+    assert hrv["nature"].startswith("CALC") and "Nightly Recharge" in hrv["nature"]
+    assert hrv["updated_min"] is not None and hrv["available_days"] == 10
+    sleep = data.signal_detail(conn, "loop_sleep", 28)
+    assert sleep["nature"] == "MED · medido por la Loop" and sleep["agg"] == "last"
+    assert ":" in sleep["value"] and sleep["value"].endswith(" h")
+    hr = data.signal_detail(conn, "loop_hr", 28)
+    assert hr["unit"] == "lpm" and hr["range"] is not None
+
+
+def test_las_senales_del_reloj_siguen_siendo_de_intervals(conn):
+    seed_days(conn, 30)
+    d = data.signal_detail(conn, "hrv", 28)
+    assert (d["origin"], d["source_label"]) == ("INTERVALS", "intervals.icu")
+
+
+def test_api_usa_la_loop_por_defecto_y_intervals_si_se_configura(conn, settings):
+    import dataclasses
+
+    seed_loop(conn, 10)
+    seed_days(conn, 30)
+    loop_client = TestClient(create_app(lambda: conn, settings))
+    assert settings.wellness_source == "loop"
+    h = loop_client.get("/api/home").json()
+    assert h["source"] == "loop" and h["dials"][0]["origin"] == "POLAR"
+    assert loop_client.get("/api/senal/loop_hrv?days=28").status_code == 200
+    watch = TestClient(
+        create_app(lambda: conn, dataclasses.replace(settings, wellness_source="intervals"))
+    )
+    h2 = watch.get("/api/home").json()
+    assert h2["source"] == "intervals" and h2["dials"][0]["origin"] == "INTERVALS"
+
+
+def test_wellness_source_se_lee_del_entorno_con_valor_seguro_por_defecto(tmp_path, monkeypatch):
+    from ares.config import load_settings
+
+    monkeypatch.setenv("ARES_DATA_DIR", str(tmp_path))
+    nada = tmp_path / "no-existe.env"
+    monkeypatch.delenv("WELLNESS_SOURCE", raising=False)
+    assert load_settings(env_file=nada).wellness_source == "loop"
+    monkeypatch.setenv("WELLNESS_SOURCE", "intervals")
+    assert load_settings(env_file=nada).wellness_source == "intervals"
+    monkeypatch.setenv("WELLNESS_SOURCE", "cualquier-cosa")
+    assert load_settings(env_file=nada).wellness_source == "loop"
