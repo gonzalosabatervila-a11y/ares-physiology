@@ -69,6 +69,12 @@ function syncDot(sources) {
   if (live.some((s) => s.level === 'warn')) return 'warn';
   return '';
 }
+function latestSyncText(sources) {
+  const times = sources.map((s) => s.last_ok).filter(Boolean).map((v) => new Date(v)).filter((d) => !Number.isNaN(d.getTime()));
+  if (!times.length) return 'Sin sincronizaciones todavía';
+  const latest = new Date(Math.max(...times.map((d) => d.getTime())));
+  return `Última sincronización · ${latest.toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'})}`;
+}
 
 // --------------------------------------------------------------- gráficos
 function arc(cx, cy, r, p0, p1) {
@@ -194,17 +200,46 @@ document.addEventListener('click', (e) => {
   if (e.target.closest('[data-howto]')) return howtoSheet();
   const c = e.target.closest('[data-chip]');
   if (c) return sourceSheet(c.dataset.chip, ROUTE_STATE.sources || []);
-  if (e.target.closest('[data-sync]')) return route(true);
+  if (e.target.closest('[data-sync]')) return manualSync();
   const seg = e.target.closest('[data-days]');
   if (seg) return setDays(+seg.dataset.days);
 });
+
+async function manualSync() {
+  let btn = document.querySelector('[data-sync]');
+  if (!btn || btn.disabled) return;
+  btn.disabled = true;
+  btn.classList.add('spin');
+  let msg = document.querySelector('.sync-msg');
+  if (msg) msg.textContent = 'Actualizando…';
+  try {
+    const r = await fetch('/api/sync', {method: 'POST', cache: 'no-store'});
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    await route(true);
+    msg = document.querySelector('.sync-msg');
+    if (msg) msg.textContent = 'Actualizado ahora';
+    window.setTimeout(() => {
+      const current = document.querySelector('.sync-msg');
+      if (current && current.textContent === 'Actualizado ahora') current.textContent = '';
+    }, 2200);
+  } catch (err) {
+    msg = document.querySelector('.sync-msg');
+    if (msg) msg.textContent = 'Error al actualizar';
+  } finally {
+    btn = document.querySelector('[data-sync]');
+    if (btn) {
+      btn.disabled = false;
+      btn.classList.remove('spin');
+    }
+  }
+}
 
 // ------------------------------------------------------------------- vistas
 const ROUTE_STATE = {sources: [], days: 28, progDays: 28, data: null};
 function pageTop(sources) {
   const date = new Date().toLocaleDateString('es-ES', {weekday: 'long', day: 'numeric', month: 'long'});
   return `<header class="top"><div class="brand">${MARK}<div><h1>ARES</h1><div class="date">${esc(cap(date))}</div></div></div>
-<button class="sync" data-sync aria-label="Actualizar datos">${svg('sync')}<span class="dot ${syncDot(sources)}"></span></button></header>`;
+<div class="sync-wrap"><button class="sync" data-sync aria-label="Sincronizar ahora">${svg('sync')}<span class="dot ${syncDot(sources)}"></span></button><small class="sync-msg" aria-live="polite"></small></div></header>`;
 }
 function chips(sources) {
   const rank = {none: 0, ok: 1, warn: 2, bad: 3};
@@ -221,15 +256,27 @@ function chips(sources) {
     return `<button class="chip" data-chip="${esc(s.source)}" aria-label="${esc(SRC_NAME[s.source] || s.source)}: ${esc(st.text)}. Ver detalle">${GLYPH[s.source] || ''}<span class="${st.cls}"><b>${esc(SRC_NAME[s.source] || s.source)}</b><small><i class="dot-s"></i>${esc(st.text)}</small></span></button>`;
   }).join('')}</div>`;
 }
-const WAVE = `<svg class="wave" viewBox="0 0 200 110" fill="none" aria-hidden="true"><path d="M0 80C25 30 45 100 75 55S130 25 160 45 190 20 200 10" stroke="#45D4E5" stroke-opacity=".5" stroke-width="1.6"/><path d="M0 98C30 60 55 108 90 78S140 50 170 68 195 40 200 34" stroke="#45D4E5" stroke-opacity=".28" stroke-width="1.4"/></svg>`;
+const HERO_ART = `<svg class="hero-art" viewBox="0 0 420 220" fill="none" aria-hidden="true">
+<defs>
+  <linearGradient id="mtn" x1="110" y1="20" x2="330" y2="205" gradientUnits="userSpaceOnUse"><stop stop-color="#8EA0A7" stop-opacity=".42"/><stop offset="1" stop-color="#182126" stop-opacity=".1"/></linearGradient>
+  <linearGradient id="fade" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#45D4E5" stop-opacity=".22"/><stop offset="1" stop-color="#45D4E5" stop-opacity="0"/></linearGradient>
+</defs>
+<path d="M70 190L182 52l54 67 40-46 98 117H70Z" fill="url(#mtn)"/>
+<path d="M124 190l87-112 29 37 35-40 91 115H124Z" fill="url(#fade)"/>
+<path d="M70 190h304" stroke="rgba(255,255,255,.16)" stroke-width="1"/>
+<g transform="translate(280 92)" stroke="#EEF1F2" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="22" cy="10" r="8" fill="#EEF1F2" stroke="none"/>
+  <path d="M18 24l-16 28m16-28 27 15m-27-15 17 31m10-16 21 3M18 55 2 82m33-27 25 21"/>
+</g>
+</svg>`;
 const LEVEL_TXT = {sin_cambios: 'Mantener plan', vigilar: 'Vigilar', evitar_intensidad: 'Evitar intensidad', descanso: 'Descanso o revisar salud'};
 function hero(e) {
   if (e.mode === 'sombra') {
     return `<section class="card hero" aria-label="Estado de hoy"><div class="row"><span class="eyebrow">Estado de hoy</span><span class="pill sig">Modo sombra</span></div>
-<h2>Construyendo tu línea base</h2><p>Estamos recopilando tus datos para establecer tu referencia personal. Mientras tanto puedes consultar tus datos y tendencias.</p>${WAVE}</section>`;
+<h2>Construyendo tu línea base</h2><p>Estamos recopilando tus datos para establecer tu referencia personal. Mientras tanto puedes consultar tus datos y tendencias.</p>${HERO_ART}</section>`;
   }
   return `<section class="card hero" aria-label="Estado de hoy"><div class="row"><span class="eyebrow">Estado de hoy</span><span class="pill sig">${esc(e.date)}</span></div>
-<h2>${esc(LEVEL_TXT[e.level] || e.level)}</h2>${e.cause ? `<p>${esc(e.cause)}</p>` : ''}${WAVE}</section>`;
+<h2>${esc(LEVEL_TXT[e.level] || e.level)}</h2>${e.cause ? `<p>${esc(e.cause)}</p>` : ''}${HERO_ART}</section>`;
 }
 function baseline(e) {
   const pct = Math.round(100 * e.nights / e.target);
@@ -249,7 +296,7 @@ function renderInicio(d) {
   const steps = d.steps === null
     ? '<span class="muted">Sin pasos todavía.</span>'
     : `<div><div class="eyebrow">Pasos · ${esc(shortDate(d.steps_day || d.last_day))}</div><div class="big">${d.steps.toLocaleString('es-ES')}</div></div><span class="muted">${esc(d.steps_source || 'intervals.icu')}</span>`;
-  view.innerHTML = pageTop(d.sources) + chips(d.sources) + hero(d.estado) +
+  view.innerHTML = pageTop(d.sources) + chips(d.sources) + `<div class="sync-summary">${esc(latestSyncText(d.sources))}</div>` + hero(d.estado) +
     `<div class="gauges" role="group" aria-label="Indicadores principales">${d.dials.map(gauge).join('')}</div>
 <button class="howto" data-howto>${svg('info')}Cómo leer estos indicadores</button>` + baseline(d.estado) +
     `<div class="h2"><span class="eyebrow">Señales principales</span></div>${d.signals.map(sigRow).join('')}
@@ -374,8 +421,6 @@ async function route(refresh = false) {
   } else if (tab === 'progreso') { url = '/api/progreso'; fn = renderProgreso; }
   else if (tab === 'lab') { url = '/api/lab'; fn = renderLab; }
   else { url = '/api/home'; fn = renderInicio; }
-  const btn = document.querySelector('[data-sync]');
-  if (btn) btn.classList.add('spin');
   try {
     const r = await fetch(url, {cache: 'no-store'});
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -391,3 +436,6 @@ async function route(refresh = false) {
 }
 window.addEventListener('hashchange', () => route());
 route();
+window.setInterval(() => {
+  if (!document.hidden) route(true);
+}, 10 * 60 * 1000);
