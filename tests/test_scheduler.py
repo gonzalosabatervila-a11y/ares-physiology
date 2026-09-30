@@ -1,5 +1,5 @@
-"""El planificador registra los dos tramos horarios del plan (mañana y día)
-y `run_now` ejecuta una pasada inmediata sin esperar al cron."""
+"""El planificador sincroniza cada 10 minutos durante el día y `run_now`
+ejecuta una pasada inmediata sin esperar al cron."""
 
 from __future__ import annotations
 
@@ -8,12 +8,14 @@ import structlog
 from ares.scheduler import AresScheduler, in_morning_window
 
 
-def test_registra_las_dos_tareas_con_sus_horarios(conn, settings):
+def test_registra_la_tarea_de_diez_minutos(conn, settings):
     sch = AresScheduler(conn, settings, structlog.get_logger("test"))
     sch.start()
     try:
         ids = set(sch.next_run_times.keys())
-        assert ids == {"morning", "day"}
+        assert ids == {"sync10"}
+        nxt = sch.next_run_times["sync10"]
+        assert nxt is not None and nxt.minute % 10 == 0 and 6 <= nxt.hour <= 23
     finally:
         sch.shutdown(wait=False)
 
