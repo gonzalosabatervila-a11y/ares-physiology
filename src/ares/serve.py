@@ -35,13 +35,16 @@ def _install_signal_handlers(stop: list[bool]) -> None:
 
 
 def start_app(
-    conn: duckdb.DuckDBPyConnection, settings: Settings, logger: structlog.stdlib.BoundLogger
+    conn: duckdb.DuckDBPyConnection,
+    settings: Settings,
+    logger: structlog.stdlib.BoundLogger,
+    sync_now=None,
 ) -> tuple[uvicorn.Server, threading.Thread] | None:
     """Levanta la app en un hilo. Si no puede (puerto ocupado), lo registra y devuelve None:
     la sincronización es más importante que la app y no debe caer por esto."""
     host, _, port = settings.app_bind.rpartition(":")
     config = uvicorn.Config(
-        create_app(lambda: conn, settings), host=host, port=int(port), log_level="warning"
+        create_app(lambda: conn, settings, sync_now=sync_now), host=host, port=int(port), log_level="warning"
     )
     server = uvicorn.Server(config)
 
@@ -89,7 +92,7 @@ def run(run_once: bool = False) -> int:
         if run_once:
             return 0
 
-        app = start_app(conn, settings, logger)
+        app = start_app(conn, settings, logger, sync_now=scheduler.run_now)
         scheduler.start()
         stop = [False]
         _install_signal_handlers(stop)
