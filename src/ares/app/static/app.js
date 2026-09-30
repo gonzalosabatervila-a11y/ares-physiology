@@ -337,7 +337,7 @@ function renderLab(d) {
 <section class="card"><div class="eyebrow" style="margin-bottom:4px">Fuentes</div><div class="list">${src}</div></section>
 <section class="card"><div class="eyebrow" style="margin-bottom:10px">Capa bruta</div>${raw}</section>
 <section class="card"><div class="eyebrow" style="margin-bottom:4px">Últimas ejecuciones</div>${runs}</section>
-<section class="card"><div class="eyebrow" style="margin-bottom:8px">Versiones</div><p class="muted mono" style="margin:0;font-size:12px">esquema v${esc(d.versions.schema)} · reglas ${esc(d.versions.rules)} · filtro ${esc(d.versions.filter)}</p></section>
+<section class="card"><div class="eyebrow" style="margin-bottom:8px">Versiones</div><p class="muted mono" style="margin:0;font-size:12px">esquema v${esc(d.versions.schema)} · reglas ${esc(d.versions.rules)} · filtro ${esc(d.versions.filter)} · código ${esc(d.versions.code)}</p></section>
 <section class="card"><div class="eyebrow" style="margin-bottom:8px">Leyenda</div>${LEGEND_KV}</section>`;
 }
 

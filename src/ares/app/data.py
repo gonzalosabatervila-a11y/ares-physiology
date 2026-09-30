@@ -15,6 +15,8 @@ from typing import Any
 
 import duckdb
 
+from .. import jobs
+
 NIGHTS_TARGET = 21  # noches válidas para salir del modo sombra
 MIN_DAYS_FOR_RANGE = 7  # días mínimos para calcular un rango personal
 RANGE_K = 0.5  # rango normal = media ± 0,5 DT (decisión de diseño ARES, ver plan)
@@ -321,6 +323,11 @@ def _src_status(conn: duckdb.DuckDBPyConnection, name: str, now: datetime | None
     if not rows:
         return {"age_min": None, "last_ok": None, "level": "none"}
     return max(rows, key=lambda s: (rank[s["level"]], s["age_min"] or 0))
+
+
+def _code_version() -> str:
+    """Commit del código que corre (el mismo que queda en job_runs)."""
+    return jobs.git_commit()
 
 
 ORIGIN_LABEL = {"INTERVALS": "intervals.icu", "POLAR": "Polar Loop"}
@@ -824,6 +831,7 @@ def lab(conn: duckdb.DuckDBPyConnection, settings, now: datetime | None = None) 
             "schema": version,
             "rules": settings.rules_version,
             "filter": settings.filter_version,
+            "code": _code_version(),
         },
         "generated": (now or datetime.now(UTC)).isoformat(),
     }

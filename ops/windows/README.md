@@ -89,3 +89,53 @@ las sincronizaciones no dicen «Falta el secreto» ni «no está autorizado»:
 ```powershell
 Get-Content C:\ares\ops\windows\service-stdout.log -Tail 40
 ```
+
+
+## Actualizar desde GitHub (una configuración única y después un comando)
+
+El HP no recibe el código por zip: lo trae de GitHub con una **clave de despliegue de solo lectura**.
+Es una clave atada a un único repositorio: no da acceso a tu cuenta ni permite escribir. La clave
+privada se crea en el HP y no sale de él.
+
+**Configuración única, en el HP (PowerShell normal):**
+
+```powershell
+ssh -V
+New-Item -ItemType Directory -Force "$env:USERPROFILE\.ssh" | Out-Null
+ssh-keygen -t ed25519 -f "$env:USERPROFILE\.ssh\ares_deploy" -N '""' -C "ares-hp solo lectura"
+Get-Content "$env:USERPROFILE\.ssh\ares_deploy.pub"
+```
+
+Copia la línea que imprime el último comando (es la clave pública; no es secreta). En GitHub:
+repositorio → Settings → Deploy keys → Add deploy key → título `ares-hp (solo lectura)`, pegas la
+clave y **dejas sin marcar «Allow write access»**.
+
+Después, en el HP, la clave del servidor de GitHub (tomada de la página oficial de huellas de GitHub,
+para no tener que aceptar ningún aviso) y la configuración de SSH:
+
+```powershell
+Add-Content -Encoding ascii "$env:USERPROFILE\.ssh\known_hosts" "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl"
+@("Host github.com", "  IdentityFile ~/.ssh/ares_deploy", "  IdentitiesOnly yes", "  StrictHostKeyChecking yes") | Add-Content -Encoding ascii "$env:USERPROFILE\.ssh\config"
+ssh -T git@github.com
+```
+
+Debe responder que te has autenticado y que GitHub no da acceso a una terminal. Y alinear el HP con GitHub:
+
+```powershell
+cd C:\ares
+git remote set-url origin git@github.com:gonzalosabatervila-a11y/ares-physiology.git
+git fetch origin
+git reset --hard origin/master
+nssm restart ARESPhysiology
+```
+
+Tu `.env`, el entorno `.venv` y los datos no se tocan.
+
+**A partir de entonces, cada cambio:** en el Mac `git push`, y en el HP (PowerShell como administrador):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File C:\ares\ops\windows\update.ps1
+```
+
+Con `-Check` solo enseña qué llegaría. El script pasa las pruebas antes de reiniciar el servicio y, si
+algo falla, vuelve a la versión anterior. En Lab, «código» dice qué versión corre.

@@ -631,3 +631,8 @@ def test_wellness_source_se_lee_del_entorno_con_valor_seguro_por_defecto(tmp_pat
     assert load_settings(env_file=nada).wellness_source == "intervals"
     monkeypatch.setenv("WELLNESS_SOURCE", "cualquier-cosa")
     assert load_settings(env_file=nada).wellness_source == "loop"
+
+
+def test_lab_dice_que_version_del_codigo_corre(conn, settings):
+    v = data.lab(conn, settings)["versions"]
+    assert isinstance(v["code"], str) and v["code"]
