@@ -23,7 +23,11 @@ STATIC = Path(__file__).parent / "static"
 mimetypes.add_type("application/manifest+json", ".webmanifest")  # según el sistema no viene
 
 
-def create_app(get_conn: Callable[[], duckdb.DuckDBPyConnection], settings: Settings) -> FastAPI:
+def create_app(
+    get_conn: Callable[[], duckdb.DuckDBPyConnection],
+    settings: Settings,
+    sync_now: Callable[[], None] | None = None,
+) -> FastAPI:
     app = FastAPI(title="ARES", docs_url=None, redoc_url=None, openapi_url=None)
 
     def cursor() -> duckdb.DuckDBPyConnection:
@@ -48,6 +52,20 @@ def create_app(get_conn: Callable[[], duckdb.DuckDBPyConnection], settings: Sett
     @app.get("/api/lab")
     def api_lab() -> dict:
         return data.lab(cursor(), settings)
+
+    @app.post("/api/sync")
+    def api_sync() -> dict:
+        if sync_now is None:
+            raise HTTPException(status_code=503, detail="sincronización manual no disponible")
+        sync_now()
+        return {"ok": True}
+
+    @app.middleware("http")
+    async def no_cache_static(request, call_next):
+        response = await call_next(request)
+        if request.url.path == "/" or request.url.path.startswith("/static/"):
+            response.headers["Cache-Control"] = "no-store, max-age=0"
+        return response
 
     @app.get("/")
     def index() -> FileResponse:
