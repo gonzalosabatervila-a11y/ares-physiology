@@ -35,7 +35,16 @@ nssm set $ServiceName AppRotateBytes 10485760
 # Reinicia si el proceso cae, con una pequeña espera entre intentos.
 nssm set $ServiceName AppExit Default Restart
 nssm set $ServiceName AppRestartDelay 15000
+# Al parar el servicio, NSSM envía Ctrl+C y espera 20 s: ARES cierra el planificador y la base limpiamente.
+nssm set $ServiceName AppStopMethodConsole 20000
 
-Write-Host "Servicio '$ServiceName' registrado. Para arrancarlo: nssm start $ServiceName"
+Write-Host "Servicio '$ServiceName' registrado (aun sin usuario)."
+Write-Host ""
+Write-Host "PASO OBLIGATORIO antes de arrancarlo: que corra con TU usuario de Windows, porque las claves"
+Write-Host "y los tokens de ARES estan en el Administrador de credenciales de esa cuenta:"
+Write-Host "    nssm edit $ServiceName      ->  pestana 'Log on'  ->  'This account'  ->  usuario y contrasena  ->  Edit service"
+Write-Host "(Se hace en la ventana para que la contrasena no quede en el historial de PowerShell.)"
+Write-Host ""
+Write-Host "Despues:  nssm start $ServiceName"
 Write-Host "Para ver su estado: Get-Service $ServiceName"
 Write-Host "Para desinstalarlo: nssm remove $ServiceName confirm"

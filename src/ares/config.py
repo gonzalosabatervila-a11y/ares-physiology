@@ -34,6 +34,7 @@ class Settings:
     backfill_max_days: int
     migrations_dir: Path
     polar_redirect_uri: str
+    app_bind: str = "127.0.0.1:8443"
 
     @property
     def db_path(self) -> Path:
@@ -64,6 +65,7 @@ def load_settings(env_file: Path | None = None) -> Settings:
         backfill_max_days=int(_clean(env.get("BACKFILL_MAX_DAYS", "30"))),
         migrations_dir=migrations.expanduser(),
         polar_redirect_uri=_clean(env.get("POLAR_REDIRECT_URI", "http://localhost:8765/callback")),
+        app_bind=_clean(env.get("APP_BIND", "127.0.0.1:8443")),
     )
 
 

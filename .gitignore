@@ -7,3 +7,10 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+
+# Datos de salud: nunca al repositorio
+probe/
+h10/
+*.csv
+*.fit
+*.tcx

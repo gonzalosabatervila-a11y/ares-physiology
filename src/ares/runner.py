@@ -9,23 +9,28 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import duckdb
 import structlog
 
 from . import db, jobs
 from .config import Settings, get_secret
+from .connectors import polar_tokens
 from .connectors.base import HttpClient
 from .connectors.intervals import SyncResult as IntervalsResult
 from .connectors.intervals import sync_wellness
+from .connectors.polar import SyncResult as PolarResult
+from .connectors.polar import sync_polar
 from .connectors.tredict import SyncResult as TredictResult
 from .connectors.tredict import sync_activities
 
-SyncOutcome = IntervalsResult | TredictResult
+SyncOutcome = IntervalsResult | TredictResult | PolarResult
 
 INCREMENTAL_DAYS = 3
 SOURCE_SECRETS = {"intervals": "intervals_api_key", "tredict": "tredict_token"}
-SOURCE_ENDPOINT = {"intervals": "wellness", "tredict": "activity"}
+SOURCE_ENDPOINT = {"intervals": "wellness", "tredict": "activity", "polar": "sleeps"}
+SOURCES = ("intervals", "tredict", "polar")  # Polar se autentica con OAuth, no con una clave
 
 
 class SyncSkipped(RuntimeError):
@@ -39,6 +44,7 @@ class RunResult:
     inserted: int
     days_used: int
     backfill: bool
+    ppi_rows: int | None = None
 
 
 def days_to_request(
@@ -79,9 +85,16 @@ def run_source_sync(
     # así un monkeypatch de `get_secret` a nivel de módulo (tests, o un backend
     # de secretos distinto en el futuro) se respeta también en llamadas sin él.
     endpoint = SOURCE_ENDPOINT[source]
-    key = (secret_getter or get_secret)(SOURCE_SECRETS[source])
-    if not key:
-        raise SyncSkipped(f"Falta el secreto {SOURCE_SECRETS[source]}")
+    if source == "polar":
+        try:  # renueva el token si hace falta (el refresh token rota: solo un proceso a la vez)
+            key = polar_tokens.get_access_token()
+        except polar_tokens.TokenError as exc:
+            raise SyncSkipped(str(exc)) from exc
+    else:
+        secret = (secret_getter or get_secret)(SOURCE_SECRETS[source])
+        if not secret:
+            raise SyncSkipped(f"Falta el secreto {SOURCE_SECRETS[source]}")
+        key = secret
 
     used_days, was_backfill = (
         (days, False)
@@ -101,6 +114,9 @@ def run_source_sync(
         res: SyncOutcome
         if source == "intervals":
             res = sync_wellness(conn, http_client, key, settings.intervals_athlete_id, used_days)
+        elif source == "polar":
+            today = datetime.now(ZoneInfo(settings.tz)).date()  # el «día» de Polar es el local
+            res = sync_polar(conn, http_client, key, used_days, today)
         else:
             res = sync_activities(conn, http_client, key, used_days)
     except Exception as exc:
@@ -115,12 +131,15 @@ def run_source_sync(
         )
         raise
 
+    ppi_rows = getattr(res, "ppi_rows", None)
     detail = {
         "days": used_days,
         "fetched": res.fetched,
         "inserted": res.inserted,
         "backfill": was_backfill,
     }
+    if ppi_rows is not None:
+        detail["ppi_rows"] = ppi_rows
     jobs.finish(conn, run_id, "ok", detail)
     logger.info("sync_ok", source=source, endpoint=endpoint, **detail)
     return RunResult(
@@ -129,6 +148,7 @@ def run_source_sync(
         inserted=res.inserted,
         days_used=used_days,
         backfill=was_backfill,
+        ppi_rows=ppi_rows,
     )
 
 
@@ -137,7 +157,7 @@ def run_all(
 ) -> list[RunResult | SyncSkipped]:
     """Sincroniza todas las fuentes conocidas; una fuente fallida no bloquea las demás."""
     out: list[RunResult | SyncSkipped] = []
-    for source in SOURCE_SECRETS:
+    for source in SOURCES:
         try:
             out.append(run_source_sync(conn, source, settings, logger=logger))
         except SyncSkipped as exc:

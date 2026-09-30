@@ -164,3 +164,20 @@ def test_render_incluye_resumen_y_carpeta(tmp_path: Path):
     out = probe.render(results, tmp_path)
     assert "13/13 llamadas correctas" in out
     assert str(tmp_path) in out
+
+
+def test_una_fecha_de_nacimiento_no_se_muestra():
+    """Regresión: la sonda enseñó `birthday` tal cual en la primera noche real."""
+    body = {
+        "nightSleeps": [
+            {
+                "sleepDate": "2026-09-30",
+                "birthday": "1990-11-11",
+                "deviceReference": {"uuid": "0e030000-0084-0000-0000-00001234abcd"},
+            }
+        ]
+    }
+    text = "\n".join(probe.shape_of(body))
+    assert "1990" not in text and "11-11" not in text
+    assert "birthday: fecha NNNN-NN-NN" in text
+    assert "sleepDate: fecha 2026-09-30" in text  # los días con datos sí se ven

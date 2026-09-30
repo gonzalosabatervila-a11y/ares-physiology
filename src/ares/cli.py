@@ -1,4 +1,4 @@
-"""CLI de ARES · Bootstrap v0.3.1: init-db, secret, sync, doctor, stats, serve, polar-auth."""
+"""CLI de ARES · Bootstrap v0.5: init-db, secret, sync, doctor, stats, serve, polar-auth."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import sys
 from datetime import UTC, date, datetime
 from zoneinfo import ZoneInfo
 
-from . import __version__, db, doctor, log, runner, serve
+from . import __version__, db, doctor, log, polar_night, runner, serve
 from .config import KNOWN_SECRETS, KeyringUnavailable, get_secret, load_settings, set_secret
 from .connectors import polar_oauth, polar_probe, polar_tokens
 
@@ -43,7 +43,7 @@ def cmd_secret(args: argparse.Namespace) -> int:
     return 0
 
 
-SOURCE_LABELS = {"intervals": "intervals.icu", "tredict": "Tredict"}
+SOURCE_LABELS = {"intervals": "intervals.icu", "tredict": "Tredict", "polar": "Polar"}
 
 
 def cmd_sync(args: argparse.Namespace) -> int:
@@ -66,6 +66,7 @@ def cmd_sync(args: argparse.Namespace) -> int:
         print(
             f"{SOURCE_LABELS[args.source]} · {res.fetched} recibidos · "
             f"{res.inserted} nuevos · {res.fetched - res.inserted} sin cambios"
+            + (f" · {res.ppi_rows} PPI nuevos" if res.ppi_rows is not None else "")
         )
     finally:
         conn.close()
@@ -152,8 +153,45 @@ def cmd_polar_probe(args: argparse.Namespace) -> int:
     return 0 if any(r.status == 200 for r in results) else 1
 
 
+def cmd_app(args: argparse.Namespace) -> int:
+    import uvicorn  # solo hace falta aquí
+
+    from .app.server import create_app
+
+    s = load_settings()
+    try:
+        conn = db.connect_read_only(s.db_path)
+    except FileNotFoundError as exc:
+        print(str(exc))
+        return 1
+    except Exception as exc:  # p. ej. `ares serve` tiene la base abierta para escribir
+        print(f"No se puede abrir la base en solo lectura: {exc}")
+        return 1
+    bind = args.bind or s.app_bind
+    host, _, port = bind.rpartition(":")
+    print(f"App de ARES en http://{host}:{port}  (solo lectura · Ctrl+C para salir)")
+    try:
+        uvicorn.run(create_app(lambda: conn, s), host=host, port=int(port), log_level="warning")
+    finally:
+        conn.close()
+    return 0
+
+
+def cmd_polar_night(args: argparse.Namespace) -> int:
+    s = load_settings()
+    tz = ZoneInfo(s.tz)
+    day = date.fromisoformat(args.date) if args.date else datetime.now(tz).date()
+    try:
+        report = polar_night.night_report(s.data_dir / "probe", day, tz)
+    except polar_night.NightError as exc:
+        print(str(exc))
+        return 1
+    print(polar_night.render(report))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="ares", description="ARES Physiology · Bootstrap v0.3.1")
+    p = argparse.ArgumentParser(prog="ares", description="ARES Physiology · Bootstrap v0.5")
     p.add_argument("--version", action="version", version=f"ares {__version__}")
     sub = p.add_subparsers(dest="cmd", required=True)
 
@@ -167,7 +205,7 @@ def build_parser() -> argparse.ArgumentParser:
     ps.set_defaults(func=cmd_secret)
 
     py = sub.add_parser("sync", help="sincroniza una fuente (manual, fuera del planificador)")
-    py.add_argument("source", choices=["intervals", "tredict"])
+    py.add_argument("source", choices=["intervals", "tredict", "polar"])
     py.add_argument(
         "--days",
         type=int,
@@ -200,12 +238,29 @@ def build_parser() -> argparse.ArgumentParser:
     )
     pp.add_argument("--day", help="día a sondear (AAAA-MM-DD); por defecto, hoy")
     pp.set_defaults(func=cmd_polar_probe)
+
+    pa = sub.add_parser(
+        "app", help="app local (Inicio, Progreso, Lab) sobre tus datos reales; solo lectura"
+    )
+    pa.add_argument("--bind", help="host:puerto (por defecto APP_BIND o 127.0.0.1:8443)")
+    pa.set_defaults(func=cmd_app)
+
+    pn = sub.add_parser(
+        "polar-night",
+        help="analiza una noche de la Loop con los ficheros de la sonda (solo lectura)",
+    )
+    pn.add_argument("--date", help="fecha del despertar (AAAA-MM-DD); por defecto, hoy")
+    pn.set_defaults(func=cmd_polar_night)
     return p
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    return int(args.func(args))
+    try:
+        return int(args.func(args))
+    except db.DatabaseBusy as exc:
+        print(str(exc))
+        return 1
 
 
 if __name__ == "__main__":

@@ -53,3 +53,39 @@ el servicio debería quedar vivo salvo intervención manual o fallo repetido.
 nssm stop ARESPhysiology
 nssm remove ARESPhysiology confirm
 ```
+
+
+## La app dentro del servicio (v0.5)
+
+`ares serve` lleva dentro la app local (Inicio, Progreso, Lab) en `http://127.0.0.1:8443`,
+porque DuckDB solo deja abrir la base a un proceso: **con el servicio en marcha, `ares stats`,
+`ares sync` y `ares app` no pueden abrirla** y avisan con un mensaje claro. Para mirar el
+estado, usa la app o:
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:8443/api/lab | ConvertTo-Json -Depth 5
+Get-Content C:\ares\ops\windows\service-stdout.log -Tail 30
+```
+
+Si necesitas usar la línea de comandos: `nssm stop ARESPhysiology`, tus comandos y
+`nssm start ARESPhysiology`.
+
+## Verlo desde el iPhone o el Mac (Tailscale Serve)
+
+```powershell
+tailscale serve --bg 8443
+tailscale serve status
+```
+
+Publica la app solo en tu red privada de Tailscale, en `https://ares-hp.<tu-tailnet>.ts.net`.
+Requiere tener activados MagicDNS y los certificados HTTPS en la consola de administración de
+Tailscale (DNS). Para quitarlo: `tailscale serve reset`.
+
+## Comprobar que el servicio ve las claves
+
+Un servicio corre en otra sesión que la tuya. Después de arrancarlo, mira en el registro que
+las sincronizaciones no dicen «Falta el secreto» ni «no está autorizado»:
+
+```powershell
+Get-Content C:\ares\ops\windows\service-stdout.log -Tail 40
+```

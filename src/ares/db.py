@@ -25,6 +25,33 @@ class MigrationError(RuntimeError):
     pass
 
 
+class DatabaseBusy(RuntimeError):
+    """Otro proceso tiene la base abierta (DuckDB solo admite uno)."""
+
+
+_BUSY_HINTS = ("lock", "being used by another process", "used by another")
+
+
+def _open(path: Path, **kw: object) -> duckdb.DuckDBPyConnection:
+    try:
+        return duckdb.connect(str(path), **kw)  # type: ignore[arg-type]
+    except duckdb.IOException as exc:
+        if any(h in str(exc).lower() for h in _BUSY_HINTS):
+            raise DatabaseBusy(
+                "La base de datos está abierta por otro proceso: normalmente el servicio ARES "
+                "(`ares serve`). Usa la app, o para el servicio con `nssm stop ARESPhysiology`."
+            ) from exc
+        raise
+
+
+def _lf(data: bytes) -> bytes:
+    return data.replace(b"\r\n", b"\n")
+
+
+def _sha(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
 @dataclass(frozen=True)
 class Migration:
     version: int
@@ -37,12 +64,29 @@ class Migration:
 
     @property
     def sha256(self) -> str:
-        return hashlib.sha256(self.path.read_bytes()).hexdigest()
+        """Huella canónica: los saltos de línea se normalizan a LF, así que es la misma en
+        Mac, Linux y Windows (Git en Windows convierte a CRLF al clonar)."""
+        return _sha(_lf(self.path.read_bytes()))
+
+    def accepted_hashes(self) -> set[str]:
+        """Huellas válidas para una base ya creada: la canónica, la de los bytes tal cual y la
+        variante CRLF. Una base creada desde un clon de Windows guardó la de CRLF."""
+        raw = self.path.read_bytes()
+        lf = _lf(raw)
+        return {_sha(raw), _sha(lf), _sha(lf.replace(b"\n", b"\r\n"))}
 
 
 def connect(db_path: Path) -> duckdb.DuckDBPyConnection:
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    return duckdb.connect(str(db_path))
+    return _open(db_path)
+
+
+def connect_read_only(db_path: Path) -> duckdb.DuckDBPyConnection:
+    """Solo lectura, para la app en desarrollo. Falla si otro proceso (ares serve)
+    tiene la base abierta para escribir: en producción la app vive dentro de ese proceso."""
+    if not db_path.exists():
+        raise FileNotFoundError(f"No existe {db_path}: ejecuta ares init-db")
+    return _open(db_path, read_only=True)
 
 
 def discover(migrations_dir: Path) -> list[Migration]:
@@ -76,7 +120,7 @@ def verify(conn: duckdb.DuckDBPyConnection, migrations: list[Migration]) -> list
             raise MigrationError(
                 f"La base tiene la migración {v:03d} ({name}) y no existe el fichero"
             )
-        if m.sha256 != sha:
+        if sha not in m.accepted_hashes():
             raise MigrationError(
                 f"La migración {v:03d}_{m.name}.sql ha cambiado tras aplicarse. "
                 "Las migraciones aplicadas no se editan: crea una nueva."

@@ -22,6 +22,22 @@ repo → DuckDB → migraciones → keyring → intervals.icu real ✅
 + Gestor de token de Polar (`polar_tokens.py`): renueva antes de caducar y guarda el par nuevo ✅
 + Renovación robusta: si Polar no envía un refresh token nuevo, se conserva el anterior ✅
 
+## v0.5 — el servicio completo
++ `ares serve` lleva dentro la app y serializa las sincronizaciones (una a la vez) ✅
++ Aviso claro si otro proceso tiene la base abierta ✅
++ Conector de Polar (`ares sync polar`) con los PPI en filas normalizadas ✅
+
+## v0.3.2 — primera rebanada de la app
++ `ares app`: Inicio, Progreso y Lab de la UX v1 congelada, leyendo tu base real ✅
++ Modo sombra visible (0 de 21 noches), rango personal calculado con los días disponibles,
+  etiquetas MED/CALC/EST/EXP con su origen y estados vacíos honestos ✅
++ Fuentes con frescura y caídas (Lab y franja de Inicio) ✅
+
+Ver la app: `uv run ares app` y abrir http://127.0.0.1:8443. Necesita que `ares serve` no esté
+corriendo (DuckDB solo admite un escritor); en producción la app irá dentro de `ares serve`.
+Fuera de esta rebanada: las pantallas de detalle (Noche, Nervioso, Día, Entreno), la VFC propia
+y la Loop, que llegan con sus datos.
+
 **El conector de Polar en sí (`polar.py`: PPI, Nightly Recharge, sueño → capa
 bruta) no está en este paquete.** La forma exacta del JSON de `/ppi-samples` no
 está confirmada contra una respuesta real; se escribe mañana, con el cliente ya
@@ -91,6 +107,7 @@ no duplica nada.
 | `ares doctor [--offline]` | Python, zona horaria, carpeta de datos, schema_version, secretos y red (ambas fuentes) |
 | `ares polar-auth` | Autorización OAuth2 inicial con Polar (una sola vez; abre el navegador) |
 | `ares polar-probe [--day AAAA-MM-DD]` | Primera llamada real a Polar: enseña la estructura de lo que devuelve (claves, tipos, rangos, no valores) y guarda las respuestas en bruto en `<datos>/probe/`. Solo lectura |
+| `ares app [--bind host:puerto]` | App local (Inicio, Progreso, Lab) sobre tus datos reales, en http://127.0.0.1:8443. Solo lectura |
 | `ares serve [--once]` | Proceso único con el planificador interno; `--once` hace una pasada y sale (pruebas) |
 | `ares stats` | Filas de la capa bruta por fuente y últimas ejecuciones |
 

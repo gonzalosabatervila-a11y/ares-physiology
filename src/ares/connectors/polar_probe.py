@@ -23,6 +23,9 @@ from typing import Any, TypeGuard
 import httpx
 
 BASE_URL = "https://www.polaraccesslink.com/v4/data"
+# Fechas sueltas que sí se muestran (dicen qué días tienen datos); el resto se enmascara
+# (por ejemplo `birthday`, que es tu fecha de nacimiento).
+SAFE_DATE_KEYS = frozenset({"date", "sleepDate", "sleepResultDate"})
 PLAIN_RANGE_DAYS = 7  # cabe en el máximo de todos los endpoints (el menor es 7 d)
 
 
@@ -131,7 +134,10 @@ def describe(value: Any, name: str, indent: int, out: list[str]) -> None:
         else:
             out.append(f"{pad}  elementos: {scalar_shape(first)}")
     else:
-        out.append(f"{pad}{name}: {scalar_shape(value)}")
+        text = scalar_shape(value)
+        if isinstance(value, str) and _DATE_RE.match(value) and name not in SAFE_DATE_KEYS:
+            text = "fecha " + re.sub(r"\d", "N", value)
+        out.append(f"{pad}{name}: {text}")
 
 
 def shape_of(body: Any) -> list[str]:

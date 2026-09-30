@@ -5,6 +5,7 @@ Nada fuera de este proceso escribe en la base mientras el servicio corre.
 
 from __future__ import annotations
 
+import threading
 from datetime import datetime
 from datetime import time as dtime
 
@@ -36,10 +37,23 @@ class AresScheduler:
         self.settings = settings
         self.logger = logger
         self._scheduler = BackgroundScheduler(timezone=settings.tz)
+        self._lock = threading.Lock()
 
     def _tick(self, job: str) -> None:
-        self.logger.info("scheduler_tick", job=job)
-        runner.run_all(self.conn, self.settings, self.logger)
+        # Una sola sincronización a la vez: el refresh token de Polar rota en cada renovación y
+        # dos renovaciones simultáneas lo romperían. Si aún hay una en marcha, esta se omite.
+        if not self._lock.acquire(blocking=False):
+            self.logger.warning("scheduler_skip_overlap", job=job)
+            return
+        try:
+            self.logger.info("scheduler_tick", job=job)
+            cur = self.conn.cursor()  # cada hilo, su propio cursor (la conexión no es segura)
+            try:
+                runner.run_all(cur, self.settings, self.logger)
+            finally:
+                cur.close()
+        finally:
+            self._lock.release()
 
     def start(self) -> None:
         self._scheduler.add_job(

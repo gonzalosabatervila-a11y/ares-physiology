@@ -21,7 +21,7 @@ def test_schema_version_registra_las_tres_migraciones_con_hash(conn, settings):
     assert [(v, n) for v, n, _ in rows] == sorted(EXPECTED.items())
     for v, _, sha in rows:
         path = next(settings.migrations_dir.glob(f"{v:03d}_*.sql"))
-        assert sha == hashlib.sha256(path.read_bytes()).hexdigest()
+        assert sha == hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
     assert db.current_version(conn) == 3
 
 
@@ -77,3 +77,64 @@ def test_decisions_recomputed_admite_varias_simulaciones_mismo_dia_y_reglas(conn
             [rid, fv],
         )
     assert conn.execute("SELECT count(*) FROM decisions_recomputed").fetchone()[0] == 2
+
+
+def _to_crlf(mig_dir: Path) -> None:
+    for f in mig_dir.glob("*.sql"):
+        f.write_bytes(f.read_bytes().replace(b"\r\n", b"\n").replace(b"\n", b"\r\n"))
+
+
+def test_los_saltos_de_linea_no_cuentan_como_edicion(settings, tmp_path: Path):
+    mig = tmp_path / "migrations"
+    shutil.copytree(settings.migrations_dir, mig)
+    c = db.connect(tmp_path / "t.duckdb")
+    db.migrate(c, mig)
+    _to_crlf(mig)  # el mismo SQL, con otros saltos de línea
+    assert db.migrate(c, mig) == []
+    c.close()
+
+
+def test_base_creada_en_windows_con_huella_crlf_sigue_valida_con_ficheros_lf(
+    settings, tmp_path: Path
+):
+    """Caso real del HP (30/09/2026): el clon con Git dejó CRLF y la base guardó esa huella;
+    después llegó el mismo código por zip, con LF."""
+    mig = tmp_path / "migrations"
+    shutil.copytree(settings.migrations_dir, mig)
+    c = db.connect(tmp_path / "t.duckdb")
+    db.migrate(c, mig)
+    for m in db.discover(mig):
+        crlf = m.path.read_bytes().replace(b"\n", b"\r\n")
+        c.execute(
+            "UPDATE schema_version SET sha256 = ? WHERE version = ?",
+            [hashlib.sha256(crlf).hexdigest(), m.version],
+        )
+    assert db.migrate(c, mig) == []
+    c.close()
+
+
+def test_un_cambio_real_se_sigue_detectando_aunque_haya_crlf(settings, tmp_path: Path):
+    mig = tmp_path / "migrations"
+    shutil.copytree(settings.migrations_dir, mig)
+    c = db.connect(tmp_path / "t.duckdb")
+    db.migrate(c, mig)
+    _to_crlf(mig)
+    with (mig / "001_raw.sql").open("ab") as f:
+        f.write(b"-- cambio real\r\n")
+    with pytest.raises(db.MigrationError, match="ha cambiado"):
+        db.migrate(c, mig)
+    c.close()
+
+
+def test_una_base_nueva_guarda_la_huella_canonica_sea_cual_sea_el_salto_de_linea(
+    settings, tmp_path: Path
+):
+    mig = tmp_path / "migrations"
+    shutil.copytree(settings.migrations_dir, mig)
+    _to_crlf(mig)
+    c = db.connect(tmp_path / "t.duckdb")
+    db.migrate(c, mig)
+    for v, sha in c.execute("SELECT version, sha256 FROM schema_version").fetchall():
+        lf = next(mig.glob(f"{v:03d}_*.sql")).read_bytes().replace(b"\r\n", b"\n")
+        assert sha == hashlib.sha256(lf).hexdigest()
+    c.close()
