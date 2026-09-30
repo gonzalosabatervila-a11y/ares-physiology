@@ -112,3 +112,42 @@ def test_app_bind_se_lee_del_entorno_y_tiene_valor_por_defecto(tmp_path, monkeyp
     assert load_settings(env_file=tmp_path / "no-existe.env").app_bind == "127.0.0.1:8443"
     monkeypatch.setenv("APP_BIND", "127.0.0.1:9911")
     assert load_settings(env_file=tmp_path / "no-existe.env").app_bind == "127.0.0.1:9911"
+
+
+@pytest.mark.parametrize(
+    "mensaje",
+    [
+        # Linux/macOS
+        'IO Error: Could not set lock on file "x.duckdb": '
+        "Conflicting lock is held in python (PID 1)",
+        # Windows en inglés
+        'IO Error: Cannot open file "x.duckdb": The process cannot access the file because it is '
+        "being used by another process.\n\nFile is already open in python.exe (PID 7560)",
+        # Windows en español (el caso real del HP, 30/09/2026)
+        'IO Error: Cannot open file "x.duckdb": El proceso no tiene acceso al archivo porque está '
+        "siendo utilizado por otro proceso.\n\nFile is already open in python.exe (PID 7560)",
+    ],
+)
+def test_el_aviso_de_base_ocupada_no_depende_del_idioma_del_sistema(monkeypatch, tmp_path, mensaje):
+    import duckdb
+
+    def ocupada(*_a, **_k):
+        raise duckdb.IOException(mensaje)
+
+    monkeypatch.setattr("ares.db.duckdb.connect", ocupada)
+    with pytest.raises(db.DatabaseBusy, match="nssm stop ARESPhysiology"):
+        db.connect(tmp_path / "x.duckdb")
+    (tmp_path / "x.duckdb").touch()  # connect_read_only exige que el fichero exista
+    with pytest.raises(db.DatabaseBusy):
+        db.connect_read_only(tmp_path / "x.duckdb")
+
+
+def test_otros_errores_de_io_no_se_disfrazan_de_base_ocupada(monkeypatch, tmp_path):
+    import duckdb
+
+    def sin_espacio(*_a, **_k):
+        raise duckdb.IOException("IO Error: No space left on device")
+
+    monkeypatch.setattr("ares.db.duckdb.connect", sin_espacio)
+    with pytest.raises(duckdb.IOException, match="No space left"):
+        db.connect(tmp_path / "x.duckdb")

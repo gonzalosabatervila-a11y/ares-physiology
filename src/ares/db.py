@@ -29,7 +29,16 @@ class DatabaseBusy(RuntimeError):
     """Otro proceso tiene la base abierta (DuckDB solo admite uno)."""
 
 
-_BUSY_HINTS = ("lock", "being used by another process", "used by another")
+# El texto del aviso depende del sistema y del idioma: en Windows español llega en español
+# («...utilizado por otro proceso»). DuckDB añade siempre, en inglés, «File is already open in ...
+# (PID n)» o «Conflicting lock ... (PID n)», y eso es lo que no cambia con el idioma.
+_BUSY_HINTS = (
+    "lock",
+    "already open",
+    "another process",
+    "otro proceso",
+    "(pid",
+)
 
 
 def _open(path: Path, **kw: object) -> duckdb.DuckDBPyConnection:

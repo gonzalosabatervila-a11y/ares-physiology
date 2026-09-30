@@ -125,8 +125,7 @@ Debe responder que te has autenticado y que GitHub no da acceso a una terminal. 
 cd C:\ares
 git remote set-url origin git@github.com:gonzalosabatervila-a11y/ares-physiology.git
 git fetch origin
-git reset --hard origin/master
-nssm restart ARESPhysiology
+if ($LASTEXITCODE -eq 0) { git reset --hard origin/master; nssm restart ARESPhysiology } else { Write-Host "El fetch ha fallado: NO hago reset ni reinicio" }
 ```
 
 Tu `.env`, el entorno `.venv` y los datos no se tocan.
