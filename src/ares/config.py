@@ -35,7 +35,8 @@ class Settings:
     migrations_dir: Path
     polar_redirect_uri: str
     app_bind: str = "127.0.0.1:8443"
-    wellness_source: str = "loop"  # loop | intervals
+    wellness_source: str = "intervals"  # intervals | loop
+    wellness_device: str = "WHOOP"  # qué pulsera alimenta intervals.icu (solo es la etiqueta)
 
     @property
     def db_path(self) -> Path:
@@ -49,6 +50,12 @@ class Settings:
 def _clean(value: str) -> str:
     """Quita comentarios en línea y espacios de un valor del .env."""
     return value.split("#", 1)[0].strip()
+
+
+def _device(raw: str | None) -> str:
+    """Nombre de la pulsera para las etiquetas: alfanumérico, corto, con valor por defecto."""
+    name = "".join(ch for ch in _clean(raw or "") if ch.isalnum() or ch in " -+.")[:16].strip()
+    return name or "WHOOP"
 
 
 def load_settings(env_file: Path | None = None) -> Settings:
@@ -68,10 +75,11 @@ def load_settings(env_file: Path | None = None) -> Settings:
         polar_redirect_uri=_clean(env.get("POLAR_REDIRECT_URI", "http://localhost:8765/callback")),
         app_bind=_clean(env.get("APP_BIND", "127.0.0.1:8443")),
         wellness_source=(
-            "intervals"
-            if _clean(env.get("WELLNESS_SOURCE", "loop")).lower() == "intervals"
-            else "loop"
+            "loop"
+            if _clean(env.get("WELLNESS_SOURCE", "intervals")).lower() == "loop"
+            else "intervals"
         ),
+        wellness_device=_device(env.get("WELLNESS_DEVICE")),
     )
 
 

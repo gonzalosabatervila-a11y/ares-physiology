@@ -603,34 +603,129 @@ def test_las_senales_del_reloj_siguen_siendo_de_intervals(conn):
     assert (d["origin"], d["source_label"]) == ("INTERVALS", "intervals.icu")
 
 
-def test_api_usa_la_loop_por_defecto_y_intervals_si_se_configura(conn, settings):
+def test_api_usa_intervals_por_defecto_y_la_loop_si_se_configura(conn, settings):
     import dataclasses
 
     seed_loop(conn, 10)
     seed_days(conn, 30)
-    loop_client = TestClient(create_app(lambda: conn, settings))
-    assert settings.wellness_source == "loop"
-    h = loop_client.get("/api/home").json()
-    assert h["source"] == "loop" and h["dials"][0]["origin"] == "POLAR"
-    assert loop_client.get("/api/senal/loop_hrv?days=28").status_code == 200
-    watch = TestClient(
-        create_app(lambda: conn, dataclasses.replace(settings, wellness_source="intervals"))
+    assert settings.wellness_source == "intervals" and settings.wellness_device == "WHOOP"
+    h = TestClient(create_app(lambda: conn, settings)).get("/api/home").json()
+    assert h["source"] == "intervals" and h["dials"][0]["origin"] == "WHOOP"
+    loop = TestClient(
+        create_app(lambda: conn, dataclasses.replace(settings, wellness_source="loop"))
     )
-    h2 = watch.get("/api/home").json()
-    assert h2["source"] == "intervals" and h2["dials"][0]["origin"] == "INTERVALS"
+    h2 = loop.get("/api/home").json()
+    assert h2["source"] == "loop" and h2["dials"][0]["origin"] == "POLAR"
+    assert loop.get("/api/senal/loop_hrv?days=28").status_code == 200
 
 
-def test_wellness_source_se_lee_del_entorno_con_valor_seguro_por_defecto(tmp_path, monkeypatch):
+def test_wellness_source_y_device_se_leen_del_entorno_con_valores_seguros(tmp_path, monkeypatch):
     from ares.config import load_settings
 
     monkeypatch.setenv("ARES_DATA_DIR", str(tmp_path))
     nada = tmp_path / "no-existe.env"
-    monkeypatch.delenv("WELLNESS_SOURCE", raising=False)
-    assert load_settings(env_file=nada).wellness_source == "loop"
-    monkeypatch.setenv("WELLNESS_SOURCE", "intervals")
-    assert load_settings(env_file=nada).wellness_source == "intervals"
+    for var in ("WELLNESS_SOURCE", "WELLNESS_DEVICE"):
+        monkeypatch.delenv(var, raising=False)
+    cfg = load_settings(env_file=nada)
+    assert (cfg.wellness_source, cfg.wellness_device) == ("intervals", "WHOOP")
+    monkeypatch.setenv("WELLNESS_SOURCE", "loop")
+    monkeypatch.setenv("WELLNESS_DEVICE", "Oura Ring 4<b>")
+    cfg = load_settings(env_file=nada)
+    assert cfg.wellness_source == "loop" and cfg.wellness_device == "Oura Ring 4b"
     monkeypatch.setenv("WELLNESS_SOURCE", "cualquier-cosa")
-    assert load_settings(env_file=nada).wellness_source == "loop"
+    monkeypatch.setenv("WELLNESS_DEVICE", "!!!")
+    cfg = load_settings(env_file=nada)
+    assert cfg.wellness_source == "intervals" and cfg.wellness_device == "WHOOP"
+
+
+# ------------------------------- WHOOP conectada a intervals.icu: campos nuevos y etiquetas
+
+
+def seed_whoop_days(conn, n: int = 14) -> None:
+    """Bienestar de intervals.icu con los campos que aparecen al conectar WHOOP (30/09/2026)."""
+    for i in range(n):
+        d = date(2026, 9, 1) + timedelta(days=i)
+        store_raw(
+            conn,
+            source="intervals",
+            endpoint="wellness",
+            day=d,
+            body={
+                "id": d.isoformat(),
+                "hrv": 55 + i % 6,
+                "restingHR": 52 + i % 4,
+                "sleepSecs": 26000 + 200 * i,
+                "avgSleepingHR": 55,
+                "readiness": 50 + 3 * (i % 10),
+                "respiration": 15.0 + 0.1 * (i % 5),
+                "spO2": 95 + i % 3,
+                "sleepScore": 70 + i % 12,
+                "ctl": 30 + i,
+                "atl": 35 + i,
+                "rampRate": 1.2,
+            },
+        )
+
+
+def test_se_leen_los_campos_que_trae_whoop_por_intervals(conn):
+    seed_whoop_days(conn, 5)
+    last = data.intervals_days(conn)[-1]
+    assert last["readiness"] == 62 and last["spO2"] == 96 and last["sleepScore"] == 74
+    assert last["respiration"] == pytest.approx(15.4)
+
+
+def test_con_pulsera_declarada_las_senales_incluyen_recovery_spo2_y_respiracion(conn):
+    seed_whoop_days(conn, 14)
+    h = data.home(conn, source="intervals", device="whoop")
+    assert [s["key"] for s in h["signals"]] == [
+        "recovery",
+        "hrv",
+        "rhr",
+        "sleep",
+        "spo2",
+        "resp",
+        "ctl",
+    ]
+    origin = {s["key"]: s["origin"] for s in h["signals"]}
+    assert (
+        origin["recovery"] == "WHOOP" and origin["hrv"] == "WHOOP" and origin["ctl"] == "INTERVALS"
+    )
+    assert [d["origin"] for d in h["dials"]] == ["WHOOP", "WHOOP", "INTERVALS"]
+    rec = next(s for s in h["signals"] if s["key"] == "recovery")
+    assert rec["tag"] == "CALC" and rec["value"] == "59 %"  # último día: 50 + 3·(13 % 10)
+
+
+def test_sin_pulsera_declarada_todo_sigue_siendo_de_intervals(conn):
+    seed_whoop_days(conn, 14)
+    h = data.home(conn, source="intervals")
+    assert [s["key"] for s in h["signals"]] == ["hrv", "rhr", "sleep", "sleep_hr", "ctl"]
+    assert {s["origin"] for s in h["signals"]} == {"INTERVALS"}
+
+
+def test_detalle_de_recovery_y_spo2_dice_quien_lo_mide_y_quien_lo_calcula(conn):
+    seed_whoop_days(conn, 14)
+    rec = data.signal_detail(conn, "recovery", 28, device="WHOOP")
+    assert (rec["origin"], rec["source_label"]) == ("WHOOP", "WHOOP (vía intervals.icu)")
+    assert rec["nature"] == "CALC · calculado por WHOOP y transmitido por intervals.icu"
+    assert rec["unit"] == "%" and rec["tag"] == "CALC"
+    spo2 = data.signal_detail(conn, "spo2", 28, device="WHOOP")
+    assert spo2["nature"] == "MED · medido por WHOOP; intervals.icu solo lo transmite"
+    ctl = data.signal_detail(conn, "ctl", 28, device="WHOOP")  # la carga no es de la pulsera
+    assert (ctl["origin"], ctl["source_label"]) == ("INTERVALS", "intervals.icu")
+
+
+def test_cambiar_de_pulsera_solo_cambia_la_etiqueta(conn):
+    seed_whoop_days(conn, 14)
+    oura = data.signal_detail(conn, "hrv", 28, device="Oura")
+    assert oura["origin"] == "OURA" and oura["source_label"] == "OURA (vía intervals.icu)"
+
+
+def test_api_sirve_las_senales_nuevas(conn, settings):
+    seed_whoop_days(conn, 14)
+    client = TestClient(create_app(lambda: conn, settings))
+    for key in ("recovery", "spo2", "resp", "sleep_score"):
+        r = client.get(f"/api/senal/{key}?days=28")
+        assert r.status_code == 200 and r.json()["origin"] == "WHOOP", key
 
 
 def test_lab_dice_que_version_del_codigo_corre(conn, settings):

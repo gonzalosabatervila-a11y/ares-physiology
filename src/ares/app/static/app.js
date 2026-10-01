@@ -206,7 +206,7 @@ function pageTop(sources) {
   return `<header class="top"><div class="brand">${MARK}<div><h1>ARES</h1><div class="date">${esc(cap(date))}</div></div></div>
 <button class="sync" data-sync aria-label="Actualizar datos">${svg('sync')}<span class="dot ${syncDot(sources)}"></span></button></header>`;
 }
-function chips(sources) {
+function chips(sources, mode) {
   const rank = {none: 0, ok: 1, warn: 2, bad: 3};
   const by = {};
   sources.forEach((s) => {  // varios endpoints por fuente: manda el peor y, a igualdad, el más antiguo
@@ -215,7 +215,8 @@ function chips(sources) {
       (s.level === cur.level && (s.age_min ?? 0) > (cur.age_min ?? 0));
     if (worse) by[s.source] = s;
   });
-  const list = ['intervals', 'tredict', 'polar'].filter((k) => by[k]).map((k) => by[k]);
+  const order = mode === 'loop' ? ['intervals', 'tredict', 'polar'] : ['intervals', 'tredict'];  // Polar solo si es la fuente
+  const list = order.filter((k) => by[k]).map((k) => by[k]);
   return `<div class="chips">${list.map((s) => {
     const st = chipState(s);
     return `<button class="chip" data-chip="${esc(s.source)}" aria-label="${esc(SRC_NAME[s.source] || s.source)}: ${esc(st.text)}. Ver detalle">${GLYPH[s.source] || ''}<span class="${st.cls}"><b>${esc(SRC_NAME[s.source] || s.source)}</b><small><i class="dot-s"></i>${esc(st.text)}</small></span></button>`;
@@ -236,7 +237,7 @@ function baseline(e) {
   return `<section class="card base" aria-label="Línea base"><div class="ic">${svg('db')}</div>
 <div><div class="top2"><span class="eyebrow">Línea base</span><span class="mono" style="font-size:11px;color:var(--sig)">${pct} %</span></div><h3>${e.mode === 'sombra' ? 'Construyendo tu referencia' : 'Referencia disponible'}</h3></div>
 <div class="full"><div class="bar" role="progressbar" aria-valuenow="${e.nights}" aria-valuemin="0" aria-valuemax="${e.target}" aria-label="Noches válidas"><i style="width:${pct}%"></i></div>
-<div class="muted"><b style="color:var(--txt)">${e.nights} de ${e.target}</b> noches válidas. Empezarán a contar cuando ARES procese cada noche de la Loop (siguiente paso).</div></div></section>`;
+<div class="muted"><b style="color:var(--txt)">${e.nights} de ${e.target}</b> noches válidas procesadas por ARES. Tus rangos personales ya funcionan con el histórico de tu pulsera.</div></div></section>`;
 }
 function sigRow(s) {
   const [title, sub] = s.label.split(' · ');
@@ -249,7 +250,7 @@ function renderInicio(d) {
   const steps = d.steps === null
     ? '<span class="muted">Sin pasos todavía.</span>'
     : `<div><div class="eyebrow">Pasos · ${esc(shortDate(d.steps_day || d.last_day))}</div><div class="big">${d.steps.toLocaleString('es-ES')}</div></div><span class="muted">${esc(d.steps_source || 'intervals.icu')}</span>`;
-  view.innerHTML = pageTop(d.sources) + chips(d.sources) + hero(d.estado) +
+  view.innerHTML = pageTop(d.sources) + chips(d.sources, d.source) + hero(d.estado) +
     `<div class="gauges" role="group" aria-label="Indicadores principales">${d.dials.map(gauge).join('')}</div>
 <button class="howto" data-howto>${svg('info')}Cómo leer estos indicadores</button>` + baseline(d.estado) +
     `<div class="h2"><span class="eyebrow">Señales principales</span></div>${d.signals.map(sigRow).join('')}
