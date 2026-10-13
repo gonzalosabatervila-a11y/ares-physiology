@@ -4,8 +4,9 @@
 
 - `C:\ares` clonado, con `uv sync` ya ejecutado (ver README principal del repo).
 - Los secretos ya guardados con `ares secret set ...`.
-- `ares polar-auth` ya ejecutado al menos una vez (necesita abrir un navegador
-  interactivo; no se puede hacer desde el propio servicio).
+- `ares whoop-auth` autorizado previamente **en el HP**, en una sesión interactiva
+  del mismo usuario que ejecutará el servicio. El Llavero del Mac no comparte
+  secretos con Windows y la autorización no debe hacerse desde NSSM.
 - NSSM instalado: `winget install --id NSSM.NSSM -e`
 
 ## Instalar
