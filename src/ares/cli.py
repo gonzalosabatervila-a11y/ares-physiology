@@ -8,7 +8,7 @@ import sys
 
 from . import __version__, db, doctor, log, runner, serve
 from .config import KNOWN_SECRETS, KeyringUnavailable, get_secret, load_settings, set_secret
-from .connectors import whoop_oauth, whoop_tokens
+from .connectors import whoop_oauth, whoop_tokens, tredict
 from .locks import LockTimeout, file_lock
 
 
@@ -75,6 +75,35 @@ def cmd_sync(args: argparse.Namespace) -> int:
     finally:
         conn.close()
     return 0
+
+
+def cmd_tredict_details(args: argparse.Namespace) -> int:
+    """Descarga voluntaria y acotada de series/vueltas, nunca en segundo plano."""
+    s = load_settings()
+    conn = db.connect(s.db_path)
+    try:
+        if db.verify(conn, db.discover(s.migrations_dir)):
+            print("La base no está al día: ejecuta ares init-db")
+            return 1
+        token = get_secret("tredict_token")
+        if not token:
+            print("Falta el token de Tredict: ejecuta ares secret set tredict_token")
+            return 1
+        try:
+            result = tredict.sync_activity_details(
+                conn, tredict.HttpClient(), token, days=args.days, limit=args.limit
+            )
+        except Exception as exc:
+            print(f"Error al importar detalles de Tredict: {exc}")
+            return 1
+        print(
+            f"Tredict · {result.fetched} sesiones consultadas · "
+            f"{result.inserted} registros nuevos · "
+            f"{result.unchanged} sin cambios. Almacenados solo en ARES local."
+        )
+        return 0
+    finally:
+        conn.close()
 
 
 def cmd_backfill(args: argparse.Namespace) -> int:
@@ -238,6 +267,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="por defecto: incremental (3 d) o backfill si hace falta",
     )
     py.set_defaults(func=cmd_sync)
+
+    ptd = sub.add_parser(
+        "tredict-details",
+        help="descarga hasta 10 actividades completas de Tredict: series y vueltas (manual)",
+    )
+    ptd.add_argument("--days", type=int, default=30, help="ventana de entrenamientos recientes")
+    ptd.add_argument("--limit", type=int, default=10, help="máximo 30 entrenamientos por ejecución")
+    ptd.set_defaults(func=cmd_tredict_details)
 
     pb = sub.add_parser(
         "backfill",
