@@ -508,8 +508,116 @@ function renderFisiologia(d) {
       Tredict y, cuando proceda, la banda Polar H10.</p></details>`;
 }
 
+// ----------------------------------------------------- explorador de entrenos
+function runTime(sec) {
+  if (sec === null || sec === undefined || !Number.isFinite(Number(sec)) || sec < 0) return '—';
+  const s = Math.round(sec);
+  return s >= 3600
+    ? `${Math.floor(s / 3600)}h ${String(Math.floor(s % 3600 / 60)).padStart(2, '0')}m`
+    : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+function runPace(sec) {
+  return sec === null || sec === undefined || !Number.isFinite(Number(sec)) || sec <= 0
+    ? '—'
+    : `${Math.floor(sec / 60)}:${String(Math.round(sec) % 60).padStart(2, '0')} /km`;
+}
+function runSeries(points, title, color) {
+  const valid = points.filter((p) => p.v !== null && Number.isFinite(Number(p.v)));
+  if (valid.length < 2) return '<p class="muted" style="margin:6px 0">Este sensor no aportó una serie suficiente.</p>';
+  const W = 330, H = 112, left = 10, right = 8, top = 8, bottom = 18;
+  const maxT = Math.max(...points.map((p) => p.second), 1);
+  let min = Math.min(...valid.map((p) => p.v)), max = Math.max(...valid.map((p) => p.v));
+  const pad = (max - min || 1) * .14; min -= pad; max += pad;
+  const x = (t) => left + (W-left-right)*t/maxT;
+  const y = (v) => top + (H-top-bottom)*(1-(v-min)/(max-min));
+  let path = '', prev = false;
+  for (const p of points) {
+    if (p.v === null || !Number.isFinite(Number(p.v))) {prev = false; continue;}
+    path += `${prev ? 'L' : 'M'}${x(p.second).toFixed(1)} ${y(p.v).toFixed(1)}`;
+    prev = true;
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" class="chart" role="img"
+    aria-label="${esc(title)}, ${valid.length} puntos disponibles">
+    <path d="${path}" stroke="${color}" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <text x="${left}" y="${H-3}" fill="#8C979B" font-size="10">0 min</text>
+    <text x="${W-right}" y="${H-3}" text-anchor="end" fill="#8C979B" font-size="10">${Math.round(maxT/60)} min</text>
+  </svg>`;
+}
+function renderEntrenos(d) {
+  const cards = d.sessions.map((a) => {
+    const distance = a.distance_m === null ? '—' :
+      (a.distance_m / 1000).toLocaleString('es-ES', {maximumFractionDigits:2})+' km';
+    return `<a href="#/entreno/${encodeURIComponent(a.id)}" class="card"
+      style="display:block" aria-label="Abrir entrenamiento ${esc(a.title)}">
+      <div class="row" style="display:flex;justify-content:space-between;gap:12px">
+        <span class="eyebrow">${esc(a.sport)} · ${esc(shortDate(a.date))}</span>
+        ${tagChip('MED','TREDICT')}
+      </div>
+      <h3 style="margin:11px 0">${esc(a.title)}</h3>
+      <div class="stats" style="grid-template-columns:repeat(3,1fr)">
+        <div><small>Distancia</small><b>${esc(distance)}</b></div>
+        <div><small>Tiempo</small><b>${esc(runTime(a.duration_s))}</b></div>
+        <div><small>Ritmo</small><b>${esc(runPace(a.pace_s_km))}</b></div>
+      </div>
+      <p class="muted" style="margin:10px 0 0">${a.laps_count} vueltas ·
+        ${a.avg_hr === null ? 'Sin FC media' : Math.round(a.avg_hr) + ' lpm'} ·
+        ${a.has_series ? 'Series disponibles' : 'Sin series del sensor'}</p>
+    </a>`;
+  }).join('');
+  view.innerHTML = pageTop(ROUTE_STATE.sources) +
+    '<div class="h2"><h2 style="margin:0;font-size:26px;font-weight:700">Entrenamientos</h2></div>' +
+    `<section class="card"><span class="eyebrow">Analítica de sesiones</span>
+       <h3>Del reloj al laboratorio</h3><p class="muted">
+       Ritmo, pulso, potencia y vueltas cuando la actividad lo permite.
+       Los datos faltantes se muestran vacíos: no se calculan umbrales ni
+       eficacia con una lista incompleta. Procedencia: Tredict.</p></section>` +
+    (cards || `<section class="card"><h3>Sin entrenamientos completos</h3>
+       <p class="muted">Ya tenemos tu listado, pero falta importar series y vueltas.
+       Cierra la app con Ctrl+C; después, en la Terminal, ejecuta
+       <code>uv run ares tredict-details --days 30 --limit 5</code>.
+       Reinicia con <code>uv run ares app</code>.</p></section>`);
+}
+function renderEntreno(d) {
+  const laps = (d.laps || []).map((l) => `<tr><td>${l.number}</td>
+    <td>${l.distance_m === null ? '—' : esc((l.distance_m/1000).toFixed(2)) + ' km'}</td>
+    <td>${esc(runPace(l.pace_s_km))}</td>
+    <td>${l.avg_hr === null ? '—' : esc(l.avg_hr.toFixed(0))}</td>
+    <td>${l.power === null ? '—' : esc(l.power.toFixed(0))}</td></tr>`).join('');
+  const s = d.series || {};
+  const sensors = [
+    ['Frecuencia cardíaca · lpm', s.heartrate || [], '#45D4E5'],
+    ['Velocidad · m/s', s.speed || [], '#F0A33A'],
+    ['Potencia · W', s.power || [], '#7ABBAA'],
+    ['Cadencia', s.cadence || [], '#B9A5E3'],
+  ].map(([title, pts, color]) =>
+    `<section class="card"><span class="eyebrow">${esc(title)}</span>
+    ${runSeries(pts,title,color)}</section>`).join('');
+  view.innerHTML = `<header class="dtop"><a class="back" href="#/entrenos"
+      aria-label="Volver a Entrenos">${svg('back')}</a>
+      <h1>${esc(d.title)}<small>${esc(d.sport)} · ${esc(shortDate(d.date))}</small></h1>
+      ${tagChip('MED','TREDICT')}</header>
+    <section class="card">
+      <div class="stats" style="grid-template-columns:repeat(3,1fr)">
+        <div><small>Distancia</small><b>${d.distance_m === null ? '—' :
+          esc((d.distance_m/1000).toFixed(2)) + ' km'}</b></div>
+        <div><small>Duración</small><b>${esc(runTime(d.duration_s))}</b></div>
+        <div><small>Ritmo</small><b>${esc(runPace(d.pace_s_km))}</b></div>
+        <div><small>FC media</small><b>${d.avg_hr === null ? '—' : esc(d.avg_hr.toFixed(0))}</b></div>
+        <div><small>FC máx.</small><b>${d.max_hr === null ? '—' : esc(d.max_hr.toFixed(0))}</b></div>
+        <div><small>Potencia</small><b>${d.avg_power === null ? '—' : esc(d.avg_power.toFixed(0)) + ' W'}</b></div>
+      </div>
+      <p class="muted">${esc(d.attribution)}
+        ${d.pace_calculated ? ' · Ritmo calculado desde tiempo y distancia' : ''}
+      </p></section>` + sensors +
+    `<section class="card"><h3>Vueltas y segmentos</h3>
+      ${laps ? '<div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Dist.</th><th>Ritmo</th><th>FC</th><th>W</th></tr></thead><tbody>'+
+        laps+'</tbody></table></div>' : '<p class="muted">El sensor no proporcionó vueltas.</p>'}
+      <p class="muted" style="margin:12px 0 0">${esc(d.method)}</p>
+    </section>`;
+}
+
 // ------------------------------------------------------------------- router
-const TABS = [['inicio', 'Inicio', 'home'], ['progreso', 'Progreso', 'chart'], ['fisiologia', 'Fisiología', 'pulse'], ['lab', 'Lab', 'flask']];
+const TABS = [['inicio', 'Inicio', 'home'], ['entrenos', 'Entrenos', 'run'], ['fisiologia', 'Fisiología', 'pulse'], ['progreso', 'Progreso', 'chart'], ['lab', 'Lab', 'flask']];
 function setTabs(active) {
   tabsEl.innerHTML = TABS.map(([k, l, i]) => `<a href="#/${k}"${k === active ? ' aria-current="page"' : ''}>${svg(i)}<span>${l}</span></a>`).join('');
 }
@@ -531,14 +639,17 @@ let lastPath = null;
 async function route(refresh = false) {
   const {path, params} = currentHash();
   const parts = path.split('/');
-  const tab = parts[0] === 'senal' ? 'inicio' : (['inicio', 'progreso', 'fisiologia', 'lab'].includes(parts[0]) ? parts[0] : 'inicio');
+  const tab = parts[0] === 'senal' ? 'inicio' : parts[0] === 'entreno' ? 'entrenos' : (['inicio', 'entrenos', 'progreso', 'fisiologia', 'lab'].includes(parts[0]) ? parts[0] : 'inicio');
   setTabs(tab);
   let url, fn;
   if (parts[0] === 'senal' && parts[1]) {
     const days = [7, 28, 90, 365].includes(+params.get('d')) ? +params.get('d') : 28;
     url = `/api/senal/${encodeURIComponent(parts[1])}?days=${days}`;
     fn = renderSenal;
-  } else if (tab === 'progreso') { url = '/api/progreso'; fn = renderProgreso; }
+  } else if (parts[0] === 'entreno' && parts[1]) {
+    url = `/api/entreno/${encodeURIComponent(parts[1])}`; fn = renderEntreno;
+  } else if (tab === 'entrenos') { url = '/api/entrenos'; fn = renderEntrenos; }
+  else if (tab === 'progreso') { url = '/api/progreso'; fn = renderProgreso; }
   else if (tab === 'fisiologia') {
     const days = [28, 90, 365].includes(+params.get('d')) ? +params.get('d') : 90;
     url = `/api/fisiologia?days=${days}`; fn = renderFisiologia;
