@@ -35,6 +35,7 @@ class Settings:
     migrations_dir: Path
     app_bind: str = "127.0.0.1:8443"
     physiology_provider: str = "whoop"  # proveedor activo (adaptador), no la unidad
+    intervals_wellness_device: str = "COROS"  # etiqueta declarada; no validada por API
     algo_version: str = "whoop-1"
     whoop_redirect_uri: str = "http://localhost:8765/callback"
     whoop_history_days: int = 90  # carga histórica inicial: mínimo objetivo
@@ -84,6 +85,7 @@ def load_settings(env_file: Path | None = None) -> Settings:
         migrations_dir=migrations.expanduser(),
         app_bind=_clean(env.get("APP_BIND", "127.0.0.1:8443")),
         physiology_provider=_provider(env.get("PHYSIOLOGY_PROVIDER")),
+        intervals_wellness_device=_clean(env.get("INTERVALS_WELLNESS_DEVICE", "COROS")),
         algo_version=_clean(env.get("ARES_ALGO_VERSION", "whoop-1")),
         whoop_redirect_uri=_clean(env.get("WHOOP_REDIRECT_URI", "http://localhost:8765/callback")),
         whoop_history_days=_positive_int(env.get("WHOOP_HISTORY_DAYS", "90"), "WHOOP_HISTORY_DAYS"),
