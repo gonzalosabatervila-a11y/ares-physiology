@@ -35,7 +35,7 @@ def create_app(get_conn: Callable[[], duckdb.DuckDBPyConnection], settings: Sett
         # mantienen su procedencia explícita hasta su migración al motor nocturno.
         return data.home(
             cursor(),
-            device=settings.physiology_provider,
+            device=settings.intervals_wellness_device,
             device_id=settings.device_id,
         )
 
@@ -49,7 +49,7 @@ def create_app(get_conn: Callable[[], duckdb.DuckDBPyConnection], settings: Sett
             raise HTTPException(status_code=404, detail="señal desconocida")
         if days not in data.PERIODS:
             raise HTTPException(status_code=422, detail=f"days debe ser uno de {data.PERIODS}")
-        return data.signal_detail(cursor(), key, days, device=settings.physiology_provider)
+        return data.signal_detail(cursor(), key, days, device=settings.intervals_wellness_device)
 
     @app.get("/api/lab")
     def api_lab() -> dict:
