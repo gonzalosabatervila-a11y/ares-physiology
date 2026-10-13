@@ -1,9 +1,12 @@
 name: ARES tests
 
 on:
+  # No ejecutar CI tras cada commit de desarrollo; evita correos por estados intermedios.
   push:
-    branches: [master, whoop-migration]
+    branches: [master]
+  # Comprobar el PR cuando esté preparado para revisión, no mientras sea borrador.
   pull_request:
+    types: [ready_for_review, reopened]
 
 permissions:
   contents: read
