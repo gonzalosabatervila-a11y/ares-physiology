@@ -225,18 +225,22 @@ const WAVE = `<svg class="wave" viewBox="0 0 200 110" fill="none" aria-hidden="t
 const LEVEL_TXT = {sin_cambios: 'Mantener plan', vigilar: 'Vigilar', evitar_intensidad: 'Evitar intensidad', descanso: 'Descanso o revisar salud'};
 function hero(e) {
   if (e.mode === 'sombra') {
-    return `<section class="card hero" aria-label="Estado de hoy"><div class="row"><span class="eyebrow">Estado de hoy</span><span class="pill sig">Modo sombra</span></div>
-<h2>Construyendo tu línea base</h2><p>Estamos recopilando tus datos para establecer tu referencia personal. Mientras tanto puedes consultar tus datos y tendencias.</p>${WAVE}</section>`;
+    const hasBaseline = e.nights >= e.target;
+    return `<section class="card hero" aria-label="Estado de hoy"><div class="row"><span class="eyebrow">Estado de hoy</span><span class="pill sig">${hasBaseline ? 'Validación pendiente' : 'Modo sombra'}</span></div>
+<h2>${hasBaseline ? 'Línea base disponible' : 'Construyendo tu línea base'}</h2><p>${hasBaseline
+      ? 'Ya hay noches suficientes para calcular referencias. Las recomendaciones de entrenamiento siguen desactivadas hasta validar sus reglas.'
+      : 'Estamos recopilando datos para establecer tu referencia personal. Mientras tanto puedes consultar tus datos y tendencias.'}</p>${WAVE}</section>`;
   }
   return `<section class="card hero" aria-label="Estado de hoy"><div class="row"><span class="eyebrow">Estado de hoy</span><span class="pill sig">${esc(e.date)}</span></div>
 <h2>${esc(LEVEL_TXT[e.level] || e.level)}</h2>${e.cause ? `<p>${esc(e.cause)}</p>` : ''}${WAVE}</section>`;
 }
 function baseline(e) {
-  const pct = Math.round(100 * e.nights / e.target);
+  const pct = Math.min(100, Math.round(100 * e.nights / e.target));
+  const ready = e.nights >= e.target;
   return `<section class="card base" aria-label="Línea base"><div class="ic">${svg('db')}</div>
-<div><div class="top2"><span class="eyebrow">Línea base</span><span class="mono" style="font-size:11px;color:var(--sig)">${pct} %</span></div><h3>${e.mode === 'sombra' ? 'Construyendo tu referencia' : 'Referencia disponible'}</h3></div>
-<div class="full"><div class="bar" role="progressbar" aria-valuenow="${e.nights}" aria-valuemin="0" aria-valuemax="${e.target}" aria-label="Noches válidas"><i style="width:${pct}%"></i></div>
-<div class="muted"><b style="color:var(--txt)">${e.nights} de ${e.target}</b> noches válidas procesadas por ARES. Tus rangos personales ya funcionan con el histórico de tu pulsera.</div></div></section>`;
+<div><div class="top2"><span class="eyebrow">Línea base</span><span class="mono" style="font-size:11px;color:var(--sig)">${pct} %</span></div><h3>${ready ? 'Referencia estadística disponible' : 'Construyendo tu referencia'}</h3></div>
+<div class="full"><div class="bar" role="progressbar" aria-valuenow="${Math.min(e.nights, e.target)}" aria-valuemin="0" aria-valuemax="${e.target}" aria-label="Noches válidas"><i style="width:${pct}%"></i></div>
+<div class="muted"><b style="color:var(--txt)">${e.nights} noches válidas</b> · objetivo inicial ${e.target}. ${ready ? 'Hay histórico suficiente para calcular referencias, pero las decisiones están pendientes de validación.' : 'Esperando más noches para construir la referencia.'}</div></div></section>`;
 }
 function sigRow(s) {
   const [title, sub] = s.label.split(' · ');
@@ -275,12 +279,59 @@ function nativeWhoop(w) {
   </section>`;
 }
 
+function pairedMetrics(f) {
+  if (!f || !f.latest) return '';
+  const last = f.latest;
+  const label = (f.intervals_device || 'Reloj') + ' · Intervals';
+  const show = (raw, kind) => {
+    if (raw === null || raw === undefined || !Number.isFinite(Number(raw))) return '—';
+    if (kind === 'sleep_min') {
+      const minutes = Math.round(Number(raw));
+      return `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')} h`;
+    }
+    return Number(raw).toLocaleString('es-ES', {maximumFractionDigits: 1}) +
+      (kind === 'hrv' ? ' ms' : ' lpm');
+  };
+  const metric = (title, key) => {
+    const row = last.metrics[key];
+    const cell = (name, value) => `<div><span class="eyebrow" style="font-size:10px">${esc(name)}</span><div style="font-size:17px;font-weight:650;margin-top:4px">${esc(show(value, key))}</div></div>`;
+    return `<div style="padding:12px 0;border-top:1px solid rgba(255,255,255,.10)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px"><b>${esc(title)}</b>
+        <span class="tag ${key === 'hrv' ? 'exp' : 'calc'}">${key === 'hrv' ? 'EXP' : 'CALC'} · ARES</span></div>
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">
+        ${cell('WHOOP', row.whoop)}
+        ${cell(f.intervals_device || 'COROS', row.intervals)}
+        ${cell('MEDIA', row.mean)}
+      </div>
+    </div>`;
+  };
+  const missing = f.matched_days === 0
+    ? 'Todavía no hay fechas comparables entre ambas fuentes.'
+    : `Comparación disponible en ${f.matched_days} fechas; medias solo entre valores del mismo día.`;
+  return `<section class="card" aria-label="Media combinada COROS y WHOOP">
+    <div class="row" style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <span class="eyebrow">ARES · DOS DISPOSITIVOS</span>
+      <span class="pill">${esc(shortDate(last.date))}</span>
+    </div>
+    <h3 style="margin:10px 0 6px">Media WHOOP + ${esc(f.intervals_device)}</h3>
+    <p class="muted" style="margin:0 0 12px;font-size:12px">${esc(missing)}</p>
+    ${metric('Sueño efectivo', 'sleep_min')}
+    ${metric('Pulso en reposo', 'rhr')}
+    ${metric('VFC · rMSSD', 'hrv')}
+    <p class="muted" style="font-size:12px;margin:12px 0 0">Cada media pondera 50/50 cuando hay dos registros compatibles. 
+      Si falta un dato o WHOOP excluye la noche, se muestra «—». La VFC combinada es
+      <b>experimental</b>: ambos sensores pueden usar ventanas de medición distintas;
+      no se emplea para decidir el entrenamiento. La procedencia «${esc(label)}»
+      es la declarada en ARES, no está certificada por la API de Intervals.</p>
+  </section>`;
+}
+
 function renderInicio(d) {
   ROUTE_STATE.sources = d.sources;
   const steps = d.steps === null
     ? '<span class="muted">Sin pasos todavía.</span>'
     : `<div><div class="eyebrow">Pasos · ${esc(shortDate(d.steps_day || d.last_day))}</div><div class="big">${d.steps.toLocaleString('es-ES')}</div></div><span class="muted">${esc(d.steps_source || 'intervals.icu')}</span>`;
-  view.innerHTML = pageTop(d.sources) + chips(d.sources) + hero(d.estado) + nativeWhoop(d.whoop) +
+  view.innerHTML = pageTop(d.sources) + chips(d.sources) + hero(d.estado) + nativeWhoop(d.whoop) + pairedMetrics(d.fusion) +
     `<div class="gauges" role="group" aria-label="Indicadores principales">${d.dials.map(gauge).join('')}</div>
 <button class="howto" data-howto>${svg('info')}Cómo leer estos indicadores</button>` + baseline(d.estado) +
     `<div class="h2"><span class="eyebrow">Señales principales</span></div>${d.signals.map(sigRow).join('')}
