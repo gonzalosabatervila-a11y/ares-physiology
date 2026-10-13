@@ -2,8 +2,9 @@
 
 Principio de la UX v1: nada de puntuaciones inventadas. Cada valor lleva su etiqueta
 (MED/CALC/EST/EXP) y su origen, y lo que aún no existe se dice tal cual («sin datos»,
-«modo sombra»). Hoy solo hay intervals.icu y Tredict en la capa bruta; lo de la Loop
-llegará cuando exista su conector.
+«modo sombra»). Lo que intervals.icu recibe de WHOOP se muestra como «WHOOP vía INTERVALS»:
+es contexto, no cuenta para noches, línea base ni gate (fe de erratas v0.3). La fuente de
+decisión es el conector directo de WHOOP.
 """
 
 from __future__ import annotations
@@ -229,99 +230,11 @@ def sources(conn: duckdb.DuckDBPyConnection, now: datetime | None = None) -> lis
                 "error": error if level == "bad" else None,
             }
         )
-    if not any(s["source"] == "polar" for s in out):
-        n = _scalar(conn, "SELECT count(*) FROM raw_payload WHERE source='polar'")
-        out.append(
-            {
-                "source": "polar",
-                "endpoint": "—",
-                "device": "global",
-                "level": "none",
-                "age_min": None,
-                "last_ok": None,
-                "error": None if n else "todavía no ha sincronizado",
-            }
-        )
     return out
-
-
-# ------------------------------------------------------------------------ Polar Loop
-
-
-def _dur_s(v: Any) -> float | None:
-    """Duraciones de Polar: '26400s'."""
-    if isinstance(v, str) and v.endswith("s"):
-        return _num(v[:-1])
-    return _num(v)
-
-
-def _polar_bodies(conn: duckdb.DuckDBPyConnection, endpoint: str, limit: int) -> dict[str, Any]:
-    rows = conn.execute(
-        """SELECT day, body FROM raw_payload WHERE source = 'polar' AND endpoint = ?
-           QUALIFY row_number() OVER (PARTITION BY day ORDER BY fetched_at DESC) = 1
-           ORDER BY day DESC LIMIT ?""",
-        [endpoint, limit],
-    ).fetchall()
-    return {d.isoformat(): _load(b) for d, b in rows}
-
-
-def _steps_of(body: dict[str, Any], day_iso: str) -> int | None:
-    """Pasos del día. Si Polar devuelve varios dispositivos se toma el de más pasos, no la
-    suma: sumarlos contaría dos veces al mismo usuario."""
-    best: float | None = None
-    for d in body.get("activityDays", []):
-        if d.get("date") != day_iso:
-            continue
-        for dev in d.get("activitiesPerDevice") or []:
-            total, seen = 0.0, False
-            for smp in dev.get("activitySamples") or []:
-                steps = (smp.get("stepSamples") or {}).get("steps") or []
-                vals = [x for x in steps if isinstance(x, int | float) and not isinstance(x, bool)]
-                if vals:
-                    seen, total = True, total + sum(vals)
-            if seen:
-                best = total if best is None else max(best, total)
-    return None if best is None else int(best)
-
-
-def loop_days(conn: duckdb.DuckDBPyConnection, limit: int = 60) -> list[dict[str, Any]]:
-    """Un registro por día con lo que ha medido la Loop: horas dormidas, VFC y pulso nocturno de
-    Nightly Recharge (respaldo de Polar hasta que la VFC propia de ARES supere el gate) y pasos."""
-    sleeps = _polar_bodies(conn, "sleeps", limit)
-    nr = _polar_bodies(conn, "nightly-recharge-results", limit)
-    act = _polar_bodies(conn, "activity", limit)
-    out = []
-    for day in sorted(set(sleeps) | set(nr) | set(act))[-limit:]:
-        rec: dict[str, Any] = {
-            "date": day,
-            "sleep_s": None,
-            "nr_rmssd": None,
-            "nr_hr": None,
-            "steps": None,
-        }
-        for n in sleeps.get(day, {}).get("nightSleeps", []):
-            if n.get("sleepDate") == day:
-                secs = _dur_s((n.get("sleepEvaluation") or {}).get("asleepDuration"))
-                rec["sleep_s"] = secs if secs and secs > 0 else None
-        for r in nr.get(day, {}).get("nightlyRechargeResults", []):
-            if r.get("sleepResultDate") == day:
-                rmssd, rri = (
-                    _num(r.get("meanNightlyRecoveryRmssd")),
-                    _num(r.get("meanNightlyRecoveryRri")),
-                )
-                rec["nr_rmssd"] = rmssd if rmssd and rmssd > 0 else None
-                rec["nr_hr"] = 60000.0 / rri if rri and rri > 0 else None
-        rec["steps"] = _steps_of(act.get(day, {}), day)
-        out.append(rec)
-    return out
-
-
-def _days_for(conn: duckdb.DuckDBPyConnection, source: str, limit: int) -> list[dict[str, Any]]:
-    return loop_days(conn, limit) if source == "loop" else intervals_days(conn, limit)
 
 
 def _src_status(conn: duckdb.DuckDBPyConnection, name: str, now: datetime | None) -> dict[str, Any]:
-    """Estado de una fuente (la peor de sus endpoints: Polar tiene seis)."""
+    """Estado de una fuente: la peor de sus endpoints."""
     rank = {"none": 0, "ok": 1, "warn": 2, "bad": 3}
     rows = [s for s in sources(conn, now) if s["source"] == name]
     if not rows:
@@ -334,7 +247,8 @@ def _code_version() -> str:
     return jobs.git_commit()
 
 
-ORIGIN_LABEL = {"INTERVALS": "intervals.icu", "POLAR": "Polar Loop"}
+ORIGIN_LABEL = {"INTERVALS": "intervals.icu"}
+VIA = "vía INTERVALS"  # lo que mide la pulsera y llega por intervals.icu
 
 
 # ------------------------------------------------------------------------ Inicio
@@ -380,7 +294,7 @@ SPECS: dict[str, dict[str, Any]] = {
         "warn": "below",
         "when": "última noche",
         "about": "Horas dormidas que registra tu dispositivo. ARES mira la duración frente a tu "
-        "media y, cuando llegue la Loop, también la regularidad del horario.",
+        "media.",
     },
     "sleep_hr": {
         "label": "Pulso durante el sueño",
@@ -503,60 +417,7 @@ SPECS.update(
         },
     }
 )
-SPECS.update(
-    {
-        "loop_sleep": {
-            "label": "Sueño",
-            "long": "Horas dormidas (Polar Loop)",
-            "field": "sleep_s",
-            "scale": 1 / 3600,
-            "unit": "h",
-            "tag": "MED",
-            "agg": "last",
-            "warn": "below",
-            "when": "última noche",
-            "fmt": "hm",
-            "source": "loop",
-            "origin": "POLAR",
-            "about": "Tiempo dormido que mide la Loop, sin contar los despertares. ARES lo compara "
-            "con tu propia media y, cuando haya más noches, también la regularidad del horario.",
-        },
-        "loop_hrv": {
-            "label": "VFC",
-            "long": "Variabilidad de la frecuencia cardíaca (Nightly Recharge)",
-            "field": "nr_rmssd",
-            "scale": 1.0,
-            "unit": "ms",
-            "tag": "CALC",
-            "agg": "mean7",
-            "warn": "below",
-            "when": "última noche",
-            "source": "loop",
-            "origin": "POLAR",
-            "about": "rMSSD medio de la noche que calcula Polar (Nightly Recharge) con los "
-            "intervalos entre latidos de la Loop. Es el respaldo hasta que la VFC propia de ARES "
-            "supere el gate contra la H10. Lo relevante es tu tendencia frente a tu propio rango.",
-        },
-        "loop_hr": {
-            "label": "Pulso nocturno",
-            "long": "Frecuencia cardíaca media en las primeras horas de sueño",
-            "field": "nr_hr",
-            "scale": 1.0,
-            "unit": "lpm",
-            "tag": "CALC",
-            "agg": "mean7",
-            "warn": "above",
-            "when": "última noche",
-            "source": "loop",
-            "origin": "POLAR",
-            "about": "Se deduce del intervalo entre latidos medio de la recuperación nocturna de "
-            "Nightly Recharge. Se mueve en paralelo al pulso en reposo. Una subida sostenida sobre "
-            "tu media puede acompañar a fatiga, poco sueño o enfermedad.",
-        },
-    }
-)
 PERIODS = (7, 28, 90, 365)
-SIGNAL_ORDER_LOOP = ("loop_hrv", "loop_hr", "loop_sleep", "ctl")
 SIGNAL_ORDER = ("hrv", "rhr", "sleep", "sleep_hr", "ctl")
 SIGNAL_ORDER_WELLNESS = ("recovery", "hrv", "rhr", "sleep", "spo2", "resp", "ctl")
 DIAL_SIGNAL = {"noche": "sleep", "nervioso": "hrv", "carga": "ctl"}
@@ -585,8 +446,9 @@ def _val_u(key: str, v: float) -> str:
 
 
 def _origin(sp: dict[str, Any], device: str | None) -> str:
-    """Origen que se muestra: la pulsera declarada para lo que mide ella; lo demás, el suyo."""
-    return device.upper() if device and sp.get("wellness") else sp["origin"]
+    """Origen que se muestra: lo que mide la pulsera y transmite intervals.icu lleva
+    «<PULSERA> vía INTERVALS»; lo demás, el suyo."""
+    return f"{device.upper()} {VIA}" if device and sp.get("wellness") else sp["origin"]
 
 
 def _signal_row(key: str, days: list[dict[str, Any]], device: str | None = None) -> dict[str, Any]:
@@ -612,23 +474,16 @@ def _signal_row(key: str, days: list[dict[str, Any]], device: str | None = None)
 def home(
     conn: duckdb.DuckDBPyConnection,
     now: datetime | None = None,
-    source: str = "intervals",
     device: str | None = None,
 ) -> dict[str, Any]:
-    """`source="loop"`: sueño, VFC, pulso nocturno y pasos salen de la Loop (que llevas siempre).
-    La carga (CTL) sigue siendo de intervals.icu: sale de los entrenos, no del reloj puesto 24 h."""
-    loop = source == "loop"
+    """Inicio con el bienestar de intervals.icu. Con `device` (la pulsera conectada allí), lo
+    que ella mide se etiqueta «<PULSERA> vía INTERVALS». La carga (CTL) es de intervals.icu."""
     days = intervals_days(conn)
-    wdays = loop_days(conn) if loop else days
-    origin = "POLAR" if loop else (device.upper() if device else "INTERVALS")
-    hours = _points(wdays, "sleep_s" if loop else "sleepSecs", 1 / 3600)
-    hrv = _points(wdays, "nr_rmssd" if loop else "hrv")
+    origin = f"{device.upper()} {VIA}" if device else "INTERVALS"
+    hours = _points(days, "sleepSecs", 1 / 3600)
+    hrv = _points(days, "hrv")
     ctl = _points(days, "ctl")
-    note = (
-        "media 7 d de Nightly Recharge (Polar), no es la VFC propia de ARES"
-        if loop
-        else f"media 7 d de {device or 'intervals.icu'}, no es una VFC calculada por ARES"
-    )
+    note = f"media 7 d de {device or 'intervals.icu'}, no es una VFC calculada por ARES"
     dials = [
         make_dial("noche", "NOCHE", hours, fmt_hm, "MED", origin, "horas dormidas"),
         make_dial(
@@ -636,7 +491,7 @@ def home(
             "SIST. NERVIOSO",
             hrv,
             lambda v: f"{v:.0f} ms",
-            "CALC" if loop else "MED",
+            "MED",
             origin,
             note,
             agg="mean7",
@@ -652,13 +507,8 @@ def home(
             judge=False,
         ),
     ]
-    dial_signal = {
-        "noche": "loop_sleep" if loop else "sleep",
-        "nervioso": "loop_hrv" if loop else "hrv",
-        "carga": "ctl",
-    }
     for d in dials:
-        d["signal"] = dial_signal[d["key"]]
+        d["signal"] = DIAL_SIGNAL[d["key"]]
         d["trend"] = None
     nv = [v for _, v in hours if v is not None]
     if len(nv) >= 8:  # última noche frente a las 7 anteriores
@@ -671,22 +521,19 @@ def home(
     if len(cv) >= 8 and cv[-8] > 0:  # forma hoy frente a hace 7 días
         dials[2]["trend"] = f"{_sg((cv[-1] / cv[-8] - 1) * 100)} % en 7 d"
     steps_pt = next(
-        ((d["date"], d["steps"]) for d in reversed(wdays) if d["steps"] is not None), None
+        ((d["date"], d["steps"]) for d in reversed(days) if d["steps"] is not None), None
     )
-    keys = SIGNAL_ORDER_LOOP if loop else (SIGNAL_ORDER_WELLNESS if device else SIGNAL_ORDER)
+    keys = SIGNAL_ORDER_WELLNESS if device else SIGNAL_ORDER
     return {
         "estado": estado(conn),
         "dials": dials,
-        "signals": [
-            _signal_row(k, wdays if SPECS[k]["source"] == "loop" else days, device) for k in keys
-        ],
+        "signals": [_signal_row(k, days, device) for k in keys],
         "steps": None if steps_pt is None else int(steps_pt[1]),
         "steps_day": None if steps_pt is None else steps_pt[0],
-        "steps_source": "Polar Loop" if loop else "intervals.icu",
-        "source": source,
+        "steps_source": "intervals.icu",
         "sources": sources(conn, now),
-        "days": len(wdays),
-        "last_day": wdays[-1]["date"] if wdays else None,
+        "days": len(days),
+        "last_day": days[-1]["date"] if days else None,
     }
 
 
@@ -737,17 +584,11 @@ def signal_detail(
     device: str | None = None,
 ) -> dict[str, Any]:
     sp = SPECS[key]
-    all_days = _days_for(conn, sp["source"], 400)
+    all_days = intervals_days(conn, 400)
     pts = [(d, v) for d, v in _spec_points(all_days, key) if v is not None]
-    src = _src_status(conn, "polar" if sp["origin"] == "POLAR" else "intervals", now)
+    src = _src_status(conn, "intervals", now)
     dev = device.upper() if device and sp.get("wellness") else None
-    if sp["origin"] == "POLAR":
-        nature = (
-            "MED · medido por la Loop"
-            if sp["tag"] == "MED"
-            else "CALC · calculado por Polar (Nightly Recharge) con los intervalos de la Loop"
-        )
-    elif dev:
+    if dev:
         nature = (
             f"MED · medido por {dev}; intervals.icu solo lo transmite"
             if sp["tag"] == "MED"
@@ -765,8 +606,8 @@ def signal_detail(
         "long": sp["long"],
         "unit": sp["unit"],
         "tag": sp["tag"],
-        "origin": dev or sp["origin"],
-        "source_label": f"{dev} (vía intervals.icu)" if dev else ORIGIN_LABEL[sp["origin"]],
+        "origin": f"{dev} {VIA}" if dev else sp["origin"],
+        "source_label": f"{dev} {VIA}" if dev else ORIGIN_LABEL[sp["origin"]],
         "nature": nature,
         "about": sp["about"],
         "periods": list(PERIODS),
@@ -930,7 +771,7 @@ def lab(conn: duckdb.DuckDBPyConnection, settings, now: datetime | None = None) 
         "versions": {
             "schema": version,
             "rules": settings.rules_version,
-            "filter": settings.filter_version,
+            "algo": settings.algo_version,
             "code": _code_version(),
         },
         "generated": (now or datetime.now(UTC)).isoformat(),

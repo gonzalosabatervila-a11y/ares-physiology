@@ -32,9 +32,8 @@ const MARK = `<svg width="38" height="38" viewBox="0 0 22 22" aria-hidden="true"
 const GLYPH = {
   intervals: '<svg class="gl" viewBox="0 0 22 22"><rect x="3" y="11" width="4" height="8" rx="1.5" fill="#45D4E5"/><rect x="9" y="6" width="4" height="13" rx="1.5" fill="#45D4E5" opacity=".72"/><rect x="15" y="3" width="4" height="16" rx="1.5" fill="#45D4E5" opacity=".45"/></svg>',
   tredict: '<svg class="gl" viewBox="0 0 22 22"><path d="M11 3l9 16H2z" fill="none" stroke="#45D4E5" stroke-width="2" stroke-linejoin="round"/></svg>',
-  polar: '<svg class="gl" viewBox="0 0 22 22"><circle cx="11" cy="11" r="7" fill="none" stroke="#8C979B" stroke-width="2.4" stroke-dasharray="3 3"/></svg>',
 };
-const SRC_NAME = {intervals: 'Intervals', tredict: 'Tredict', polar: 'Polar'};
+const SRC_NAME = {intervals: 'Intervals', tredict: 'Tredict', whoop: 'WHOOP'};
 
 // --------------------------------------------------------------- utilidades
 function ageText(min) {
@@ -185,7 +184,7 @@ function sourceSheet(name, sources) {
   if (s.last_ok) rows.push(['Última sincronización correcta', new Date(s.last_ok).toLocaleString('es-ES', {dateStyle: 'medium', timeStyle: 'short'})]);
   if (s.endpoint && s.endpoint !== '—') rows.push(['Datos', s.endpoint]);
   const extra = s.level === 'none'
-    ? '<p>Polar aún no ha sincronizado con este servicio. Cuando lo haga, aparecerá aquí con su hora.</p>'
+    ? '<p>Esta fuente aún no ha sincronizado con este servicio. Cuando lo haga, aparecerá aquí con su hora.</p>'
     : s.error ? `<p style="color:#E8573A">${esc(s.error)}</p>` : '';
   openSheet(`<h3 id="sheet-title">${esc(SRC_NAME[name] || name)}</h3><div class="kv">${rows.map(([k, v]) => `<div class="r"><span>${esc(k)}</span><span>${esc(v)}</span></div>`).join('')}</div>${extra}`);
 }
@@ -206,7 +205,7 @@ function pageTop(sources) {
   return `<header class="top"><div class="brand">${MARK}<div><h1>ARES</h1><div class="date">${esc(cap(date))}</div></div></div>
 <button class="sync" data-sync aria-label="Actualizar datos">${svg('sync')}<span class="dot ${syncDot(sources)}"></span></button></header>`;
 }
-function chips(sources, mode) {
+function chips(sources) {
   const rank = {none: 0, ok: 1, warn: 2, bad: 3};
   const by = {};
   sources.forEach((s) => {  // varios endpoints por fuente: manda el peor y, a igualdad, el más antiguo
@@ -215,7 +214,7 @@ function chips(sources, mode) {
       (s.level === cur.level && (s.age_min ?? 0) > (cur.age_min ?? 0));
     if (worse) by[s.source] = s;
   });
-  const order = mode === 'loop' ? ['intervals', 'tredict', 'polar'] : ['intervals', 'tredict'];  // Polar solo si es la fuente
+  const order = ['intervals', 'tredict'];
   const list = order.filter((k) => by[k]).map((k) => by[k]);
   return `<div class="chips">${list.map((s) => {
     const st = chipState(s);
@@ -250,7 +249,7 @@ function renderInicio(d) {
   const steps = d.steps === null
     ? '<span class="muted">Sin pasos todavía.</span>'
     : `<div><div class="eyebrow">Pasos · ${esc(shortDate(d.steps_day || d.last_day))}</div><div class="big">${d.steps.toLocaleString('es-ES')}</div></div><span class="muted">${esc(d.steps_source || 'intervals.icu')}</span>`;
-  view.innerHTML = pageTop(d.sources) + chips(d.sources, d.source) + hero(d.estado) +
+  view.innerHTML = pageTop(d.sources) + chips(d.sources) + hero(d.estado) +
     `<div class="gauges" role="group" aria-label="Indicadores principales">${d.dials.map(gauge).join('')}</div>
 <button class="howto" data-howto>${svg('info')}Cómo leer estos indicadores</button>` + baseline(d.estado) +
     `<div class="h2"><span class="eyebrow">Señales principales</span></div>${d.signals.map(sigRow).join('')}
@@ -333,12 +332,12 @@ function renderLab(d) {
     : '<p class="muted" style="margin:0">Sin ejecuciones registradas.</p>';
   view.innerHTML = pageTop(d.sources) + `<div class="h2"><h2 style="margin:0;font-size:26px;font-weight:700">Laboratorio</h2></div>
 <section class="card"><div class="eyebrow" style="margin-bottom:8px">Validación</div><p class="muted" style="margin:0">Todavía no hay decisiones que validar: el modo sombra dura hasta las 21 noches válidas.</p></section>
-<section class="card"><div class="row" style="display:flex;justify-content:space-between;align-items:center"><span class="eyebrow">Gate técnico nº 1 · PPI de la Loop</span><span class="pill">${esc(d.gate.level)}</span></div>
-<p class="muted" style="margin:10px 0 0">${d.gate.n_h10} noches con la H10. ${esc(d.gate.criteria)}. Hasta superarlo, el respaldo es Nightly Recharge.</p></section>
+<section class="card"><div class="row" style="display:flex;justify-content:space-between;align-items:center"><span class="eyebrow">Gate técnico nº 1 · VFC de WHOOP frente a la H10</span><span class="pill">${esc(d.gate.level)}</span></div>
+<p class="muted" style="margin:10px 0 0">${d.gate.n_h10} noches con la H10. ${esc(d.gate.criteria)}. Hasta superarlo, la VFC lleva la etiqueta EXP.</p></section>
 <section class="card"><div class="eyebrow" style="margin-bottom:4px">Fuentes</div><div class="list">${src}</div></section>
 <section class="card"><div class="eyebrow" style="margin-bottom:10px">Capa bruta</div>${raw}</section>
 <section class="card"><div class="eyebrow" style="margin-bottom:4px">Últimas ejecuciones</div>${runs}</section>
-<section class="card"><div class="eyebrow" style="margin-bottom:8px">Versiones</div><p class="muted mono" style="margin:0;font-size:12px">esquema v${esc(d.versions.schema)} · reglas ${esc(d.versions.rules)} · filtro ${esc(d.versions.filter)} · código ${esc(d.versions.code)}</p></section>
+<section class="card"><div class="eyebrow" style="margin-bottom:8px">Versiones</div><p class="muted mono" style="margin:0;font-size:12px">esquema v${esc(d.versions.schema)} · reglas ${esc(d.versions.rules)} · algoritmo ${esc(d.versions.algo)} · código ${esc(d.versions.code)}</p></section>
 <section class="card"><div class="eyebrow" style="margin-bottom:8px">Leyenda</div>${LEGEND_KV}</section>`;
 }
 

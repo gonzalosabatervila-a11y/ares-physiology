@@ -50,15 +50,16 @@ def test_una_pasada_de_serve_deja_la_base_migrada_y_no_llama_a_la_red(tmp_path, 
     monkeypatch.setenv("ARES_DATA_DIR", str(tmp_path))
     assert serve.run(run_once=True) == 0
     c = db.connect(tmp_path / "ares.duckdb")
-    assert db.current_version(c) == 3
+    assert db.current_version(c) == 4
     c.close()
 
 
 def test_dos_sincronizaciones_a_la_vez_no_se_pisan(conn, settings, monkeypatch):
-    """El refresh token de Polar rota: una segunda renovación simultánea lo rompería."""
+    """Dentro del proceso, una sola sincronización a la vez (el token de WHOOP, además, va bajo
+    un lockfile entre procesos)."""
     dentro, soltar, corridas = threading.Event(), threading.Event(), []
 
-    def lenta(cur, cfg, logger):
+    def lenta(cur, cfg, logger, job="manual"):
         corridas.append(1)
         dentro.set()
         soltar.wait(5)

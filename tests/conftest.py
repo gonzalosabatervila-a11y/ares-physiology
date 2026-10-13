@@ -14,12 +14,10 @@ def settings(tmp_path: Path) -> Settings:
         data_dir=tmp_path / "ares-data",
         tz="Europe/Madrid",
         rules_version="1.2",
-        filter_version="0.3",
-        device_id="polar-loop-1",
+        device_id="pulsera-principal",
         intervals_athlete_id="0",
         backfill_max_days=30,
         migrations_dir=REPO_ROOT / "migrations",
-        polar_redirect_uri="http://localhost:8765/callback",
     )
 
 
@@ -33,8 +31,8 @@ def conn(settings: Settings):
 
 @pytest.fixture(autouse=True)
 def _aislar_llavero(monkeypatch):
-    """Ninguna prueba lee ni escribe el llavero real: en tu Mac guarda tokens de Polar que se
-    renuevan al usarse, y una prueba que llegara a ellos podría gastarlos o llamar a la red."""
+    """Ninguna prueba lee ni escribe el llavero real: guarda tokens de WHOOP que rotan al
+    renovarse, y una prueba que llegara a ellos podría gastarlos o llamar a la red."""
     almacen: dict[tuple[str, str], str] = {}
     monkeypatch.setattr("ares.config.keyring.get_password", lambda s, n: almacen.get((s, n)))
     monkeypatch.setattr(

@@ -14,13 +14,14 @@ KEYRING_SERVICE = "ares"
 KNOWN_SECRETS = (
     "intervals_api_key",
     "tredict_token",
-    "polar_client_id",
-    "polar_client_secret",
-    "polar_access_token",
-    "polar_refresh_token",
-    "polar_token_expiry",
+    "whoop_client_id",
+    "whoop_client_secret",
+    "whoop_access_token",
+    "whoop_refresh_token",
+    "whoop_token_expiry",
     "ingest_token",
 )
+PHYSIOLOGY_PROVIDERS = ("whoop",)  # adaptadores disponibles (contrato Physiology Provider)
 
 
 @dataclass(frozen=True)
@@ -28,15 +29,15 @@ class Settings:
     data_dir: Path
     tz: str
     rules_version: str
-    filter_version: str
     device_id: str
     intervals_athlete_id: str
     backfill_max_days: int
     migrations_dir: Path
-    polar_redirect_uri: str
     app_bind: str = "127.0.0.1:8443"
-    wellness_source: str = "intervals"  # intervals | loop
-    wellness_device: str = "WHOOP"  # qué pulsera alimenta intervals.icu (solo es la etiqueta)
+    physiology_provider: str = "whoop"  # proveedor activo (adaptador), no la unidad
+    algo_version: str = "whoop-1"
+    whoop_redirect_uri: str = "http://localhost:8765/callback"
+    whoop_history_days: int = 90  # carga histórica inicial: mínimo objetivo
 
     @property
     def db_path(self) -> Path:
@@ -52,10 +53,20 @@ def _clean(value: str) -> str:
     return value.split("#", 1)[0].strip()
 
 
-def _device(raw: str | None) -> str:
-    """Nombre de la pulsera para las etiquetas: alfanumérico, corto, con valor por defecto."""
-    name = "".join(ch for ch in _clean(raw or "") if ch.isalnum() or ch in " -+.")[:16].strip()
-    return name or "WHOOP"
+def _provider(raw: str | None) -> str:
+    name = _clean(raw or "whoop").lower()
+    if name not in PHYSIOLOGY_PROVIDERS:
+        raise ValueError(
+            f"PHYSIOLOGY_PROVIDER={name!r} no existe. Válidos: {', '.join(PHYSIOLOGY_PROVIDERS)}"
+        )
+    return name
+
+
+def _positive_int(raw: str, name: str) -> int:
+    value = int(_clean(raw))
+    if value <= 0:
+        raise ValueError(f"{name} debe ser un entero positivo, no {value}")
+    return value
 
 
 def load_settings(env_file: Path | None = None) -> Settings:
@@ -67,19 +78,15 @@ def load_settings(env_file: Path | None = None) -> Settings:
         data_dir=data_dir,
         tz=_clean(env.get("ARES_TZ", "Europe/Madrid")),
         rules_version=_clean(env.get("ARES_RULES_VERSION", "1.2")),
-        filter_version=_clean(env.get("ARES_FILTER_VERSION", "0.3")),
-        device_id=_clean(env.get("ARES_DEVICE_ID", "polar-loop-1")),
+        device_id=_clean(env.get("ARES_DEVICE_ID", "pulsera-principal")),
         intervals_athlete_id=_clean(env.get("INTERVALS_ATHLETE_ID", "0")),
         backfill_max_days=int(_clean(env.get("BACKFILL_MAX_DAYS", "30"))),
         migrations_dir=migrations.expanduser(),
-        polar_redirect_uri=_clean(env.get("POLAR_REDIRECT_URI", "http://localhost:8765/callback")),
         app_bind=_clean(env.get("APP_BIND", "127.0.0.1:8443")),
-        wellness_source=(
-            "loop"
-            if _clean(env.get("WELLNESS_SOURCE", "intervals")).lower() == "loop"
-            else "intervals"
-        ),
-        wellness_device=_device(env.get("WELLNESS_DEVICE")),
+        physiology_provider=_provider(env.get("PHYSIOLOGY_PROVIDER")),
+        algo_version=_clean(env.get("ARES_ALGO_VERSION", "whoop-1")),
+        whoop_redirect_uri=_clean(env.get("WHOOP_REDIRECT_URI", "http://localhost:8765/callback")),
+        whoop_history_days=_positive_int(env.get("WHOOP_HISTORY_DAYS", "90"), "WHOOP_HISTORY_DAYS"),
     )
 
 

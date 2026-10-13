@@ -37,7 +37,11 @@ class HttpClient:
         self.sleep = sleep
         self.jitter = jitter
 
-    def get(self, url: str, **kwargs: Any) -> httpx.Response:
+    def get(
+        self, url: str, *, passthrough: frozenset[int] = frozenset(), **kwargs: Any
+    ) -> httpx.Response:
+        """`passthrough`: códigos que se devuelven sin error ni reintento, para que quien llama
+        los trate (p. ej. 401 en WHOOP: renovar el token una vez y reintentar)."""
         last_exc: Exception | None = None
         for attempt in range(len(RETRY_DELAYS) + 1):
             try:
@@ -45,6 +49,8 @@ class HttpClient:
             except httpx.TransportError as exc:
                 last_exc = exc
             else:
+                if resp.status_code in passthrough:
+                    return resp
                 if resp.status_code == 429 and attempt < len(RETRY_DELAYS):
                     wait = min(
                         float(resp.headers.get("Retry-After", RETRY_DELAYS[attempt])),

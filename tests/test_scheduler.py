@@ -22,11 +22,11 @@ def test_run_now_ejecuta_sin_arrancar_el_planificador(conn, settings, monkeypatc
     calls = []
     monkeypatch.setattr(
         "ares.scheduler.runner.run_all",
-        lambda conn_, settings_, logger_: calls.append(1),
+        lambda conn_, settings_, logger_, job="manual": calls.append(job),
     )
     sch = AresScheduler(conn, settings, structlog.get_logger("test"))
     sch.run_now()
-    assert calls == [1]
+    assert calls == ["manual"]
 
 
 def test_in_morning_window():

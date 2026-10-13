@@ -142,14 +142,14 @@ def test_se_usa_la_ultima_version_de_cada_dia(conn):
     assert data.intervals_days(conn)[-1]["restingHR"] == 47
 
 
-def test_fuentes_frescura_y_polar_sin_conector(conn):
+def test_fuentes_frescura_y_solo_las_que_sincronizan(conn):
     mark_status(conn, source="intervals", endpoint="wellness", ok=True)
     mark_status(conn, source="tredict", endpoint="activity", ok=False, error="HTTP 401")
     now = datetime.now(UTC) + timedelta(hours=2)
     by = {s["source"]: s for s in data.sources(conn, now)}
     assert by["intervals"]["level"] == "ok" and by["intervals"]["age_min"] >= 120
     assert by["tredict"]["level"] == "bad" and by["tredict"]["error"] == "HTTP 401"
-    assert by["polar"]["level"] == "none" and "no ha sincronizado" in by["polar"]["error"]
+    assert set(by) == {"intervals", "tredict"}  # sin filas de fuentes que no existen
     old = datetime.now(UTC) + timedelta(hours=20)
     assert {s["source"]: s["level"] for s in data.sources(conn, old)}["intervals"] == "warn"
 
@@ -194,7 +194,7 @@ def test_rutas_http(client, conn):
     assert home.status_code == 200 and home.json()["estado"]["mode"] == "sombra"
     assert client.get("/api/progreso").json()["ctl"]
     lab = client.get("/api/lab").json()
-    assert lab["gate"]["level"] == "sin evaluar" and lab["versions"]["schema"] == 3
+    assert lab["gate"]["level"] == "sin evaluar" and lab["versions"]["schema"] == 4
     page = client.get("/")
     assert page.status_code == 200 and "ARES" in page.text
     assert page.headers["cache-control"] == "no-store"
@@ -377,7 +377,7 @@ def test_progreso_expone_forma_fatiga_y_balance(conn):
 def test_fuentes_incluyen_la_hora_del_ultimo_exito(conn):
     mark_status(conn, source="intervals", endpoint="wellness", ok=True)
     by = {s["source"]: s for s in data.sources(conn)}
-    assert by["intervals"]["last_ok"] is not None and by["polar"]["last_ok"] is None
+    assert by["intervals"]["last_ok"] is not None and set(by) == {"intervals"}
 
 
 def test_ruta_de_detalle_de_senal(client, conn):
@@ -428,214 +428,18 @@ def test_la_pagina_declara_el_icono_de_iphone_y_el_manifiesto(client):
     assert _png_size(png) == (180, 180)
 
 
-# ------------------------------------------- sueño, VFC, pulso y pasos desde la Loop
-
-
-def _sleep_doc(day, secs):
-    return {
-        "nightSleeps": [
-            {
-                "sleepDate": day,
-                "sleepResult": {"hypnogram": {}},
-                "sleepEvaluation": {"sleepSpan": f"{secs + 1800}s", "asleepDuration": f"{secs}s"},
-            }
-        ]
-    }
-
-
-def _nr_doc(day, rmssd, rri):
-    return {
-        "nightlyRechargeResults": [
-            {
-                "sleepResultDate": day,
-                "meanNightlyRecoveryRmssd": rmssd,
-                "meanNightlyRecoveryRri": rri,
-            }
-        ]
-    }
-
-
-def _act_doc(day, *devices):
-    """devices: [(deviceId, [pasos por minuto…]), …]"""
-    return {
-        "activityDays": [
-            {
-                "date": day,
-                "activitiesPerDevice": [
-                    {
-                        "deviceReference": {"deviceId": dev},
-                        "activitySamples": [
-                            {
-                                "stepSamples": {
-                                    "startTime": "00:00:00",
-                                    "interval": 60000,
-                                    "steps": steps,
-                                }
-                            }
-                        ],
-                    }
-                    for dev, steps in devices
-                ],
-            }
-        ]
-    }
-
-
-def seed_loop(
-    conn,
-    n: int = 10,
-    *,
-    secs=lambda i: 26000 + 300 * (i % 4),
-    rmssd=lambda i: 60 + (i % 5),
-    steps=lambda i: [3, 4, 5 + i],
-) -> None:
-    for i in range(n):
-        d = date(2026, 9, 20) + timedelta(days=i)
-        day = d.isoformat()
-        store_raw(conn, source="polar", endpoint="sleeps", day=d, body=_sleep_doc(day, secs(i)))
-        store_raw(
-            conn,
-            source="polar",
-            endpoint="nightly-recharge-results",
-            day=d,
-            body=_nr_doc(day, rmssd(i), 1100 + 10 * (i % 3)),
-        )
-        store_raw(
-            conn,
-            source="polar",
-            endpoint="activity",
-            day=d,
-            body=_act_doc(day, ("LOOP0001", steps(i))),
-        )
-
-
-def test_loop_days_lee_sueno_vfc_pulso_y_pasos(conn):
-    d = date(2026, 9, 30)
-    store_raw(conn, source="polar", endpoint="sleeps", day=d, body=_sleep_doc("2026-09-30", 26400))
-    store_raw(
-        conn,
-        source="polar",
-        endpoint="nightly-recharge-results",
-        day=d,
-        body=_nr_doc("2026-09-30", 65, 1100),
-    )
-    store_raw(
-        conn,
-        source="polar",
-        endpoint="activity",
-        day=d,
-        body=_act_doc("2026-09-30", ("A", [1, 2, 3]), ("B", [10, 20])),
-    )
-    (rec,) = data.loop_days(conn)
-    assert rec["date"] == "2026-09-30" and rec["sleep_s"] == 26400.0 and rec["nr_rmssd"] == 65.0
-    assert rec["nr_hr"] == pytest.approx(60000 / 1100)
-    assert rec["steps"] == 30  # dos dispositivos: se toma el de más pasos, no la suma (6 + 30)
-
-
-def test_los_valores_vacios_de_polar_no_cuentan_como_datos(conn):
-    d = date(2026, 9, 28)
-    store_raw(
-        conn,
-        source="polar",
-        endpoint="nightly-recharge-results",
-        day=d,
-        body=_nr_doc("2026-09-28", 0, 0),
-    )
-    store_raw(
-        conn, source="polar", endpoint="activity", day=d, body=_act_doc("2026-09-28", ("A", []))
-    )
-    (rec,) = data.loop_days(conn)
-    assert rec["nr_rmssd"] is None and rec["nr_hr"] is None and rec["steps"] is None
-
-
-def test_home_con_la_loop_usa_la_loop_y_conserva_la_carga_de_intervals(conn):
-    seed_days(conn, 30)  # intervals.icu: solo debe aportar la carga
-    seed_loop(conn, 10)
-    h = data.home(conn, source="loop")
-    noche, nervioso, carga = h["dials"]
-    assert (noche["origin"], nervioso["origin"], carga["origin"]) == ("POLAR", "POLAR", "INTERVALS")
-    assert (nervioso["tag"], carga["tag"]) == ("CALC", "CALC")
-    assert noche["signal"] == "loop_sleep" and nervioso["signal"] == "loop_hrv"
-    assert [s["key"] for s in h["signals"]] == ["loop_hrv", "loop_hr", "loop_sleep", "ctl"]
-    assert {s["key"]: s["origin"] for s in h["signals"]}["ctl"] == "INTERVALS"
-    assert h["steps_source"] == "Polar Loop" and h["steps"] == 5 + 9 + 7 and h["source"] == "loop"
-    assert h["steps_day"] == "2026-09-29"
-
-
-def test_la_loop_no_mezcla_datos_del_reloj(conn):
-    seed_days(conn, 30)  # solo hay reloj: sueño, VFC y pasos de intervals no deben colarse
-    h = data.home(conn, source="loop")
-    assert h["dials"][0]["state"] == "sin datos" and h["dials"][1]["state"] == "sin datos"
-    assert h["steps"] is None and h["dials"][2]["value"] != "—"  # la carga sí sale de intervals
-
-
-def test_una_sola_noche_de_la_loop_no_inventa_un_rango(conn):
-    seed_loop(conn, 1)
-    noche, nervioso, _ = data.home(conn, source="loop")["dials"]
-    assert noche["state"].startswith("sin rango") and "1/7" in noche["state"]
-    assert noche["value"] != "—" and nervioso["value"] != "—" and noche["band"] is None
-
-
-def test_con_diez_noches_de_la_loop_ya_hay_rango_y_estado(conn):
-    seed_loop(conn, 10)
-    noche, nervioso, _ = data.home(conn, source="loop")["dials"]
-    assert noche["state"] in {"en rango", "por encima", "por debajo"} and noche["band"] is not None
-    assert nervioso["state"] in {"en rango", "por encima", "por debajo"}
-
-
-def test_detalle_de_una_senal_de_la_loop(conn):
-    seed_loop(conn, 10)
-    mark_status(conn, source="polar", endpoint="sleeps", ok=True)
-    hrv = data.signal_detail(conn, "loop_hrv", 28)
-    assert (hrv["origin"], hrv["source_label"], hrv["label"]) == ("POLAR", "Polar Loop", "VFC")
-    assert hrv["nature"].startswith("CALC") and "Nightly Recharge" in hrv["nature"]
-    assert hrv["updated_min"] is not None and hrv["available_days"] == 10
-    sleep = data.signal_detail(conn, "loop_sleep", 28)
-    assert sleep["nature"] == "MED · medido por la Loop" and sleep["agg"] == "last"
-    assert ":" in sleep["value"] and sleep["value"].endswith(" h")
-    hr = data.signal_detail(conn, "loop_hr", 28)
-    assert hr["unit"] == "lpm" and hr["range"] is not None
-
-
 def test_las_senales_del_reloj_siguen_siendo_de_intervals(conn):
     seed_days(conn, 30)
     d = data.signal_detail(conn, "hrv", 28)
     assert (d["origin"], d["source_label"]) == ("INTERVALS", "intervals.icu")
 
 
-def test_api_usa_intervals_por_defecto_y_la_loop_si_se_configura(conn, settings):
-    import dataclasses
-
-    seed_loop(conn, 10)
+def test_api_etiqueta_lo_de_intervals_con_la_pulsera_del_proveedor_activo(conn, settings):
     seed_days(conn, 30)
-    assert settings.wellness_source == "intervals" and settings.wellness_device == "WHOOP"
+    assert settings.physiology_provider == "whoop"
     h = TestClient(create_app(lambda: conn, settings)).get("/api/home").json()
-    assert h["source"] == "intervals" and h["dials"][0]["origin"] == "WHOOP"
-    loop = TestClient(
-        create_app(lambda: conn, dataclasses.replace(settings, wellness_source="loop"))
-    )
-    h2 = loop.get("/api/home").json()
-    assert h2["source"] == "loop" and h2["dials"][0]["origin"] == "POLAR"
-    assert loop.get("/api/senal/loop_hrv?days=28").status_code == 200
-
-
-def test_wellness_source_y_device_se_leen_del_entorno_con_valores_seguros(tmp_path, monkeypatch):
-    from ares.config import load_settings
-
-    monkeypatch.setenv("ARES_DATA_DIR", str(tmp_path))
-    nada = tmp_path / "no-existe.env"
-    for var in ("WELLNESS_SOURCE", "WELLNESS_DEVICE"):
-        monkeypatch.delenv(var, raising=False)
-    cfg = load_settings(env_file=nada)
-    assert (cfg.wellness_source, cfg.wellness_device) == ("intervals", "WHOOP")
-    monkeypatch.setenv("WELLNESS_SOURCE", "loop")
-    monkeypatch.setenv("WELLNESS_DEVICE", "Oura Ring 4<b>")
-    cfg = load_settings(env_file=nada)
-    assert cfg.wellness_source == "loop" and cfg.wellness_device == "Oura Ring 4b"
-    monkeypatch.setenv("WELLNESS_SOURCE", "cualquier-cosa")
-    monkeypatch.setenv("WELLNESS_DEVICE", "!!!")
-    cfg = load_settings(env_file=nada)
-    assert cfg.wellness_source == "intervals" and cfg.wellness_device == "WHOOP"
+    assert [d["origin"] for d in h["dials"]] == ["WHOOP vía INTERVALS"] * 2 + ["INTERVALS"]
+    assert "source" not in h  # ya no hay modos de fuente
 
 
 # ------------------------------- WHOOP conectada a intervals.icu: campos nuevos y etiquetas
@@ -676,7 +480,7 @@ def test_se_leen_los_campos_que_trae_whoop_por_intervals(conn):
 
 def test_con_pulsera_declarada_las_senales_incluyen_recovery_spo2_y_respiracion(conn):
     seed_whoop_days(conn, 14)
-    h = data.home(conn, source="intervals", device="whoop")
+    h = data.home(conn, device="whoop")
     assert [s["key"] for s in h["signals"]] == [
         "recovery",
         "hrv",
@@ -687,17 +491,16 @@ def test_con_pulsera_declarada_las_senales_incluyen_recovery_spo2_y_respiracion(
         "ctl",
     ]
     origin = {s["key"]: s["origin"] for s in h["signals"]}
-    assert (
-        origin["recovery"] == "WHOOP" and origin["hrv"] == "WHOOP" and origin["ctl"] == "INTERVALS"
-    )
-    assert [d["origin"] for d in h["dials"]] == ["WHOOP", "WHOOP", "INTERVALS"]
+    assert origin["recovery"] == origin["hrv"] == "WHOOP vía INTERVALS"
+    assert origin["ctl"] == "INTERVALS"
+    assert [d["origin"] for d in h["dials"]] == ["WHOOP vía INTERVALS"] * 2 + ["INTERVALS"]
     rec = next(s for s in h["signals"] if s["key"] == "recovery")
     assert rec["tag"] == "CALC" and rec["value"] == "59 %"  # último día: 50 + 3·(13 % 10)
 
 
 def test_sin_pulsera_declarada_todo_sigue_siendo_de_intervals(conn):
     seed_whoop_days(conn, 14)
-    h = data.home(conn, source="intervals")
+    h = data.home(conn)
     assert [s["key"] for s in h["signals"]] == ["hrv", "rhr", "sleep", "sleep_hr", "ctl"]
     assert {s["origin"] for s in h["signals"]} == {"INTERVALS"}
 
@@ -705,7 +508,7 @@ def test_sin_pulsera_declarada_todo_sigue_siendo_de_intervals(conn):
 def test_detalle_de_recovery_y_spo2_dice_quien_lo_mide_y_quien_lo_calcula(conn):
     seed_whoop_days(conn, 14)
     rec = data.signal_detail(conn, "recovery", 28, device="WHOOP")
-    assert (rec["origin"], rec["source_label"]) == ("WHOOP", "WHOOP (vía intervals.icu)")
+    assert rec["origin"] == rec["source_label"] == "WHOOP vía INTERVALS"
     assert rec["nature"] == "CALC · calculado por WHOOP y transmitido por intervals.icu"
     assert rec["unit"] == "%" and rec["tag"] == "CALC"
     spo2 = data.signal_detail(conn, "spo2", 28, device="WHOOP")
@@ -717,7 +520,7 @@ def test_detalle_de_recovery_y_spo2_dice_quien_lo_mide_y_quien_lo_calcula(conn):
 def test_cambiar_de_pulsera_solo_cambia_la_etiqueta(conn):
     seed_whoop_days(conn, 14)
     oura = data.signal_detail(conn, "hrv", 28, device="Oura")
-    assert oura["origin"] == "OURA" and oura["source_label"] == "OURA (vía intervals.icu)"
+    assert oura["origin"] == oura["source_label"] == "OURA vía INTERVALS"
 
 
 def test_api_sirve_las_senales_nuevas(conn, settings):
@@ -725,9 +528,10 @@ def test_api_sirve_las_senales_nuevas(conn, settings):
     client = TestClient(create_app(lambda: conn, settings))
     for key in ("recovery", "spo2", "resp", "sleep_score"):
         r = client.get(f"/api/senal/{key}?days=28")
-        assert r.status_code == 200 and r.json()["origin"] == "WHOOP", key
+        assert r.status_code == 200 and r.json()["origin"] == "WHOOP vía INTERVALS", key
 
 
 def test_lab_dice_que_version_del_codigo_corre(conn, settings):
     v = data.lab(conn, settings)["versions"]
     assert isinstance(v["code"], str) and v["code"]
+    assert v["algo"] == "whoop-1" and "filter" not in v

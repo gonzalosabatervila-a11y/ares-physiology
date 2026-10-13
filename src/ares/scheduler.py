@@ -40,8 +40,8 @@ class AresScheduler:
         self._lock = threading.Lock()
 
     def _tick(self, job: str) -> None:
-        # Una sola sincronización a la vez: el refresh token de Polar rota en cada renovación y
-        # dos renovaciones simultáneas lo romperían. Si aún hay una en marcha, esta se omite.
+        # Una sola sincronización a la vez dentro del proceso (la renovación del token de WHOOP
+        # además va bajo un lockfile entre procesos). Si aún hay una en marcha, esta se omite.
         if not self._lock.acquire(blocking=False):
             self.logger.warning("scheduler_skip_overlap", job=job)
             return
@@ -49,7 +49,7 @@ class AresScheduler:
             self.logger.info("scheduler_tick", job=job)
             cur = self.conn.cursor()  # cada hilo, su propio cursor (la conexión no es segura)
             try:
-                runner.run_all(cur, self.settings, self.logger)
+                runner.run_all(cur, self.settings, self.logger, job=job)
             finally:
                 cur.close()
         finally:

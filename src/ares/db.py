@@ -159,3 +159,28 @@ def migrate(conn: duckdb.DuckDBPyConnection, migrations_dir: Path) -> list[int]:
 def current_version(conn: duckdb.DuckDBPyConnection) -> int:
     done = applied(conn)
     return max(done) if done else 0
+
+
+def fingerprint(conn: duckdb.DuckDBPyConnection, names: list[str]) -> dict[str, tuple[int, str]]:
+    """Recuento y SHA-256 del contenido de cada tabla o vista, en orden canónico. Sirve para
+    demostrar que una migración o una restauración no cambian ni una fila (p. ej. la capa bruta
+    antes y después de la 004)."""
+    out: dict[str, tuple[int, str]] = {}
+    for name in names:
+        rows = conn.execute(f'SELECT * FROM "{name}" ORDER BY ALL').fetchall()
+        digest = hashlib.sha256()
+        for row in rows:
+            digest.update(repr(row).encode("utf-8"))
+            digest.update(b"\n")
+        out[name] = (len(rows), digest.hexdigest())
+    return out
+
+
+def raw_objects(conn: duckdb.DuckDBPyConnection) -> list[str]:
+    """Tablas y vistas de la capa bruta (las que empiezan por raw_ y checkin_latest)."""
+    rows = conn.execute(
+        "SELECT table_name FROM information_schema.tables "
+        "WHERE table_name LIKE 'raw\\_%' ESCAPE '\\' OR table_name = 'checkin_latest' "
+        "ORDER BY table_name"
+    ).fetchall()
+    return [r[0] for r in rows]

@@ -13,8 +13,10 @@ import httpx
 
 from . import db
 from .config import Settings, get_secret, keyring_backend_name
+from .connectors import whoop_tokens
 from .connectors.intervals import BASE_URL as INTERVALS_URL
 from .connectors.tredict import BASE_URL as TREDICT_URL
+from .connectors.whoop import BASE_URL as WHOOP_URL
 
 
 @dataclass(frozen=True)
@@ -156,7 +158,60 @@ def run(
         except Exception as exc:
             checks.append(Check("Red · Tredict", False, f"sin conexión: {exc}"))
 
+    checks.extend(_whoop_checks(settings, offline, secret_check, secret_getter, client))
     return checks
+
+
+def _whoop_checks(
+    settings: Settings,
+    offline: bool,
+    secret_check: Callable[[str], bool],
+    secret_getter: Callable[[str], str | None],
+    client: httpx.Client,
+) -> list[Check]:
+    """Cliente y autorización de WHOOP (solo presencia, nunca valores) y una llamada mínima.
+    La llamada puede renovar el token: lo hace bajo el mismo bloqueo que el servicio."""
+    has_client = secret_check("whoop_client_id") and secret_check("whoop_client_secret")
+    has_tokens = all(
+        secret_check(n) for n in ("whoop_access_token", "whoop_refresh_token", "whoop_token_expiry")
+    )
+    out = [
+        Check(
+            "Cliente WHOOP",
+            has_client,
+            "presente (valores no mostrados)" if has_client else "falta: ares whoop-auth",
+        ),
+        Check(
+            "Autorización WHOOP",
+            has_tokens,
+            "presente (valores no mostrados)" if has_tokens else "falta: ares whoop-auth",
+        ),
+    ]
+    if offline:
+        out.append(Check("Red · WHOOP", True, "omitida (--offline)"))
+        return out
+    if not (has_client and has_tokens):
+        out.append(Check("Red · WHOOP", False, "sin autorización, no se puede probar"))
+        return out
+
+    def send(token: str) -> httpx.Response:
+        return client.get(
+            f"{WHOOP_URL}/v2/cycle",
+            params={"limit": "1"},
+            headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
+        )
+
+    try:
+        r = whoop_tokens.call_with_token(
+            send, settings.data_dir, http=client, secret_getter=secret_getter
+        )
+        detail = f"HTTP {r.status_code}" + (" (permiso denegado)" if r.status_code == 403 else "")
+        out.append(Check("Red · WHOOP", r.status_code == 200, detail))
+    except whoop_tokens.TokenError as exc:
+        out.append(Check("Red · WHOOP", False, str(exc)))
+    except Exception as exc:
+        out.append(Check("Red · WHOOP", False, f"sin conexión: {exc}"))
+    return out
 
 
 def render(checks: list[Check]) -> str:

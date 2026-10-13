@@ -1,5 +1,5 @@
 """Procedencia doble de cada dato: etiqueta (MED/CALC/EST/EXP) + origen
-(ARES/POLAR/COROS/INTERVALS/TREDICT), tal como fija el Implementation Plan v0.2 FINAL.
+(ARES/WHOOP/COROS/INTERVALS/TREDICT), tal como fija el Implementation Plan v0.3 FINAL (§4).
 
 No es un tipo de dato que se guarde suelto: se usa para anotar `signals` en `decisions`
 y los campos `hrv_tag`/`hrv_origin` de `daily_metrics`. Este módulo solo fija el
@@ -11,10 +11,10 @@ from __future__ import annotations
 from typing import Literal, NamedTuple
 
 Tag = Literal["MED", "CALC", "EST", "EXP"]
-Origin = Literal["ARES", "POLAR", "COROS", "INTERVALS", "TREDICT"]
+Origin = Literal["ARES", "WHOOP", "COROS", "INTERVALS", "TREDICT"]
 
 VALID_TAGS: tuple[Tag, ...] = ("MED", "CALC", "EST", "EXP")
-VALID_ORIGINS: tuple[Origin, ...] = ("ARES", "POLAR", "COROS", "INTERVALS", "TREDICT")
+VALID_ORIGINS: tuple[Origin, ...] = ("ARES", "WHOOP", "COROS", "INTERVALS", "TREDICT")
 
 
 class Provenance(NamedTuple):
@@ -34,7 +34,6 @@ def provenance(tag: str, origin: str) -> Provenance:
 
 
 # Combinaciones ya decididas en la especificación, para no repetirlas sueltas por el código.
-ARES_HRV = provenance("CALC", "ARES")  # ln rMSSD propio desde PPI
-POLAR_HRV_FALLBACK = provenance("CALC", "POLAR")  # Nightly Recharge como respaldo
-MEASURED_POLAR = provenance("MED", "POLAR")  # pulso, sueño, tal cual llega de Polar
+WHOOP_HRV = provenance("MED", "WHOOP")  # rMSSD nocturno del proveedor (Especificación v0.3)
+ARES_LN_RMSSD = provenance("CALC", "ARES")  # ln rMSSD que ARES calcula sobre ese valor
 MEASURED_SUBJECTIVE = provenance("MED", "ARES")  # registro diario (dato del usuario)
