@@ -423,14 +423,99 @@ function renderLab(d) {
 <section class="card"><div class="eyebrow" style="margin-bottom:8px">Leyenda</div>${LEGEND_KV}</section>`;
 }
 
+// ------------------------------------------------------ laboratorio fisiológico
+function physFmt(value, unit) {
+  if (value === null || value === undefined || !Number.isFinite(Number(value))) return '—';
+  const num = Number(value);
+  if (unit === 'min') {
+    const minutes = Math.round(num);
+    return `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')} h`;
+  }
+  return num.toLocaleString('es-ES', {maximumFractionDigits: unit === '°C' || unit === 'rpm' ? 1 : 0}) + ' ' + unit;
+}
+function physChart(points, title) {
+  const valid = points.filter((p) => p.v !== null && Number.isFinite(Number(p.v)));
+  if (valid.length < 2) return '<p class="muted" style="margin:12px 0">No hay suficientes medidas válidas para la gráfica.</p>';
+  const W = 330, H = 110, top = 7, bottom = 22, left = 12, right = 8;
+  const lo = Math.min(...valid.map((p) => p.v));
+  const hi = Math.max(...valid.map((p) => p.v));
+  const pad = (hi - lo || 1) * .15, lower = lo - pad, upper = hi + pad;
+  const x = (i) => left + (W-left-right) * i / Math.max(points.length-1, 1);
+  const y = (v) => top + (H-top-bottom) * (1 - (v-lower)/(upper-lower));
+  // Un valor ausente interrumpe el trazo: no fingimos continuidad.
+  let path = '', active = false;
+  points.forEach((p, i) => {
+    if (p.v === null || !Number.isFinite(Number(p.v))) { active = false; return; }
+    path += `${active ? 'L' : 'M'}${x(i).toFixed(1)} ${y(p.v).toFixed(1)}`;
+    active = true;
+  });
+  const first = points[0]?.date || '', last = points[points.length-1]?.date || '';
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img"
+    aria-label="${esc(title)} · ${valid.length} registros válidos, ${esc(shortDate(first))} a ${esc(shortDate(last))}">
+    <path d="${path}" fill="none" stroke="#45D4E5" stroke-width="2.4"
+      stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="${left}" y="${H-3}" fill="#8C979B" font-size="11">${esc(shortDate(first))}</text>
+    <text x="${W-right}" y="${H-3}" fill="#8C979B" text-anchor="end" font-size="11">${esc(shortDate(last))}</text>
+    </svg>`;
+}
+function physCard(m) {
+  const d = m.difference === null ? null : (m.difference > 0 ? '+' : '') + physFmt(m.difference, m.unit);
+  return `<section class="card" aria-label="${esc(m.label)}">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+      <span class="eyebrow">${esc(m.label)}</span>
+      ${tagChip(m.key === 'recovery' ? 'CALC' : 'MED', m.origin)}
+    </div>
+    <div class="big" style="margin:12px 0 2px">${esc(physFmt(m.latest, m.unit))}</div>
+    <p class="muted" style="margin:0 0 12px">Última noche registrada · ${m.n28} noches con medición en los últimos 28 días</p>
+    ${physChart(m.series, m.label)}
+    <div class="stats" style="grid-template-columns:repeat(3,1fr);margin-top:12px">
+      <div><small>Media 7 días</small><b>${esc(physFmt(m.mean7, m.unit))}</b></div>
+      <div><small>Media 28 días</small><b>${esc(physFmt(m.mean28, m.unit))}</b></div>
+      <div><small>Referencia previa</small><b>${esc(physFmt(m.reference, m.unit))}</b></div>
+    </div>
+    <p class="muted" style="margin:12px 0 0">
+      ${d === null ? 'Variación frente a referencia: datos insuficientes.' :
+        'Cambio en media de 7 días frente a 28 días anteriores: ' + esc(d) +
+        ' (' + (m.relative_change_pct > 0 ? '+' : '') +
+        esc(m.relative_change_pct.toFixed(1)) + '%).'}
+      ${m.n_reference} noches sustentan la referencia; interpretación estadística, no diagnóstica.
+    </p>
+  </section>`;
+}
+function renderFisiologia(d) {
+  ROUTE_STATE.physDays = d.days;
+  const controls = [28, 90, 365].map((n) =>
+    `<button data-days="${n}" aria-pressed="${n===d.days}">${n===365 ? '1 año' : n+' días'}</button>`).join('');
+  const quality = d.breakdown;
+  const headline = d.anchor_date
+    ? `${d.usable_nights} noches utilizables de ${d.nights} procesadas entre ${esc(shortDate(d.first_date))} y ${esc(shortDate(d.anchor_date))}.`
+    : 'Todavía no hay noches sincronizadas desde WHOOP.';
+  view.innerHTML = pageTop(ROUTE_STATE.sources) +
+    `<div class="h2"><h2 style="margin:0;font-size:26px;font-weight:700">Tu fisiología</h2></div>
+    <section class="card"><div class="eyebrow">Histórico de WHOOP</div>
+    <h3 style="margin:12px 0">Un mapa de cómo responde tu cuerpo</h3>
+    <p class="muted" style="margin:0">${headline}</p>
+    <div class="seg" style="margin-top:14px" aria-label="Periodo fisiológico">${controls}</div>
+    <p class="muted" style="margin:12px 0 0">Calidad de origen: ${quality.high} altas,
+      ${quality.fair} aceptables, ${quality.excluded} excluidas.
+      ${quality.night_flags ? quality.night_flags + ' noches con comprobaciones pendientes.' : ''}
+      No se interpolan fechas ni se sustituyen datos ausentes.</p></section>` +
+    d.metrics.map(physCard).join('') +
+    `<details class="card"><summary>Cómo calcula ARES tu referencia${svg('chev','chev')}</summary>
+      <p>${esc(d.reference_method)}</p><p>${esc(d.caution)}</p>
+      <p>La VFC, el pulso y las etapas de sueño son estimaciones ópticas del dispositivo;
+      para recomendaciones deportivas deberemos contrastarlos con las sesiones de COROS,
+      Tredict y, cuando proceda, la banda Polar H10.</p></details>`;
+}
+
 // ------------------------------------------------------------------- router
-const TABS = [['inicio', 'Inicio', 'home'], ['progreso', 'Progreso', 'chart'], ['lab', 'Lab', 'flask']];
+const TABS = [['inicio', 'Inicio', 'home'], ['progreso', 'Progreso', 'chart'], ['fisiologia', 'Fisiología', 'pulse'], ['lab', 'Lab', 'flask']];
 function setTabs(active) {
   tabsEl.innerHTML = TABS.map(([k, l, i]) => `<a href="#/${k}"${k === active ? ' aria-current="page"' : ''}>${svg(i)}<span>${l}</span></a>`).join('');
 }
 function setDays(n) {
   const [name] = currentHash().path.split('/');
-  if (name === 'senal') {
+  if (name === 'senal' || name === 'fisiologia') {
     location.hash = `#/${currentHash().path}?d=${n}`;
   } else {
     ROUTE_STATE.progDays = n;
@@ -446,7 +531,7 @@ let lastPath = null;
 async function route(refresh = false) {
   const {path, params} = currentHash();
   const parts = path.split('/');
-  const tab = parts[0] === 'senal' ? 'inicio' : (['inicio', 'progreso', 'lab'].includes(parts[0]) ? parts[0] : 'inicio');
+  const tab = parts[0] === 'senal' ? 'inicio' : (['inicio', 'progreso', 'fisiologia', 'lab'].includes(parts[0]) ? parts[0] : 'inicio');
   setTabs(tab);
   let url, fn;
   if (parts[0] === 'senal' && parts[1]) {
@@ -454,6 +539,10 @@ async function route(refresh = false) {
     url = `/api/senal/${encodeURIComponent(parts[1])}?days=${days}`;
     fn = renderSenal;
   } else if (tab === 'progreso') { url = '/api/progreso'; fn = renderProgreso; }
+  else if (tab === 'fisiologia') {
+    const days = [28, 90, 365].includes(+params.get('d')) ? +params.get('d') : 90;
+    url = `/api/fisiologia?days=${days}`; fn = renderFisiologia;
+  }
   else if (tab === 'lab') { url = '/api/lab'; fn = renderLab; }
   else { url = '/api/home'; fn = renderInicio; }
   const btn = document.querySelector('[data-sync]');
