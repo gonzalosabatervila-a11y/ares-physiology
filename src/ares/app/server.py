@@ -17,7 +17,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from ..config import Settings
-from . import data
+from . import data, physiology
 
 STATIC = Path(__file__).parent / "static"
 mimetypes.add_type("application/manifest+json", ".webmanifest")  # según el sistema no viene
@@ -42,6 +42,12 @@ def create_app(get_conn: Callable[[], duckdb.DuckDBPyConnection], settings: Sett
     @app.get("/api/progreso")
     def api_progreso() -> dict:
         return data.progreso(cursor())
+
+    @app.get("/api/fisiologia")
+    def api_fisiologia(days: int = 90) -> dict:
+        if days not in (28, 90, 365):
+            raise HTTPException(status_code=422, detail="days debe ser 28, 90 o 365")
+        return physiology.report(cursor(), settings.device_id, days=days)
 
     @app.get("/api/senal/{key}")
     def api_senal(key: str, days: int = 28) -> dict:
