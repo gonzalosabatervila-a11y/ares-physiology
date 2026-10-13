@@ -31,8 +31,13 @@ def create_app(get_conn: Callable[[], duckdb.DuckDBPyConnection], settings: Sett
 
     @app.get("/api/home")
     def api_home() -> dict:
-        # Lo que intervals.icu recibe de la pulsera activa se etiqueta «WHOOP vía INTERVALS»
-        return data.home(cursor(), device=settings.physiology_provider)
+        # La tarjeta nativa usa WHOOP directo; las señales heredadas de intervals.icu
+        # mantienen su procedencia explícita hasta su migración al motor nocturno.
+        return data.home(
+            cursor(),
+            device=settings.physiology_provider,
+            device_id=settings.device_id,
+        )
 
     @app.get("/api/progreso")
     def api_progreso() -> dict:
