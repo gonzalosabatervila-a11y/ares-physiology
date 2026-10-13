@@ -535,7 +535,8 @@ def home(
             dials[1] = make_dial(
                 "nervioso", "SIST. NERVIOSO", hrv,
                 lambda v: f"{v:.0f} ms", "EXP", combined_origin,
-                "media 50/50 rMSSD; métodos de medición aún no validados", agg="mean7"
+                "media 50/50 rMSSD; métodos de medición aún no validados",
+                agg="mean7", judge=False
             )
     for d in dials:
         d["signal"] = DIAL_SIGNAL[d["key"]]
