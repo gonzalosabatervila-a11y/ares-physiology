@@ -2,9 +2,10 @@
 
 Principio de la UX v1: nada de puntuaciones inventadas. Cada valor lleva su etiqueta
 (MED/CALC/EST/EXP) y su origen, y lo que aún no existe se dice tal cual («sin datos»,
-«modo sombra»). Lo que intervals.icu recibe de WHOOP se muestra como «WHOOP vía INTERVALS»:
-es contexto, no cuenta para noches, línea base ni gate (fe de erratas v0.3). La fuente de
-decisión es el conector directo de WHOOP.
+«modo sombra»). El dispositivo de origen de intervals.icu se declara en la
+configuración (COROS por defecto) y no se valida a través del payload wellness.
+El motor nocturno utiliza WHOOP directo. Las medias de ambos se muestran con
+procedencia explícita y no alteran la capa bruta ni activan decisiones.
 """
 
 from __future__ import annotations
@@ -17,6 +18,7 @@ from typing import Any
 import duckdb
 
 from .. import jobs
+from . import fusion
 
 NIGHTS_TARGET = 21  # noches válidas para salir del modo sombra
 MIN_DAYS_FOR_RANGE = 7  # días mínimos para calcular un rango personal
@@ -481,6 +483,12 @@ def home(
     """Inicio con el bienestar de intervals.icu. Con `device` (la pulsera conectada allí), lo
     que ella mide se etiqueta «<PULSERA> vía INTERVALS». La carga (CTL) es de intervals.icu."""
     days = intervals_days(conn)
+    fused = (
+        fusion.combine(
+            conn, device_id, intervals_days(conn, limit=120), source_device=device or "Intervals"
+        )
+        if device_id else None
+    )
     origin = f"{device.upper()} {VIA}" if device else "INTERVALS"
     hours = _points(days, "sleepSecs", 1 / 3600)
     hrv = _points(days, "hrv")
@@ -509,6 +517,26 @@ def home(
             judge=False,
         ),
     ]
+    # Los indicadores superiores priorizan pares WHOOP + COROS de la última noche.
+    # Una serie desactualizada no sustituye silenciosamente el dato más reciente.
+    if fused and fused["latest"]:
+        latest = fused["latest"]
+        series = fused["series"]
+        combined_origin = f"ARES · WHOOP + {device.upper() if device else 'INTERVALS'}"
+        if latest["metrics"]["sleep_min"]["paired"]:
+            hours = [(r["date"], None if r["sleep_min"] is None else r["sleep_min"] / 60)
+                     for r in series]
+            dials[0] = make_dial(
+                "noche", "NOCHE", hours, fmt_hm, "CALC", combined_origin,
+                "media 50/50 de sueño efectivo, misma fecha; sin uso clínico"
+            )
+        if latest["metrics"]["hrv"]["paired"]:
+            hrv = [(r["date"], r["hrv"]) for r in series]
+            dials[1] = make_dial(
+                "nervioso", "SIST. NERVIOSO", hrv,
+                lambda v: f"{v:.0f} ms", "EXP", combined_origin,
+                "media 50/50 rMSSD; métodos de medición aún no validados", agg="mean7"
+            )
     for d in dials:
         d["signal"] = DIAL_SIGNAL[d["key"]]
         d["trend"] = None
@@ -529,6 +557,7 @@ def home(
     return {
         "estado": estado(conn),
         "whoop": whoop_night_summary(conn, device_id) if device_id else None,
+        "fusion": fused,
         "dials": dials,
         "signals": [_signal_row(k, days, device) for k in keys],
         "steps": None if steps_pt is None else int(steps_pt[1]),
