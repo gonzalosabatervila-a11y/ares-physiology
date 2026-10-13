@@ -1,133 +1,112 @@
-# ARES Bootstrap
+# ARES Physiology
 
-## v0.1 — completado
-repo → DuckDB → migraciones → keyring → intervals.icu real ✅
+Aplicación personal de fisiología, recuperación y entrenamiento. **WHOOP** es el
+proveedor fisiológico activo; **Intervals.icu** aporta bienestar y carga y
+**Tredict** aporta actividades. Los datos se guardan localmente, separados
+del código y de los secretos.
 
-## v0.2 — completado
-+ conector de Tredict (lista de actividades, paginada) → capa bruta ✅
+## Estado actual · migración WHOOP v0.7
 
-## v0.3 — este paquete
-+ `ares serve`: proceso único, propietario de DuckDB, con planificador interno
-  (mañana 06:00–10:30 cada 30 min, día 11:00–23:00 cada hora) ✅
-+ Lógica de sincronización compartida (`runner.py`) entre `ares sync` manual y el
-  planificador, con decisión incremental/backfill automática ✅
-+ `ares polar-auth`: autorización OAuth2 con Polar (servidor local en el
-  `redirect_uri`, intercambio y renovación de tokens) ✅
-+ `timeutil.py`: UTC interno + `local_sleep_date` en Europe/Madrid, probado contra
-  la noche del cambio de hora (24→25 oct 2026) ✅
-+ Paquete de servicio de Windows (`ops/windows/`, con NSSM) ✅
+- API WHOOP v2: cliente OAuth, renovación protegida del token, paginación,
+  ingestión en bruto de recuperación, sueño, ciclos y entrenos.
+- Adaptador `PhysiologyProvider`: vincula recuperación y sueño, distingue
+  siestas y zona horaria, y entrega noches normalizadas.
+- Motor nocturno: rMSSD medido, ln(rMSSD) calculado, FC en reposo, duración
+  de sueño, calidad y procedencia. Los valores ausentes no se inventan.
+- Reconstrucción transaccional e idempotente de métricas; históricos de
+  proveedor conservados en la base sin usarlos como fuente activa.
+- App web local: Inicio, Progreso y Laboratorio; pruebas automatizadas.
 
-## v0.3.1 — sonda de Polar
-+ `ares polar-probe`: primera llamada real a los ocho endpoints que ARES va a usar ✅
-+ Gestor de token de Polar (`polar_tokens.py`): renueva antes de caducar y guarda el par nuevo ✅
-+ Renovación robusta: si Polar no envía un refresh token nuevo, se conserva el anterior ✅
+**Pendiente de validar con la cuenta real:** consentimiento WHOOP,
+autenticación efectiva, muestra real de cada endpoint, backfill y fiabilidad
+de la sincronización a lo largo de varios días. Las pruebas sintéticas
+no demuestran que las llamadas en producción funcionen.
 
-## v0.5 — el servicio completo
-+ `ares serve` lleva dentro la app y serializa las sincronizaciones (una a la vez) ✅
-+ Aviso claro si otro proceso tiene la base abierta ✅
-+ Conector de Polar (`ares sync polar`) con los PPI en filas normalizadas ✅
-
-## v0.3.2 — primera rebanada de la app
-+ `ares app`: Inicio, Progreso y Lab de la UX v1 congelada, leyendo tu base real ✅
-+ Modo sombra visible (0 de 21 noches), rango personal calculado con los días disponibles,
-  etiquetas MED/CALC/EST/EXP con su origen y estados vacíos honestos ✅
-+ Fuentes con frescura y caídas (Lab y franja de Inicio) ✅
-
-Ver la app: `uv run ares app` y abrir http://127.0.0.1:8443. Necesita que `ares serve` no esté
-corriendo (DuckDB solo admite un escritor); en producción la app irá dentro de `ares serve`.
-Fuera de esta rebanada: las pantallas de detalle (Noche, Nervioso, Día, Entreno), la VFC propia
-y la Loop, que llegan con sus datos.
-
-**El conector de Polar en sí (`polar.py`: PPI, Nightly Recharge, sueño → capa
-bruta) no está en este paquete.** La forma exacta del JSON de `/ppi-samples` no
-está confirmada contra una respuesta real; se escribe mañana, con el cliente ya
-creado y la primera llamada real hecha contigo delante — no antes.
-
-Referencia: *ARES Physiology — Implementation Plan v0.2 FINAL — FROZEN*.
-
-## Los cinco comandos (MacBook Air)
-
-**1. Herramientas.** git viene con las herramientas de desarrollo de Apple; uv instala Python 3.12 solo.
+## Mac · desarrollo
 
 ```bash
-xcode-select --install          # solo si `git --version` falla
-curl -LsSf https://astral.sh/uv/install.sh | sh    # o: brew install uv
+cd ~/ares
+git status --short --branch
+uv sync --frozen --python 3.12
+uv run pytest -q
+uv run ares init-db
+uv run ares doctor --offline
+uv run ares app
 ```
 
-Cierra y abre la Terminal después de instalar uv.
+Abrir http://127.0.0.1:8443. La app lee la base en modo de solo lectura;
+no se debe ejecutar simultáneamente con `ares serve`, que mantiene abierta
+la conexión de escritura de DuckDB. Detener con Ctrl+C.
 
-**2. Repositorio.**
+Si todavía no está clonado, utilizar
+`git clone https://github.com/gonzalosabatervila-a11y/ares-physiology.git ~/ares`.
+No reinicializar ni borrar un repositorio existente.
+
+Los datos locales viven en `~/ares-data`, fuera de Git, y las credenciales
+se guardan en el Llavero de macOS, nunca en `.env` ni en los commits.
+
+## Conectar las fuentes
+
+**WHOOP.** Registrar el cliente en el portal oficial para desarrolladores
+y definir la URL de retorno exacta que utiliza ARES
+(`WHOOP_REDIRECT_URI=http://localhost:8765/callback` por defecto).
+Después, en el Mac y con el servicio parado:
 
 ```bash
-cd ~ && unzip ~/Downloads/ares-semana0.zip && cd ~/ares
-git init -q && git add -A && git commit -qm "ARES Semana 0 — Bootstrap v0.1"
+uv run ares whoop-auth
+uv run ares doctor
+uv run ares backfill whoop --days 90
+uv run ares stats
 ```
 
-**3. Entorno y tests.**
+El comando `whoop-auth` solicita las credenciales sin mostrarlas y
+abre el navegador. No compartir Client Secret, access token ni refresh token
+en la conversación o en GitHub. Un conector vinculado a ChatGPT **no**
+autoriza automáticamente esta aplicación local.
 
-```bash
-uv sync
-uv run pytest -q                # debe decir: 14 passed
-```
-
-**4. Claves en el Llavero.**
-
-- intervals.icu → Settings → Developer Settings → API key.
-- Tredict → Ajustes → Personal API → nuevo token, con el scope `activityRead` marcado.
+**Intervals.icu y Tredict.** Configurar su API key/token en el Llavero:
 
 ```bash
 uv run ares secret set intervals_api_key
 uv run ares secret set tredict_token
-```
-
-Pega cada valor (no se ve al escribir). macOS puede pedir permiso para el Llavero: «Permitir siempre».
-Después, borra cualquier fichero de texto donde tuvieras estas claves guardadas.
-
-**5. Base, diagnóstico y datos reales.**
-
-```bash
-uv run ares init-db
-uv run ares doctor              # debe decir: 9/9 comprobaciones correctas
 uv run ares sync intervals --days 30
 uv run ares sync tredict --days 30
-uv run ares stats
 ```
 
-Resultado esperado: `intervals/wellness` y `tredict/activity` con filas reales. Repetir un `sync`
-no duplica nada.
+En Tredict el token debe tener el permiso `activityRead`. Los comandos
+`sync` y `backfill` no deben ejecutarse mientras `ares serve` mantiene
+la base abierta.
 
-## Comandos disponibles
+## Comandos principales
 
-| Comando | Qué hace |
+| Comando | Descripción |
 |---|---|
-| `ares init-db` | Crea `~/ares-data/ares.duckdb` y aplica las migraciones pendientes |
-| `ares secret set|check <clave>` | Guarda o comprueba un secreto en el almacén del sistema; nunca lo muestra |
-| `ares sync intervals --days N` | Descarga el bienestar de intervals.icu a la capa bruta (solo añadir) |
-| `ares sync tredict --days N` | Descarga la lista de actividades de Tredict a la capa bruta (solo añadir) |
-| `ares doctor [--offline]` | Python, zona horaria, carpeta de datos, schema_version, secretos y red (ambas fuentes) |
-| `ares polar-auth` | Autorización OAuth2 inicial con Polar (una sola vez; abre el navegador) |
-| `ares polar-probe [--day AAAA-MM-DD]` | Primera llamada real a Polar: enseña la estructura de lo que devuelve (claves, tipos, rangos, no valores) y guarda las respuestas en bruto en `<datos>/probe/`. Solo lectura |
-| `ares app [--bind host:puerto]` | App local (Inicio, Progreso, Lab) sobre tus datos reales, en http://127.0.0.1:8443. Solo lectura |
-| `ares serve [--once]` | Proceso único con el planificador interno; `--once` hace una pasada y sale (pruebas) |
-| `ares stats` | Filas de la capa bruta por fuente y últimas ejecuciones |
+| `ares init-db` | Inicializa la base y aplica migraciones pendientes. |
+| `ares doctor [--offline]` | Comprueba entorno, credenciales y conexión (si procede). |
+| `ares whoop-auth [--new-client]` | Autoriza la API WHOOP. |
+| `ares backfill whoop --days 90` | Carga histórico WHOOP en local. |
+| `ares sync whoop\|intervals\|tredict` | Sincroniza una fuente. |
+| `ares stats` | Estado de fuentes vigentes y últimas sincronizaciones. |
+| `ares app` | Abre la interfaz local de solo lectura. |
+| `ares serve` | Levanta app, sincronizador y planificador en un proceso. |
 
-## Qué hay dentro
+## Criterio de calidad y límites
 
-- `migrations/001–003`: esquema del plan v0.2 FINAL (con `source_status.device_id NOT NULL DEFAULT 'global'`
-  y `decisions_recomputed` con `recompute_id`). `schema_version` registra cada migración con su hash;
-  editar una migración ya aplicada se detecta y bloquea.
-- `src/ares/`: configuración, secretos (keyring), logs JSON en `~/ares-data/logs/ares.jsonl`,
-  base de datos, reintentos 2/8/30 s, capa bruta con hash, conectores de intervals.icu y Tredict
-  (endpoints verificados el 27/09/2026 en tredict.com/blog/oauth_docs), `job_runs` con commit,
-  versión y host.
-- `tests/`: migraciones y `schema_version`, contrato de intervals.icu, contrato de Tredict
-  (incluida la paginación por `_links.next.href`), idempotencia, reintentos y doctor.
+El objetivo de UX es **como mínimo WHOOP**, con claridad de medida
+(MED), cálculo (CALC), estimación (EST) y experimental (EXP).
+Las métricas de entrenamiento, descanso y recuperación se deben distinguir
+de recomendaciones clínicas. Antes de crear índices propios de
+disponibilidad, validar líneas base individuales, continuidad y sesgos.
 
-## Nota sobre Tredict
+**Migraciones históricas inmutables.** No modificar archivos SQL
+`migrations/001–004` ya aplicados: `schema_version` verifica sus hashes.
+El proyecto puede conservar tablas/vistas heredadas exclusivamente para
+compatibilidad y recuperación de datos; no son conectores activos ni se
+incluyen en los paneles de fuentes actuales.
 
-El token personal solo trae el scope `activityWrite` por defecto: hay que marcar `activityRead`
-al crearlo, o el `sync` fallará con HTTP 403. La sincronización trae el resumen de cada actividad
-(id, fecha, deporte); el detalle completo (métricas, series) es un endpoint aparte, pendiente de
-incorporar cuando haga falta para la fase 2 (Performance).
+## Producción más adelante
 
-Datos en el Mac: `~/ares-data` (desarrollo). En el HP de producción: `ARES_DATA_DIR=C:\ares-data` en `.env`.
+Mac para desarrollar; GitHub para versionar y revisar; HP Windows del
+despacho como servidor 24/7 solamente cuando se apruebe la versión.
+Documentación de operación: `ops/windows/README.md`.
+El despliegue automático remoto todavía no está validado.
