@@ -2,7 +2,7 @@ name: ARES tests
 
 on:
   push:
-    branches: [master]
+    branches: [master, whoop-migration]
   pull_request:
 
 permissions:
