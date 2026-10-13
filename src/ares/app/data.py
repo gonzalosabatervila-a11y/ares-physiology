@@ -214,7 +214,8 @@ def sources(conn: duckdb.DuckDBPyConnection, now: datetime | None = None) -> lis
     now = now or datetime.now(UTC)
     rows = conn.execute(
         "SELECT source, endpoint, device_id, last_ok, last_error, error "
-        "FROM source_status ORDER BY source, endpoint"
+        "FROM source_status WHERE source IN ('whoop', 'intervals', 'tredict') "
+        "ORDER BY source, endpoint"
     ).fetchall()
     out = []
     for source, endpoint, device_id, last_ok, last_error, error in rows:
@@ -747,10 +748,12 @@ def progreso(conn: duckdb.DuckDBPyConnection, today: date | None = None) -> dict
 def lab(conn: duckdb.DuckDBPyConnection, settings, now: datetime | None = None) -> dict[str, Any]:
     raw = conn.execute(
         "SELECT source, endpoint, count(*), min(day), max(day) FROM raw_payload "
+        "WHERE source IN ('whoop', 'intervals', 'tredict') "
         "GROUP BY ALL ORDER BY ALL"
     ).fetchall()
     runs = conn.execute(
-        "SELECT job, status, started, git_commit FROM job_runs ORDER BY started DESC LIMIT 8"
+        "SELECT job, status, started, git_commit FROM job_runs "
+        "WHERE lower(job) NOT LIKE '%polar%' ORDER BY started DESC LIMIT 8"
     ).fetchall()
     version = _scalar(conn, "SELECT max(version) FROM schema_version")
     return {
