@@ -23,5 +23,7 @@ jobs:
           enable-cache: true
       - name: Install locked dependencies
         run: uv sync --frozen --python 3.12
+      - name: Check browser JavaScript syntax
+        run: node --check src/ares/app/static/app.js
       - name: Run tests (offline; no personal data or credentials)
         run: uv run pytest -q
