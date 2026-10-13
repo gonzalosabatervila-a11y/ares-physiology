@@ -49,6 +49,37 @@ La línea base estadística (21 noches) y la activación de recomendaciones son
 dos hitos distintos: una línea base completa **no** valida aún el motor de
 decisiones deportivas.
 
+## ARES Intelligence · primera extensión del laboratorio (rama experimental)
+
+El plan integral de fisiología, entrenamiento y recomendaciones validadas está en
+[docs/ARES_INTELLIGENCE_ROADMAP.md](docs/ARES_INTELLIGENCE_ROADMAP.md).
+
+Esta rama incorpora una pestaña **Fisiología** con 28/90/365 días de WHOOP,
+media de 7/28 días y referencia histórica sin solapamiento. También introduce
+**Entrenos**, un explorador de sesiones completas (resumen, laps, ritmo, FC,
+potencia y curvas disponibles).
+
+El catálogo de Tredict existente contiene principalmente el listado de
+actividades, por lo que es necesario importar detalles para activar
+el explorador. Con la aplicación y el servicio de ARES detenidos:
+
+```bash
+uv run ares tredict-details --days 30 --limit 5
+uv run ares app
+```
+
+Esta importación hace como máximo cinco consultas de detalles
+(y guarda respuesta bruta únicamente en la base local). No modifica
+WHOOP, no publica GPS ni notas de atleta, no sincroniza en segundo plano
+y no inventa sensores inexistentes. La autorización Tredict requiere
+`activityRead`; los tokens de Personal API pueden requerir uso
+periódico de la propia aplicación Tredict para permanecer activos.
+
+**Desarrollo:** antes de actualizar el Mac ejecuta `uv run --frozen pytest -q`
+y `node --check src/ares/app/static/app.js`. El branch y la PR no se
+fusionan ni se despliegan al HP hasta que estas pruebas y la importación
+de algunas sesiones reales estén verificadas.
+
 ## Mac · desarrollo
 
 ```bash
