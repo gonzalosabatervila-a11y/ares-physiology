@@ -65,7 +65,7 @@ def test_api_home_trae_whoop_directo_sin_confundirlo_con_intervals(conn, setting
     assert home["whoop"]["latest"]["date"] == "2026-10-13"
     assert home["whoop"]["latest"]["rmssd_ms"] == 44.0
     # Las gráficas heredadas siguen explícitamente atribuidas a Intervals.
-    assert home["dials"][0]["origin"] == "WHOOP vía INTERVALS"
+    assert home["dials"][0]["origin"] == "COROS vía INTERVALS"
 
 
 def test_noche_de_otra_pulsera_no_contamina_el_resumen(conn, settings):
