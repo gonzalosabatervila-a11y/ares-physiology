@@ -476,6 +476,7 @@ def home(
     conn: duckdb.DuckDBPyConnection,
     now: datetime | None = None,
     device: str | None = None,
+    device_id: str | None = None,
 ) -> dict[str, Any]:
     """Inicio con el bienestar de intervals.icu. Con `device` (la pulsera conectada allí), lo
     que ella mide se etiqueta «<PULSERA> vía INTERVALS». La carga (CTL) es de intervals.icu."""
@@ -527,6 +528,7 @@ def home(
     keys = SIGNAL_ORDER_WELLNESS if device else SIGNAL_ORDER
     return {
         "estado": estado(conn),
+        "whoop": whoop_night_summary(conn, device_id) if device_id else None,
         "dials": dials,
         "signals": [_signal_row(k, days, device) for k in keys],
         "steps": None if steps_pt is None else int(steps_pt[1]),
@@ -670,6 +672,63 @@ def signal_detail(
         "interpretation": _interpret(
             sp, key, state, level, _val_u(key, shown), lo_s, hi_s, len(ref), sp["agg"]
         ),
+    }
+
+
+# ------------------------------------------------------------------ WHOOP directo
+
+
+def whoop_night_summary(
+    conn: duckdb.DuckDBPyConnection, device_id: str, limit: int = 90
+) -> dict[str, Any]:
+    """Resumen estrictamente medido por WHOOP, sin mezclar wellness de Intervals.
+
+    El último día se enseña aunque no tenga una puntuación válida; no se sustituye
+    silenciosamente por una noche anterior. La calidad procede del motor ARES.
+    Solo lee daily_metrics, nunca modifica la base ni fuerza sincronizaciones.
+    """
+    rows = conn.execute(
+        """SELECT local_sleep_date, sleep_min, rmssd_ms, rhr, resp_rate, spo2,
+                  skin_temp, provider_recovery, score_state, calibrating,
+                  quality, night_check
+           FROM daily_metrics WHERE device_id = ?
+           ORDER BY local_sleep_date DESC LIMIT ?""",
+        [device_id, limit],
+    ).fetchall()
+    qualities = {"high": 0, "fair": 0, "excluded": 0}
+    for row in rows:
+        q = row[10]
+        qualities[q if q in qualities else "excluded"] += 1
+    if not rows:
+        return {
+            "source": "WHOOP directo",
+            "device_id": device_id,
+            "nights": 0,
+            "valid_nights": 0,
+            "qualities": qualities,
+            "latest": None,
+        }
+    last = rows[0]
+    return {
+        "source": "WHOOP directo",
+        "device_id": device_id,
+        "nights": len(rows),
+        "valid_nights": qualities["high"] + qualities["fair"],
+        "qualities": qualities,
+        "latest": {
+            "date": last[0].isoformat(),
+            "sleep_min": last[1],
+            "rmssd_ms": last[2],
+            "rhr": last[3],
+            "resp_rate": last[4],
+            "spo2": last[5],
+            "skin_temp": last[6],
+            "provider_recovery": last[7],
+            "score_state": last[8],
+            "calibrating": last[9],
+            "quality": last[10],
+            "night_check": last[11],
+        },
     }
 
 
