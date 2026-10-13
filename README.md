@@ -17,10 +17,37 @@ del código y de los secretos.
   proveedor conservados en la base sin usarlos como fuente activa.
 - App web local: Inicio, Progreso y Laboratorio; pruebas automatizadas.
 
-**Pendiente de validar con la cuenta real:** consentimiento WHOOP,
-autenticación efectiva, muestra real de cada endpoint, backfill y fiabilidad
-de la sincronización a lo largo de varios días. Las pruebas sintéticas
-no demuestran que las llamadas en producción funcionen.
+**Validación inicial con cuenta real (13/10/2026):** WHOOP OAuth y
+`ares doctor` con HTTP 200, 608 registros reales y 90 noches reconstruidas
+en una carga de 90 días (informado desde el Mac). Falta validar la renovación
+automática de tokens y la fiabilidad de sincronización sostenida.
+
+## Medias comparadas COROS + WHOOP (exploratorias)
+
+El origen declarado del bienestar de Intervals.icu es el reloj **COROS**:
+`INTERVALS_WELLNESS_DEVICE=COROS` (puede cambiarse en `.env`). El JSON
+`wellness` de Intervals.icu **no certifica cuál fue el dispositivo que midió**
+cada valor. Antes de atribuir científicamente diferencias a un sensor, confirmar
+en Intervals.icu que esos campos proceden realmente de COROS, no de WHOOP
+sincronizado también con Intervals.
+
+En Inicio, ARES combina WHOOP directo con los valores de Intervals.icu
+**solo en la misma fecha local de sueño** y cuando WHOOP marca una noche
+`high` o `fair`. La media es aritmética, con peso 50/50; si falta un
+valor, la casilla de media queda vacía. Las series originales no cambian.
+
+- Sueño: minutos efectivos WHOOP y `wellness.sleepSecs`, convertidos a minutos.
+- Pulso en reposo: `daily_metrics.rhr` y `wellness.restingHR`.
+- VFC: rMSSD WHOOP y `wellness.hrv`; se muestra como **EXP** porque distintos
+  dispositivos pueden registrar ventanas de tiempo o metodologías no equivalentes.
+  No usar su media para prescribir intensidad ni inferir recuperación clínica.
+- Recovery WHOOP y CTL/ATL de Intervals permanecen **independientes**.
+  Los indicadores ARES que usan valores pareados muestran CALC o EXP y la
+  procedencia explícita. No sustituir días faltantes por valores de otras fechas.
+
+La línea base estadística (21 noches) y la activación de recomendaciones son
+dos hitos distintos: una línea base completa **no** valida aún el motor de
+decisiones deportivas.
 
 ## Mac · desarrollo
 
