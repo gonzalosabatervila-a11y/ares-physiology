@@ -61,6 +61,7 @@ def combine(
     pairs: dict[str, int] = {m: 0 for m in METRICS}
     matched_any = 0
     latest: dict[str, Any] | None = None
+    paired_series: list[dict[str, Any]] = []
 
     for day, sleep_min, rmssd, rhr, quality in rows:
         date = day.isoformat()
@@ -100,6 +101,12 @@ def combine(
             }
         if any_pair:
             matched_any += 1
+        paired_series.append({
+            "date": date,
+            "sleep_min": entries["sleep_min"]["mean"],
+            "rhr": entries["rhr"]["mean"],
+            "hrv": entries["hrv"]["mean"],
+        })
         if latest is None:
             latest = {
                 "date": date,
@@ -117,5 +124,6 @@ def combine(
         "whoop_days": len(rows),
         "latest_date": latest_date,
         "latest": latest,
+        "series": list(reversed(paired_series)),
         "hrv_experimental": True,
     }
