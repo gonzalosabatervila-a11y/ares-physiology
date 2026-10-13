@@ -17,7 +17,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from ..config import Settings
-from . import data, physiology
+from . import data, physiology, training
 
 STATIC = Path(__file__).parent / "static"
 mimetypes.add_type("application/manifest+json", ".webmanifest")  # según el sistema no viene
@@ -56,6 +56,19 @@ def create_app(get_conn: Callable[[], duckdb.DuckDBPyConnection], settings: Sett
         if days not in data.PERIODS:
             raise HTTPException(status_code=422, detail=f"days debe ser uno de {data.PERIODS}")
         return data.signal_detail(cursor(), key, days, device=settings.intervals_wellness_device)
+
+    @app.get("/api/entrenos")
+    def api_entrenos(limit: int = 20) -> dict:
+        if limit < 1 or limit > 50:
+            raise HTTPException(status_code=422, detail="limit debe estar entre 1 y 50")
+        return {"source": "Tredict · detalle local", "sessions": training.list_sessions(cursor(), limit)}
+
+    @app.get("/api/entreno/{activity_id}")
+    def api_entreno(activity_id: str) -> dict:
+        workout = training.session(cursor(), activity_id)
+        if workout is None:
+            raise HTTPException(status_code=404, detail="Entrenamiento no encontrado")
+        return workout
 
     @app.get("/api/lab")
     def api_lab() -> dict:
