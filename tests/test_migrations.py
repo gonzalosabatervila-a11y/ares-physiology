@@ -142,6 +142,37 @@ def test_una_base_nueva_guarda_la_huella_canonica_sea_cual_sea_el_salto_de_linea
     c.close()
 
 
+@pytest.mark.parametrize("schema_version", [3, 4])
+def test_lectura_de_version_y_verificacion_sin_ddl_en_conexion_read_only(
+    tmp_path: Path, schema_version: int
+):
+    """Regresión del fallo real al verificar la copia de seguridad del Mac: una
+    base existente v3/v4 debe admitir current_version() y verify() en solo
+    lectura, sin intentar ejecutar CREATE TABLE IF NOT EXISTS.
+    """
+    migrations = tmp_path / "migrations-hasta-version"
+    migrations.mkdir()
+    for version in range(1, schema_version + 1):
+        source = next((REPO_ROOT / "migrations").glob(f"{version:03d}_*.sql"))
+        shutil.copy(source, migrations / source.name)
+
+    db_path = tmp_path / "copia.duckdb"
+    writer = db.connect(db_path)
+    try:
+        assert db.migrate(writer, migrations) == list(range(1, schema_version + 1))
+        writer.execute("CHECKPOINT")
+    finally:
+        writer.close()
+
+    reader = db.connect_read_only(db_path)
+    try:
+        assert db.current_version(reader) == schema_version
+        pending = db.verify(reader, db.discover(REPO_ROOT / "migrations"))
+        assert [m.version for m in pending] == list(range(schema_version + 1, 5))
+    finally:
+        reader.close()
+
+
 # ------------------------------------------------------------------ migración 004 (WHOOP)
 # Base sintética creada con 001–003 y datos en todas las capas, incluidos los del proveedor
 # anterior: la capa bruta queda idéntica (recuentos y hashes), las decisiones no se pierden y
