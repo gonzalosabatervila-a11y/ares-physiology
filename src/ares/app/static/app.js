@@ -459,7 +459,7 @@ function physChart(points, title) {
     </svg>`;
 }
 function physCard(m) {
-  const d = m.difference === null ? null : (m.difference > 0 ? '+' : '') + physFmt(m.difference, m.unit);
+  const d = m.difference === null || m.relative_change_pct === null ? null : (m.difference > 0 ? '+' : '') + physFmt(m.difference, m.unit);
   return `<section class="card" aria-label="${esc(m.label)}">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
       <span class="eyebrow">${esc(m.label)}</span>
@@ -517,9 +517,9 @@ function runTime(sec) {
     : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 function runPace(sec) {
-  return sec === null || sec === undefined || !Number.isFinite(Number(sec)) || sec <= 0
-    ? '—'
-    : `${Math.floor(sec / 60)}:${String(Math.round(sec) % 60).padStart(2, '0')} /km`;
+  if (sec === null || sec === undefined || !Number.isFinite(Number(sec)) || sec <= 0) return '—';
+  const s = Math.round(sec);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')} /km`;
 }
 function runSeries(points, title, color) {
   const valid = points.filter((p) => p.v !== null && Number.isFinite(Number(p.v)));
