@@ -121,14 +121,16 @@ def cmd_stats(args: argparse.Namespace) -> int:
         print(f"schema_version: {db.current_version(conn)}\n")
         rows = conn.execute(
             "SELECT source, endpoint, count(*) AS n, min(day), max(day) "
-            "FROM raw_payload GROUP BY ALL ORDER BY ALL"
+            "FROM raw_payload WHERE source IN ('whoop', 'intervals', 'tredict') "
+            "GROUP BY ALL ORDER BY ALL"
         ).fetchall()
         if not rows:
             print("Capa bruta vacía.")
         for src, ep, n, d0, d1 in rows:
             print(f"{src}/{ep}: {n} filas · {d0} → {d1}")
         runs = conn.execute(
-            "SELECT job, status, started, git_commit FROM job_runs ORDER BY started DESC LIMIT 5"
+            "SELECT job, status, started, git_commit FROM job_runs "
+            "WHERE lower(job) NOT LIKE '%polar%' ORDER BY started DESC LIMIT 5"
         ).fetchall()
         if runs:
             print("\nÚltimas ejecuciones:")
