@@ -438,7 +438,7 @@ def test_api_etiqueta_lo_de_intervals_con_la_pulsera_del_proveedor_activo(conn, 
     seed_days(conn, 30)
     assert settings.physiology_provider == "whoop"
     h = TestClient(create_app(lambda: conn, settings)).get("/api/home").json()
-    assert [d["origin"] for d in h["dials"]] == ["WHOOP vía INTERVALS"] * 2 + ["INTERVALS"]
+    assert [d["origin"] for d in h["dials"]] == ["COROS vía INTERVALS"] * 2 + ["INTERVALS"]
     assert "source" not in h  # ya no hay modos de fuente
 
 
@@ -528,7 +528,7 @@ def test_api_sirve_las_senales_nuevas(conn, settings):
     client = TestClient(create_app(lambda: conn, settings))
     for key in ("recovery", "spo2", "resp", "sleep_score"):
         r = client.get(f"/api/senal/{key}?days=28")
-        assert r.status_code == 200 and r.json()["origin"] == "WHOOP vía INTERVALS", key
+        assert r.status_code == 200 and r.json()["origin"] == "COROS vía INTERVALS", key
 
 
 def test_lab_dice_que_version_del_codigo_corre(conn, settings):
