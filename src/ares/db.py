@@ -112,7 +112,18 @@ def discover(migrations_dir: Path) -> list[Migration]:
 
 
 def applied(conn: duckdb.DuckDBPyConnection) -> dict[int, tuple[str, str]]:
-    conn.execute(SCHEMA_VERSION_DDL)
+    """Lee el historial sin DDL si el esquema ya existe (admite conexiones read_only).
+
+    La tabla se crea únicamente al inicializar una base realmente nueva. DuckDB no
+    permite ejecutar CREATE TABLE IF NOT EXISTS en una conexión de solo lectura,
+    incluso cuando la tabla ya existe.
+    """
+    exists = conn.execute(
+        "SELECT count(*) FROM information_schema.tables "
+        "WHERE table_name = 'schema_version'"
+    ).fetchone()[0]
+    if not exists:
+        conn.execute(SCHEMA_VERSION_DDL)
     rows = conn.execute(
         "SELECT version, name, sha256 FROM schema_version ORDER BY version"
     ).fetchall()
