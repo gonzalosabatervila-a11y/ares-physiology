@@ -214,7 +214,7 @@ function chips(sources) {
       (s.level === cur.level && (s.age_min ?? 0) > (cur.age_min ?? 0));
     if (worse) by[s.source] = s;
   });
-  const order = ['intervals', 'tredict'];
+  const order = ['whoop', 'intervals', 'tredict'];
   const list = order.filter((k) => by[k]).map((k) => by[k]);
   return `<div class="chips">${list.map((s) => {
     const st = chipState(s);
@@ -244,12 +244,43 @@ function sigRow(s) {
 <div class="side">${tagChip(s.tag, s.origin)}${spark(s.spark)}</div>
 <div class="val">${splitUnit(s.value)}</div><div class="note">${esc(s.note)}</div></a>`;
 }
+function nativeWhoop(w) {
+  if (!w || !w.nights) return '';
+  const n = w.latest;
+  const fmt = (v, unit = '', decimals = 0) =>
+    v === null || v === undefined || !Number.isFinite(Number(v))
+      ? '—'
+      : Number(v).toLocaleString('es-ES', {maximumFractionDigits: decimals}) + unit;
+  const h = n.sleep_min === null || n.sleep_min === undefined
+    ? '—' : `${Math.floor(n.sleep_min / 60)}:${String(n.sleep_min % 60).padStart(2, '0')} h`;
+  const quality = n.quality === 'high' ? 'Alta'
+    : n.quality === 'fair' ? 'Aceptable' : 'No válida para línea base';
+  return `<section class="card" aria-label="Datos fisiológicos directos de WHOOP">
+    <div class="row" style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+      <span class="eyebrow">WHOOP · conexión directa</span>
+      <span class="pill">${esc(quality)}</span>
+    </div>
+    <p class="muted" style="margin:9px 0 12px">Noche del ${esc(shortDate(n.date))} ·
+      ${w.valid_nights} de ${w.nights} noches válidas en las últimas ${w.nights} registradas.
+      ${esc(n.score_state === 'SCORED' ? '' : 'Puntuación pendiente o no disponible.')}</p>
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+      <div><div class="eyebrow">Sueño efectivo</div><div class="big">${esc(h)}</div></div>
+      <div><div class="eyebrow">VFC · rMSSD</div><div class="big">${esc(fmt(n.rmssd_ms, ' ms'))}</div></div>
+      <div><div class="eyebrow">Pulso en reposo</div><div class="big">${esc(fmt(n.rhr, ' lpm'))}</div></div>
+      <div><div class="eyebrow">Recovery WHOOP</div><div class="big">${esc(fmt(n.provider_recovery, ' %'))}</div></div>
+    </div>
+    <p class="muted" style="margin:12px 0 0">MED · Datos de WHOOP.
+      La recuperación % es el cálculo propio de WHOOP, no una decisión de ARES.
+      Los indicadores posteriores que indiquen «vía INTERVALS» proceden de otra fuente.</p>
+  </section>`;
+}
+
 function renderInicio(d) {
   ROUTE_STATE.sources = d.sources;
   const steps = d.steps === null
     ? '<span class="muted">Sin pasos todavía.</span>'
     : `<div><div class="eyebrow">Pasos · ${esc(shortDate(d.steps_day || d.last_day))}</div><div class="big">${d.steps.toLocaleString('es-ES')}</div></div><span class="muted">${esc(d.steps_source || 'intervals.icu')}</span>`;
-  view.innerHTML = pageTop(d.sources) + chips(d.sources) + hero(d.estado) +
+  view.innerHTML = pageTop(d.sources) + chips(d.sources) + hero(d.estado) + nativeWhoop(d.whoop) +
     `<div class="gauges" role="group" aria-label="Indicadores principales">${d.dials.map(gauge).join('')}</div>
 <button class="howto" data-howto>${svg('info')}Cómo leer estos indicadores</button>` + baseline(d.estado) +
     `<div class="h2"><span class="eyebrow">Señales principales</span></div>${d.signals.map(sigRow).join('')}
