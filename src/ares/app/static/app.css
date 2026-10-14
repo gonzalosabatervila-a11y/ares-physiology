@@ -1,8 +1,9 @@
 :root{
   --bg:#0C0E0D; --s1:#131614; --s2:#1B1F1B; --s3:#242A24;
-  --line:rgba(255,255,255,.07); --line2:rgba(255,255,255,.13);
-  --txt:#F0EEE7; --mut:#ABA99E; --mut2:#777A70;
-  --sig:#D5B27A; --sig-dim:rgba(213,178,122,.13); --sig-line:rgba(213,178,122,.38);
+  --line:rgba(238,235,217,.075); --line2:rgba(238,235,217,.14);
+  --txt:#F2F0E9; --mut:#B1B0A5; --mut2:#8B9086;
+  --sig:#D9B782; --sig-dim:rgba(217,183,130,.11); --sig-line:rgba(217,183,130,.38);
+  --sage:#A6BDA3;
   --warn:#D7A56B; --warn-dim:rgba(215,165,107,.13); --alrt:#D67968; --alrt-dim:rgba(214,121,104,.13);
   --r:20px; --r-s:14px; --sp1:4px; --sp2:8px; --sp3:12px; --sp4:16px; --sp5:24px; --sp6:32px;
   --ease:cubic-bezier(.2,.7,.2,1);
@@ -423,13 +424,6 @@ td{padding:9px 6px 9px 0;border-top:1px solid var(--line);vertical-align:top}
 
 
 /* ARES ATELIER v2 — jerarquía editorial, captura táctil y feedback útil */
-:root{
-  --bg:#0C0E0D; --s1:#131614; --s2:#1B1F1B; --s3:#242A24;
-  --txt:#F2F0E9; --mut:#B1B0A5; --mut2:#8B9086;
-  --line:rgba(238,235,217,.075); --line2:rgba(238,235,217,.14);
-  --sig:#D9B782; --sig-dim:rgba(217,183,130,.11); --sig-line:rgba(217,183,130,.38);
-  --sage:#A6BDA3;
-}
 html{scroll-behavior:smooth}
 body{background:radial-gradient(90% 460px at 50% -190px,rgba(217,183,130,.07),transparent 76%),var(--bg)}
 main{gap:18px}
