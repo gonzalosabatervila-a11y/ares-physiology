@@ -161,13 +161,33 @@ function openSheet(html) {
   lastFocus = document.activeElement;
   sheetBody.innerHTML = html + '<button class="close" data-close>Cerrar</button>';
   sheetEl.hidden = false;
+  document.getElementById('app').inert = true;
+  tabsEl.inert = true;
   sheetEl.querySelector('.sheet-panel').focus();
 }
 function closeSheet() {
   sheetEl.hidden = true;
-  if (lastFocus && lastFocus.focus) lastFocus.focus();
+  document.getElementById('app').inert = false;
+  tabsEl.inert = false;
+  if (lastFocus?.isConnected && lastFocus.focus) lastFocus.focus({preventScroll:true});
+  else view.focus({preventScroll:true});
 }
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !sheetEl.hidden) closeSheet(); });
+document.addEventListener('keydown', (e) => {
+  if (sheetEl.hidden) return;
+  if (e.key === 'Escape') { e.preventDefault(); closeSheet(); return; }
+  if (e.key !== 'Tab') return;
+  const panel = sheetEl.querySelector('.sheet-panel');
+  const controls = Array.from(panel.querySelectorAll(
+    'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'
+  )).filter(el=>!el.hidden && el.getClientRects().length > 0);
+  if (!controls.length) { e.preventDefault(); panel.focus(); return; }
+  const first=controls[0],last=controls.at(-1),active=document.activeElement;
+  if (e.shiftKey && (active===first || active===panel)) {
+    e.preventDefault(); last.focus();
+  } else if (!e.shiftKey && (active===last || active===panel)) {
+    e.preventDefault(); first.focus();
+  }
+});
 const LEGEND_KV = `<div class="kv">
 <div class="r"><span>MED</span><span>Medido por un dispositivo</span></div>
 <div class="r"><span>CALC</span><span>Calculado a partir de datos medidos</span></div>
