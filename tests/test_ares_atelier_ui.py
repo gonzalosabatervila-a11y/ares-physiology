@@ -192,3 +192,15 @@ def test_spa_navigation_focus_avoids_announcing_huge_updates(client):
     assert 'id="ares-toast"' in index and 'aria-live="polite"' in index
     assert "if (!refresh && lastPath !== location.hash) view.focus({preventScroll:true})" in js
     assert 'aria-live="polite"></main>' not in index
+
+
+def test_sheet_dialog_traps_keyboard_and_restores_focus(client):
+    js=client.get("/static/app.js").text
+    html=client.get("/").text
+    assert 'role="dialog" aria-modal="true"' in html
+    assert "document.getElementById('app').inert = true" in js
+    assert "tabsEl.inert = true" in js
+    assert "tabsEl.inert = false" in js
+    assert "if (e.key !== 'Tab') return" in js
+    assert "lastFocus?.isConnected" in js
+    assert "view.focus({preventScroll:true})" in js
