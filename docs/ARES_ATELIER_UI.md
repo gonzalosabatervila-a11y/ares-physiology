@@ -158,6 +158,39 @@ localhost personal, revisión Safari en iPhone, contraste,
 gestos y navegación con VoiceOver. No confundir smoke sintético
 con aceptación visual de la UI real.
 
+## Inicio v3 · menos presentación, más datos
+
+La portada deja de anteponer «Tu día, en perspectiva» a las métricas.
+Tras la cabecera global ARES muestra directamente **la última noche
+WHOOP importada** —sin buscar silenciosamente otra noche más antigua—.
+Solo presenta VFC rMSSD, FC de reposo y sueño efectivo si la última
+noche tiene `score_state=SCORED`, calidad `high` o `fair`,
+no está calibrando y su `night_check` es correcto. En caso
+contrario aparece una explicación compacta, nunca un número ficticio.
+La tarjeta incorpora fecha, calidad y procedencia «MED · WHOOP directo».
+A continuación siguen café, cena y acostarse en un toque, línea
+base, plan y señales. El detalle técnico es desplegable.
+
+**Accesibilidad de navegación:** `main#view` admite foco programático,
+lo recibe al cambiar de ruta sin robarlo tras una recarga o registro.
+Se evita anunciar toda la SPA con `aria-live=polite`; las
+confirmaciones conservan su propio `role=status` y live region.
+Las hojas inferiores ahora hacen inerte el fondo, retienen Tab y
+Shift+Tab dentro del diálogo y restauran el foco al cerrarlas.
+
+**Comprobaciones:** evaluación de función con tres estados
+(última noche válida, no puntuable, vacía); render dinámico
+de Inicio con WHOOP puntuado y tres botones rápidos; pruebas
+estáticas nuevas de accesibilidad, bloqueo de valores no válidos,
+cache versionada y presupuestos de frontend. `new Function(...)`
+para ambos JS correcto, sin nuevas dependencias, app.js ~87 KB,
+app.css ~45 KB y `atelier_views.css` ~14 KB (bytes UTF-8).
+
+**Pendiente:** ejecución de `pytest` en Mac, capturas reales a
+375/390/430/820/1440 px, VoiceOver, contraste y pruebas de
+interacción en Safari iPhone. No hemos podido acceder al
+`127.0.0.1:8443` del Mac desde el repositorio remoto.
+
 ## Objetivos visuales y operativos
 
 - Paleta: grafito `#0C0E0D`, champagne `#D9B782`,
