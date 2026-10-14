@@ -647,6 +647,8 @@ function renderPlan(d) {
       <p class="muted" style="margin:10px 0 0">Plan prescrito desde Excel maestro
       ${esc(d.source_version)}, importación manual ${esc(d.snapshot_date)}.
       <b>No se sincroniza en directo con Drive.</b></p>
+      ${d.snapshot_warning ? `<p class="plan-warning" role="alert">
+        ${esc(d.snapshot_warning)}</p>` : ''}
     </section>
     <section class="card plan-exec-summary">
       <div class="eyebrow">ARES · PRESCRITO / REGISTRADO / RESPUESTA</div>
@@ -662,6 +664,10 @@ function renderPlan(d) {
       <p class="muted">No se muestra «cumplimiento» sin verificar duración, bloques y
       zonas con registros de calidad. Una ausencia en Tredict no significa que no entrenases.
       Los cambios nocturnos no demuestran que una sesión los causase.</p>
+      <p class="muted">Última sincronización Tredict (actividades):
+        <span class="mono">${d.tredict_last_sync ? esc(d.tredict_last_sync.replace('T',' ').slice(0,19)) :
+          'sin registro de sincronización correcta'}</span>.
+        Este momento no demuestra que el entrenamiento de hoy ya esté disponible.</p>
     </section>
     <section class="card plan-nutrition-summary">
       <div class="eyebrow">Fueling ARES v1.0 · previsión semanal</div>
