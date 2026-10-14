@@ -111,6 +111,53 @@ regresión de UI ampliados. **No validado todavía** con `pytest` real
 en Mac, screenshot real, Safari iPhone, VoiceOver ni presupuesto
 de interacción táctil; no se declara terminado visualmente.
 
+## Unified Scientific Atelier · navegación y densidad de información
+
+**Iteración realizada el 14/10/2026**, todavía en PR #4 draft:
+- `app.css` conserva un único bloque raíz de tokens grafito,
+  champán y salvia. Una hoja modular `atelier_views.css` contiene
+  los ajustes de **Inicio, Entrenos, Plan y LAB**.
+- **Inicio** usa un titular editorial, la captura de café/cena/cama,
+  línea base y plan como contenido principal. Las señales aparecen
+  en filas de lectura rápida; la medición directa adicional de WHOOP,
+  la comparación de sensores, los diales y el estado de fuentes se
+  conservan en **«Explorar mediciones y fuentes»**, un elemento
+  `details` nativo y accesible por teclado.
+- **Entrenos** se presenta como un archivo: cada carrera sigue
+  enlazada al detalle COROS/Tredict o WHOOP, con distancia,
+  tiempo, ritmo/FC y fecha visibles; la diferenciación Correr/Otros
+  no cambia.
+- **Plan** mantiene su calendario prescrito, hechos observados
+  Tredict y contexto WHOOP, pero lo divide en siete filas `details`.
+  El día actual está abierto por defecto; los demás muestran
+  título, duración, distancia y tipo hasta abrir su nutrición,
+  ejecución y origen. No se infiere cumplimiento por fecha.
+- **LAB** mantiene las tres acciones instantáneas y Diario/Análisis.
+  Las cohortes, resumen de cafeína y cenas, cronología e historial
+  se presentan con separadores finos en vez de bloques uniformes.
+- **Fisiología** conserva el Scientific Atelier previamente
+  implementado, con fechas reales en los ejes, vacíos explícitos y
+  el modelo Recovery atribuido a WHOOP, no a ARES.
+
+**Componentes protegidos:** vínculos a `#/progreso` y `#/lab`,
+validación de fuentes, advertencias de cobertura, OAuth,
+migraciones, base DuckDB y Excel maestro siguen inalterados.
+Ningún dato personal fue enviado a modelos externos.
+
+**Verificación disponible:** sintaxis JS compilada en V8, smoke de
+renderizado con datos sintéticos para las cuatro pantallas:
+3 acciones en Inicio, archivo Entrenos y enlace de detalle,
+7 días en Plan con `<summary>` y hoy expandido,
+LAB con 3 botones y las dos vistas; tamaños de recursos dentro
+del presupuesto automatizado. También se añadieron pruebas
+`test_ares_atelier_ui.py` para navegación, assets, estilo,
+preservación de valores y semántica del calendario.
+
+**Pendiente, NO validado:** `pytest` real en Mac, render en su
+localhost personal, revisión Safari en iPhone, contraste,
+gestos y navegación con VoiceOver. No confundir smoke sintético
+con aceptación visual de la UI real.
+
 ## Objetivos visuales y operativos
 
 - Paleta: grafito `#0C0E0D`, champagne `#D9B782`,
