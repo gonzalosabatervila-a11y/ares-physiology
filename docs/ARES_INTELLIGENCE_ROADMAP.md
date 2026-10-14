@@ -42,6 +42,46 @@ fuentes, ausencia de datos, privacidad y coherencia de fechas. Esta rama
 es de desarrollo y **no** está fusionada con producción. Antes de
 entregarla, ejecutar pruebas Python y validación sintáctica JS en el Mac.
 
+## Execution Intelligence · evidencia de ejecución y fisiología temporal
+
+**Implementado en PR #4 (rama Mac, octubre 2026):**
+- `src/ares/app/plan_execution.py` recupera registros Tredict de cada
+  semana sin límite engañoso de «50 sesiones recientes»; deduplica por
+  ID, prefiere `activity_detail` y convierte UTC a Europe/Madrid.
+- Estados diarios `future`, `no_record_found`,
+  `observed_unverified` y `rest_day_activity`. No existen estados
+  de cumplimiento confirmados automáticamente; medir la duración
+  completa no garantiza cumplir bloques ni zonas.
+- Una única actividad permite contextualizarse mediante la última
+  noche WHOOP válida previa y primera posterior (por intervalos reales
+  de sueño, no solo fechas). Se excluyen noches no puntuadas,
+  en calibración o de mala calidad. Con varias carreras diarias,
+  la atribución fisiológica por sesión se deja sin dato.
+- Panel resumen distingue minutos observados de planificados, muestra
+  los eventos con enlace al detalle y la fecha de última sincronización
+  correcta de Tredict. No expone GPS ni notas privadas.
+
+**Actualización auditada del Excel sin OAuth Drive local:**
+- Comando `ares plan-check archivo.xlsx` muestra por defecto
+  diferencias por fecha/campo, valida 9 semanas (63 fechas) y SHA-256
+  sin escribir. El archivo se obtiene manualmente de Drive.
+- `--apply` autoriza reemplazar solo el archivo
+  `~/ares-data/training_plan.json` de forma atómica, con backup de
+  la versión previa. El servidor vuelve a leer la copia en cada petición.
+- Si esta copia se estropea, el backend recurre a la versión validada
+  incluida en la app y muestra una advertencia explícita.
+- **No se afirma sincronización en vivo con Google Drive** ni
+  autenticidad remota automática del archivo descargado.
+- No se han tocado los documentos originales, DuckDB, HP Windows
+  ni la pauta de entrenamiento.
+
+**Siguientes validaciones:** ejecutar pruebas pytest en Mac,
+comparar el importador con el XLSX original, comprobar S32/S37
+con entrenamientos reales y noches disponibles. Posteriormente,
+implementar comparación objetiva de vueltas, HR de cada intervalo,
+carga por zona y adherencia por tipo de sesión, con aceptación
+manual antes de cambiar el plan.
+
 ## Plan de maratón conectado a Drive y Fueling ARES · octubre 2026
 
 **Fuentes consultadas en la carpeta de trabajo (FUERA de Old):**
