@@ -74,7 +74,7 @@ def series_quality(
 
 def decoupling_proxy(
     values: dict[str, Any], sample_seconds: Any, moving_seconds: Any,
-    *, sport: str = "running",
+    *, sport: str = "running", elapsed_seconds: Any = None,
 ) -> dict[str, Any]:
     """Cambio del cociente FC/velocidad entre mitades de un tramo casi uniforme.
 
@@ -91,6 +91,11 @@ def decoupling_proxy(
     }
     if sport != "running":
         return {**base, "reason": "Solo evaluado en carrera."}
+    total = finite(elapsed_seconds)
+    moving = finite(moving_seconds)
+    if total is not None and moving is not None and total > 0:
+        if moving <= 0 or (total - moving) / total > 0.03:
+            return {**base, "reason": "Pausas superiores al 3 % del tiempo: sesiones no comparables."}
     tick = quality["sample_seconds"]
     duration = finite(moving_seconds)
     if tick is None or duration is None or duration < MIN_DRIFT_DURATION:
