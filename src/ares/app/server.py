@@ -17,7 +17,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from ..config import Settings
-from . import data, physiology, training_catalog, planning
+from . import data, physiology, training_catalog, planning, plan_execution
 
 STATIC = Path(__file__).parent / "static"
 mimetypes.add_type("application/manifest+json", ".webmanifest")  # según el sistema no viene
@@ -67,28 +67,21 @@ def create_app(
                                weight_kg=settings.nutrition_weight_kg)
         if not result["available"]:
             return result
-        # Registrar una actividad NO valida automáticamente que coincida
-        # con el entrenamiento prescrito. Solo exposición comparativa.
-        observed = {}
-        for item in training_catalog.catalog(
-            cursor(), settings.device_id, tz=settings.tz,
-            category="running", limit=50,
-        )["sessions"]:
-            day = item["date"]
-            if day not in {s["date"] for s in result["days"]}:
-                continue
-            b = observed.setdefault(day, {"count": 0, "minutes": 0.0,
-                                          "km": 0.0, "source": "Tredict",
-                                          "verified_match": False})
-            b["count"] += 1
-            if item.get("duration_s") is not None and 0 < item["duration_s"] < 86400:
-                b["minutes"] += item["duration_s"] / 60
-            if item.get("distance_m") is not None and 0 < item["distance_m"] < 200000:
-                b["km"] += item["distance_m"] / 1000
-        for day, item in observed.items():
-            item["minutes"] = round(item["minutes"])
-            item["km"] = round(item["km"], 2)
-        return {**result, "observed_runs": observed}
+        compared = plan_execution.execution(
+            cursor(), result["days"], device_id=settings.device_id,
+            tz=settings.tz, today=planning.date.fromisoformat(result["today"]),
+        )
+        # Contrato histórico conservado para los clientes que usaban observed_runs.
+        # La información detallada, calidad y contexto WHOOP van en 'execution'.
+        observed = {
+            day: {
+                "count": item["count"], "minutes": item["observed_minutes"],
+                "km": item["observed_km"], "source": "Tredict",
+                "verified_match": False,
+            }
+            for day, item in compared["days"].items() if item["count"] > 0
+        }
+        return {**result, "observed_runs": observed, "execution": compared}
 
     @app.get("/api/progreso")
     def api_progreso() -> dict:
