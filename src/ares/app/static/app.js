@@ -601,12 +601,16 @@ function runSeries(points, title, color) {
 }
 function syncNotice(mode) {
   return mode === 'automatic'
-    ? `<div class="sync-note"><b>Sincronización automática activa.</b>
-      ARES consulta las fuentes al arrancar y en sus ventanas programadas.
-      El botón circular recarga la pantalla, no fuerza una descarga.</div>`
-    : `<div class="sync-note"><b>Vista local · datos sin sincronización automática.</b>
-      Para obtener nuevos datos, detén <code>ares app</code> y arranca
-      <code>uv run ares serve</code>. El botón circular solo recarga la pantalla.</div>`;
+    ? `<div class="sync-compact" role="status">
+        <span class="sync-indicator" aria-hidden="true"></span>
+        <span>Actualización automática activa</span>
+        <a href="#/lab">Ver fuentes ↗</a>
+      </div>`
+    : `<div class="sync-compact" role="status">
+        <span class="sync-indicator paused" aria-hidden="true"></span>
+        <span>Solo lectura · los datos no se sincronizan</span>
+        <a href="#/lab">Ver fuentes ↗</a>
+      </div>`;
 }
 function renderEntrenos(d) {
   ROUTE_STATE.syncMode = d.sync_mode || ROUTE_STATE.syncMode;
