@@ -921,7 +921,7 @@ function renderFisiologia(d) {
     <div class="phys-section-heading"><div><span class="eyebrow">LAS DOS REFERENCIAS CLAVE</span>
       <h2>Corazón y recuperación</h2></div>
       <span class="phys-section-meta">Mediciones nocturnas</span></div>
-    ${highlighted.map(m=>physCard(m,true)).join('')}
+    <div class="phys-feature-grid">${highlighted.map(m=>physCard(m,true)).join('')}</div>
     <div class="phys-section-heading"><div><span class="eyebrow">PROFUNDIZAR</span>
       <h2>Otras señales</h2></div>
       <span class="phys-section-meta">Abre para explorar</span></div>
