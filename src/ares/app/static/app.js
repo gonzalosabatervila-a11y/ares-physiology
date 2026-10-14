@@ -423,8 +423,10 @@ function homeNightSnapshot(w) {
   </section>`;
   const f=(v,digits=0)=>v===null||v===undefined||!Number.isFinite(Number(v))?'—':
     Number(v).toLocaleString('es-ES',{maximumFractionDigits:digits});
-  const sleep=n.sleep_min===null||n.sleep_min===undefined?'—':
-    `${Math.floor(n.sleep_min/60)}:${String(Math.round(n.sleep_min)%60).padStart(2,'0')}`;
+  const sleep=n.sleep_min===null||n.sleep_min===undefined?'—':(()=>{
+    const min=Math.round(Number(n.sleep_min));
+    return Number.isFinite(min)?`${Math.floor(min/60)}:${String(min%60).padStart(2,'0')}`:'—';
+  })();
   return `<section class="home-night" aria-label="Lecturas de la última noche WHOOP">
     <div class="home-night-head"><span class="eyebrow">01 / ÚLTIMA NOCHE WHOOP</span>
       <span class="home-night-date">${date} · ${n.quality==='high'?'Calidad alta':'Calidad aceptable'}</span></div>
@@ -1358,6 +1360,9 @@ async function route(refresh = false) {
     const y = window.scrollY;
     fn(data);
     view.classList.remove('view-in'); void view.offsetWidth; view.classList.add('view-in');
+    // Las rutas SPA desplazan el foco al área principal. Un refresco silencioso
+    // (p.ej. guardar café) no roba el foco al usuario.
+    if (!refresh && lastPath !== location.hash) view.focus({preventScroll:true});
     window.scrollTo(0, refresh || lastPath === location.hash ? y : 0);
   } catch (err) {
     if (seq !== routeSeq) return;
