@@ -14,7 +14,7 @@ from typing import Any
 import duckdb
 
 from ..connectors.tredict import ACTIVITY_ID_RE
-from . import training_analysis, training_zones
+from . import training_analysis, training_zones, training_context
 
 
 def num(v: Any) -> float | None:
@@ -100,7 +100,9 @@ def _downsample(values: Any, sample_s: Any, max_points: int = 250) -> list[dict[
             for i in indexes]
 
 
-def session(conn: duckdb.DuckDBPyConnection, activity_id: str) -> dict[str, Any] | None:
+def session(
+    conn: duckdb.DuckDBPyConnection, activity_id: str, *, device_id: str | None = None
+) -> dict[str, Any] | None:
     if not ACTIVITY_ID_RE.fullmatch(activity_id):
         return None
     selected = next(
@@ -146,6 +148,12 @@ def session(conn: duckdb.DuckDBPyConnection, activity_id: str) -> dict[str, Any]
         **summary,
         "analysis": analysis,
         "hr_zones": training_zones.heart_rate_zones(selected),
+        "night_context": (
+            training_context.training_night_context(
+                conn, device_id, selected.get("date", ""),
+                summary["elapsed_s"] or summary["duration_s"],
+            ) if device_id else None
+        ),
         "laps": laps,
         "sample_seconds": num(period),
         "series": {
