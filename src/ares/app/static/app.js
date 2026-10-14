@@ -544,6 +544,32 @@ function runSeries(points, title, color) {
   </svg>`;
 }
 function renderEntrenos(d) {
+  const comparisons = (d.comparisons || []).map((p) => {
+    const sign = p.speed_change_pct > 0 ? '+' : '';
+    return `<div style="padding:12px 0;border-top:1px solid var(--line)">
+      <div class="row" style="display:flex;justify-content:space-between;gap:8px">
+        <span class="eyebrow">${esc(shortDate(p.old_date))} → ${esc(shortDate(p.new_date))}</span>
+        <b class="mono" style="font-size:16px">${esc(sign + p.speed_change_pct.toFixed(1))} %</b>
+      </div>
+      <p class="muted" style="margin:6px 0 0">
+        ${esc(runPace(p.old_pace_s_km))} → ${esc(runPace(p.new_pace_s_km))}
+        · FC ${esc(p.old_avg_hr)} → ${esc(p.new_avg_hr)} lpm
+        · ${esc(p.old_distance_km)} → ${esc(p.new_distance_km)} km.
+      </p>
+      <div style="display:flex;gap:18px;margin-top:9px">
+        <a href="#/entreno/${encodeURIComponent(p.old_id)}" style="color:var(--sig)">Anterior</a>
+        <a href="#/entreno/${encodeURIComponent(p.new_id)}" style="color:var(--sig)">Reciente</a>
+      </div>
+    </div>`;
+  }).join('');
+  const comparisonPanel = comparisons ? `<section class="card">
+    <div class="row" style="display:flex;align-items:center;justify-content:space-between">
+      <span class="eyebrow">Comparador de sesiones</span>${tagChip('EXP','ARES')}
+    </div><h3 style="margin:10px 0 6px">¿Mejora tu ritmo a pulso similar?</h3>
+    <p class="muted" style="margin:0 0 12px">Parejas con distancia ±10 % y FC media ±5 lpm.
+      El porcentaje refleja cambio de velocidad; terreno, temperatura y pausas
+      pueden explicar parte de la diferencia. No se atribuye causalidad.</p>
+    ${comparisons}</section>` : '';
   const cards = d.sessions.map((a) => {
     const distance = a.distance_m === null ? '—' :
       (a.distance_m / 1000).toLocaleString('es-ES', {maximumFractionDigits:2})+' km';
@@ -571,7 +597,7 @@ function renderEntrenos(d) {
        Ritmo, pulso, potencia y vueltas cuando la actividad lo permite.
        Los datos faltantes se muestran vacíos: no se calculan umbrales ni
        eficacia con una lista incompleta. Procedencia: Tredict.</p></section>` +
-    (cards || `<section class="card"><h3>Sin entrenamientos completos</h3>
+    comparisonPanel + (cards || `<section class="card"><h3>Sin entrenamientos completos</h3>
        <p class="muted">Ya tenemos tu listado, pero falta importar series y vueltas.
        Cierra la app con Ctrl+C; después, en la Terminal, ejecuta
        <code>uv run ares tredict-details --days 30 --limit 5</code>.
