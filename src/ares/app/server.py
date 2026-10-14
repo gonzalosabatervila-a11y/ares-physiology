@@ -17,7 +17,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from ..config import Settings
-from . import data, physiology, training
+from . import data, physiology, training, training_comparison
 
 STATIC = Path(__file__).parent / "static"
 mimetypes.add_type("application/manifest+json", ".webmanifest")  # según el sistema no viene
@@ -61,7 +61,12 @@ def create_app(get_conn: Callable[[], duckdb.DuckDBPyConnection], settings: Sett
     def api_entrenos(limit: int = 20) -> dict:
         if limit < 1 or limit > 50:
             raise HTTPException(status_code=422, detail="limit debe estar entre 1 y 50")
-        return {"source": "Tredict · detalle local", "sessions": training.list_sessions(cursor(), limit)}
+        sessions = training.list_sessions(cursor(), 50)
+        return {
+            "source": "Tredict · detalle local",
+            "sessions": sessions[:limit],
+            "comparisons": training_comparison.compare(sessions),
+        }
 
     @app.get("/api/entreno/{activity_id}")
     def api_entreno(activity_id: str) -> dict:
