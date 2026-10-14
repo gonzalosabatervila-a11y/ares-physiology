@@ -6,6 +6,7 @@ no causal. Sin servicio de IA, sin telemetría, sin terceros.
 """
 from __future__ import annotations
 
+import json
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
 from uuid import UUID, uuid4
@@ -90,6 +91,18 @@ def _row(item: tuple[Any, ...], tz: str) -> dict[str, Any]:
 COLUMNS = ("event_id, event_type, occurred_at, caffeine_mg, amount_basis, "
            "note, created_at, updated_at")
 
+def _audit(conn: duckdb.DuckDBPyConnection, event_id: str, action: str,
+           previous: dict | None, current: dict | None) -> None:
+    conn.execute(
+        """INSERT INTO lab_event_revisions
+           (revision_id, event_id, action, previous_snapshot, current_snapshot)
+           VALUES (?, ?, ?, ?, ?)""",
+        [str(uuid4()), event_id, action,
+         json.dumps(previous, ensure_ascii=False) if previous else None,
+         json.dumps(current, ensure_ascii=False) if current else None],
+    )
+
+
 
 def create(
     conn: duckdb.DuckDBPyConnection, device_id: str, tz: str, payload: NewEvent,
@@ -106,15 +119,23 @@ def create(
         # Solo se reutiliza el resultado original; jamás se crean eventos duplicados.
         return {**_row(existing[:8], tz), "already_saved": True}
     event_id = str(uuid4())
-    conn.execute(
-        """INSERT INTO lab_events
-           (event_id, device_id, event_type, occurred_at, timezone,
-            caffeine_mg, amount_basis, note, source, client_event_key)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'manual', ?)""",
-        [event_id, device_id, payload.event_type, payload.occurred_at, tz,
-         payload.caffeine_mg, payload.amount_basis, payload.note, key],
-    )
-    return get(conn, device_id, tz, event_id)
+    conn.execute("BEGIN TRANSACTION")
+    try:
+        conn.execute(
+            """INSERT INTO lab_events
+               (event_id, device_id, event_type, occurred_at, timezone,
+                caffeine_mg, amount_basis, note, source, client_event_key)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'manual', ?)""",
+            [event_id, device_id, payload.event_type, payload.occurred_at, tz,
+             payload.caffeine_mg, payload.amount_basis, payload.note, key],
+        )
+        created = get(conn, device_id, tz, event_id)
+        _audit(conn, event_id, "create", None, created)
+        conn.execute("COMMIT")
+        return created
+    except Exception:
+        conn.execute("ROLLBACK")
+        raise
 
 
 def get(
@@ -153,24 +174,39 @@ def edit(
     elif caffeine is not None or basis is not None:
         raise ValueError("Este evento no admite cafeína")
     note = payload.note if "note" in supplied else orig["note"]
-    conn.execute(
-        """UPDATE lab_events SET occurred_at=?, timezone=?, caffeine_mg=?,
-           amount_basis=?, note=?, updated_at=current_timestamp
-           WHERE event_id=? AND device_id=? AND deleted_at IS NULL""",
-        [when, tz, caffeine, basis, note, event_id, device_id],
-    )
-    return get(conn, device_id, tz, event_id)
+    conn.execute("BEGIN TRANSACTION")
+    try:
+        conn.execute(
+            """UPDATE lab_events SET occurred_at=?, timezone=?, caffeine_mg=?,
+               amount_basis=?, note=?, updated_at=current_timestamp
+               WHERE event_id=? AND device_id=? AND deleted_at IS NULL""",
+            [when, tz, caffeine, basis, note, event_id, device_id],
+        )
+        updated = get(conn, device_id, tz, event_id)
+        _audit(conn, event_id, "edit", orig, updated)
+        conn.execute("COMMIT")
+        return updated
+    except Exception:
+        conn.execute("ROLLBACK")
+        raise
 
 
 def remove(conn: duckdb.DuckDBPyConnection, device_id: str, tz: str, event_id: str) -> dict:
     obj = get(conn, device_id, tz, event_id)
-    conn.execute(
-        """UPDATE lab_events SET deleted_at=current_timestamp,
-           updated_at=current_timestamp
-           WHERE device_id=? AND event_id=? AND deleted_at IS NULL""",
-        [device_id, event_id],
-    )
-    return {"deleted": True, "id": obj["id"]}
+    conn.execute("BEGIN TRANSACTION")
+    try:
+        conn.execute(
+            """UPDATE lab_events SET deleted_at=current_timestamp,
+               updated_at=current_timestamp
+               WHERE device_id=? AND event_id=? AND deleted_at IS NULL""",
+            [device_id, event_id],
+        )
+        _audit(conn, event_id, "delete", obj, None)
+        conn.execute("COMMIT")
+        return {"deleted": True, "id": obj["id"]}
+    except Exception:
+        conn.execute("ROLLBACK")
+        raise
 
 
 def history(
