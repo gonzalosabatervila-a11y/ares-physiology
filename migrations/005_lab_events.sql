@@ -25,3 +25,15 @@ CREATE TABLE lab_events (
     )
 );
 CREATE INDEX lab_events_time_idx ON lab_events(device_id, occurred_at);
+
+-- Auditoría inmutable de correcciones: conserva el valor previo y nuevo.
+-- La migración 005 es nueva y todavía NO se ha aplicado en el Mac.
+CREATE TABLE lab_event_revisions (
+    revision_id VARCHAR PRIMARY KEY,
+    event_id VARCHAR NOT NULL,
+    action VARCHAR NOT NULL CHECK (action IN ('create','edit','delete')),
+    previous_snapshot JSON,
+    current_snapshot JSON,
+    changed_at TIMESTAMPTZ NOT NULL DEFAULT current_timestamp
+);
+CREATE INDEX lab_event_revisions_event_idx ON lab_event_revisions(event_id, changed_at);
