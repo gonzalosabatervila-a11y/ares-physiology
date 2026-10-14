@@ -246,3 +246,35 @@ def test_upgrade_v4_a_v5_conserva_capa_bruta_y_noches(tmp_path):
         assert c.execute("SELECT count(*) FROM lab_events").fetchone()[0]==0
     finally:
         c.close()
+
+
+def test_resultado_inmediato_ultimo_cierre_de_cena_a_me_acuesto(conn,settings):
+    dinner=datetime.now(UTC)-timedelta(hours=5)
+    bed=dinner+timedelta(hours=3,minutes=25)
+    lab_events.create(conn,settings.device_id,settings.tz,
+        lab_events.NewEvent(**event("dinner_end",at=dinner)))
+    lab_events.create(conn,settings.device_id,settings.tz,
+        lab_events.NewEvent(**event("bedtime",at=bed)))
+    out=lab_events.overview(conn,settings.device_id,settings.tz)["daily"]
+    assert out["last_dinner_bedtime_gap_min"]==205
+    assert out["manual_pairs_30d"]==1
+    assert out["mean_dinner_bedtime_gap_min"]==205
+    assert "distinto del inicio de sueño" in out["method"]
+
+
+def test_valida_tailscale_y_rechaza_http_externo(conn,settings):
+    api=TestClient(
+        create_app(lambda:conn,settings,auto_sync=True),
+        base_url="https://macbook-ejemplo.tailnet.ts.net",
+    )
+    valid=api.post("/api/lab/events",json=event(),headers={
+        "Origin":"https://macbook-ejemplo.tailnet.ts.net","X-ARES-LAB":"1",
+    })
+    assert valid.status_code==201,valid.text
+    insecure=TestClient(
+        create_app(lambda:conn,settings,auto_sync=True),
+        base_url="http://macbook-ejemplo.tailnet.ts.net",
+    )
+    assert insecure.post("/api/lab/events",json=event(),headers={
+        "Origin":"http://macbook-ejemplo.tailnet.ts.net","X-ARES-LAB":"1",
+    }).status_code==403
