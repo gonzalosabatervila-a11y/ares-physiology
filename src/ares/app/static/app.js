@@ -79,9 +79,9 @@ function arc(cx, cy, r, p0, p1) {
 const G = {noche: ['moon', 'Noche'], nervioso: ['pulse', 'Sist. nervioso'], carga: ['run', 'Carga']};
 function valueSpans(key, v) {
   const m = key === 'noche' ? /^(\d+):(\d\d)$/.exec(v) : null;
-  if (m) return `<tspan>${m[1]}</tspan><tspan font-size="11" dx="2" fill="#8C979B">h</tspan><tspan dx="3">${m[2]}</tspan>`;
+  if (m) return `<tspan>${m[1]}</tspan><tspan font-size="11" dx="2" fill="#ABA99E">h</tspan><tspan dx="3">${m[2]}</tspan>`;
   const u = /^(\S+)\s+(\S+)$/.exec(v);
-  if (u) return `<tspan>${esc(u[1])}</tspan><tspan font-size="11" dx="3" fill="#8C979B">${esc(u[2])}</tspan>`;
+  if (u) return `<tspan>${esc(u[1])}</tspan><tspan font-size="11" dx="3" fill="#ABA99E">${esc(u[2])}</tspan>`;
   return `<tspan>${esc(v)}</tspan>`;
 }
 function gauge(d) {
@@ -95,7 +95,7 @@ function gauge(d) {
   const needle = d.p === null ? '' : `<circle class="needle" data-p="${d.p}" data-cx="${cx}" data-cy="${cy}" data-r="${r}" cx="${(cx + r * Math.cos(150 * Math.PI / 180)).toFixed(1)}" cy="${(cy + r * Math.sin(150 * Math.PI / 180)).toFixed(1)}" r="6.5" fill="#fff" style="filter:drop-shadow(0 0 5px ${col})"/>`;
   return `<a class="gauge" href="#/senal/${d.signal}" aria-label="${esc(label)}: ${esc(d.value)}, ${esc(stateTxt)}. Ver detalle">
 <svg viewBox="0 0 120 112" role="img" aria-hidden="true">${track}${band}${needle}
-<g transform="translate(50,30) scale(.83)" fill="none" stroke="#8C979B" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${P[icon]}</g>
+<g transform="translate(50,30) scale(.83)" fill="none" stroke="#ABA99E" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${P[icon]}</g>
 <text x="60" y="72" text-anchor="middle" font-family="Archivo,sans-serif" font-size="22" font-weight="700" fill="#F0EEE7">${valueSpans(d.key, d.value)}</text>
 <text x="60" y="89" text-anchor="middle" font-family="Archivo,sans-serif" font-size="11.5" font-weight="600" fill="${col}">${esc(stateTxt)}</text></svg>
 <span class="lab">${esc(label)}</span><span class="trend">${esc(trend)}</span></a>`;
@@ -139,8 +139,8 @@ function lineChart(lines, opts = {}) {
   const y = (v) => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
   const f = (n) => n.toFixed(1);
   const ticks = [hi - pad, (hi + lo) / 2, lo + pad].map((v) =>
-    `<line x1="${L}" x2="${W - R}" y1="${f(y(v))}" y2="${f(y(v))}" stroke="rgba(255,255,255,.06)"/><text x="${L - 6}" y="${f(y(v) + 3.5)}" text-anchor="end" font-size="10" fill="#65727A">${Math.round(v)}</text>`).join('');
-  const bandSvg = band ? `<rect x="${L}" y="${f(y(band[1]))}" width="${W - L - R}" height="${f(y(band[0]) - y(band[1]))}" fill="rgba(69,212,229,.11)"/><line x1="${L}" x2="${W - R}" y1="${f(y(band[1]))}" y2="${f(y(band[1]))}" stroke="rgba(69,212,229,.35)" stroke-dasharray="3 4"/><line x1="${L}" x2="${W - R}" y1="${f(y(band[0]))}" y2="${f(y(band[0]))}" stroke="rgba(69,212,229,.35)" stroke-dasharray="3 4"/>` : '';
+    `<line x1="${L}" x2="${W - R}" y1="${f(y(v))}" y2="${f(y(v))}" stroke="rgba(255,255,255,.06)"/><text x="${L - 6}" y="${f(y(v) + 3.5)}" text-anchor="end" font-size="10" fill="#777A70">${Math.round(v)}</text>`).join('');
+  const bandSvg = band ? `<rect x="${L}" y="${f(y(band[1]))}" width="${W - L - R}" height="${f(y(band[0]) - y(band[1]))}" fill="rgba(213,178,122,.11)"/><line x1="${L}" x2="${W - R}" y1="${f(y(band[1]))}" y2="${f(y(band[1]))}" stroke="rgba(213,178,122,.35)" stroke-dasharray="3 4"/><line x1="${L}" x2="${W - R}" y1="${f(y(band[0]))}" y2="${f(y(band[0]))}" stroke="rgba(213,178,122,.35)" stroke-dasharray="3 4"/>` : '';
   const paths = lines.map((l, i) => {
     const d = l.pts.map((p, k) => `${k ? 'L' : 'M'}${f(x(p.date))} ${f(y(p.v))}`).join('');
     const last = l.pts[l.pts.length - 1];
@@ -149,7 +149,7 @@ function lineChart(lines, opts = {}) {
   }).join('');
   const dates = [...new Set(lines[0].pts.map((p) => p.date))];
   const xl = [dates[0], dates[Math.floor(dates.length / 2)], dates[dates.length - 1]].map((d, i) =>
-    `<text x="${f(x(d))}" y="${H - 8}" text-anchor="${i === 0 ? 'start' : i === 2 ? 'end' : 'middle'}" font-size="10" fill="#65727A">${shortDate(d)}</text>`).join('');
+    `<text x="${f(x(d))}" y="${H - 8}" text-anchor="${i === 0 ? 'start' : i === 2 ? 'end' : 'middle'}" font-size="10" fill="#777A70">${shortDate(d)}</text>`).join('');
   return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opts.label || 'Serie temporal')}"><defs><linearGradient id="${id}" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="${lines[0].color}" stop-opacity=".28"/><stop offset="1" stop-color="${lines[0].color}" stop-opacity="0"/></linearGradient></defs>${ticks}${bandSvg}${paths}${xl}</svg>`;
 }
 
@@ -376,6 +376,32 @@ function pairedMetrics(f) {
   </section>`;
 }
 
+function homeQuickCapture(syncMode) {
+  const enabled = syncMode === 'automatic';
+  const actions = [
+    ['coffee', '☕', 'Café', '100 mg · estimados'],
+    ['dinner_end', '◒', 'Terminé de cenar', 'Registrar ahora'],
+    ['bedtime', '☾', 'Me acuesto', 'Registrar ahora'],
+  ];
+  return `<section class="home-capture" aria-label="Registro rápido de acontecimientos">
+    <div class="home-section-heading">
+      <div><span class="eyebrow">ARES LAB · TU DÍA</span>
+        <h2>Registra. Descubre.</h2></div>
+      <a href="#/laboratorio" aria-label="Abrir ARES LAB">Ir a LAB ↗</a>
+    </div>
+    <div class="home-capture-actions">
+      ${actions.map(([key,icon,title,sub]) => `<button type="button" class="home-capture-btn"
+        data-lab-quick="${key}" ${enabled?'':'disabled'}
+        aria-label="${title}: ${sub}">
+        <span class="home-capture-icon" aria-hidden="true">${icon}</span>
+        <b>${title}</b><small>${sub}</small>
+      </button>`).join('')}
+    </div>
+    ${enabled ? '<p class="home-capture-note">Un toque guarda la hora exacta. Puedes corregirla después en LAB.</p>' :
+      '<p class="home-capture-note">Registro disponible con <code>uv run ares serve</code>.</p>'}
+  </section>`;
+}
+
 function renderInicio(d) {
   ROUTE_STATE.sources = d.sources;
   ROUTE_STATE.syncMode = d.sync_mode || ROUTE_STATE.syncMode;
@@ -386,14 +412,17 @@ function renderInicio(d) {
   const mainProfile = hasPersonalBaseline
     ? personalBaseline(d.personal_baseline)
     : hero(d.estado);
-  view.innerHTML = pageTop(d.sources) + chips(d.sources) + syncNotice(ROUTE_STATE.syncMode) +
-    mainProfile + renderPlanPreview(d.plan_preview) +
+  view.innerHTML = pageTop(d.sources) + syncNotice(ROUTE_STATE.syncMode) +
+    homeQuickCapture(ROUTE_STATE.syncMode) + mainProfile + renderPlanPreview(d.plan_preview) +
     nativeWhoop(d.whoop) + pairedMetrics(d.fusion) +
     `<div class="gauges" role="group" aria-label="Indicadores principales">${d.dials.map(gauge).join('')}</div>
 <button class="howto" data-howto>${svg('info')}Cómo leer estos indicadores</button>` +
     (hasPersonalBaseline ? '' : baseline(d.estado)) +
     `<div class="h2"><span class="eyebrow">Señales principales</span></div>${d.signals.map(sigRow).join('')}
-<div class="h2"><span class="eyebrow">Actividad</span></div><section class="card tile">${steps}</section>`;
+<div class="h2"><span class="eyebrow">Actividad</span></div><section class="card tile">${steps}</section>` +
+    `<section class="home-sources"><div class="home-section-heading">
+       <span class="eyebrow">FUENTES · ESTADO</span>
+       <a href="#/lab">Diagnóstico ↗</a></div>${chips(d.sources)}</section>`;
   animateGauges();
 }
 
@@ -726,8 +755,8 @@ function physChart(points, title) {
     aria-label="${esc(title)} · ${valid.length} registros válidos, ${esc(shortDate(first))} a ${esc(shortDate(last))}">
     <path d="${path}" fill="none" stroke="#D5B27A" stroke-width="2.4"
       stroke-linecap="round" stroke-linejoin="round"/>
-    <text x="${left}" y="${H-3}" fill="#8C979B" font-size="11">${esc(shortDate(first))}</text>
-    <text x="${W-right}" y="${H-3}" fill="#8C979B" text-anchor="end" font-size="11">${esc(shortDate(last))}</text>
+    <text x="${left}" y="${H-3}" fill="#ABA99E" font-size="11">${esc(shortDate(first))}</text>
+    <text x="${W-right}" y="${H-3}" fill="#ABA99E" text-anchor="end" font-size="11">${esc(shortDate(last))}</text>
     </svg>`;
 }
 function physCard(m) {
@@ -811,8 +840,8 @@ function runSeries(points, title, color) {
   return `<svg viewBox="0 0 ${W} ${H}" class="chart" role="img"
     aria-label="${esc(title)}, ${valid.length} puntos disponibles">
     <path d="${path}" stroke="${color}" stroke-width="2" fill="none" stroke-linecap="round"/>
-    <text x="${left}" y="${H-3}" fill="#8C979B" font-size="10">0 min</text>
-    <text x="${W-right}" y="${H-3}" text-anchor="end" fill="#8C979B" font-size="10">${Math.round(maxT/60)} min</text>
+    <text x="${left}" y="${H-3}" fill="#ABA99E" font-size="10">0 min</text>
+    <text x="${W-right}" y="${H-3}" text-anchor="end" fill="#ABA99E" font-size="10">${Math.round(maxT/60)} min</text>
   </svg>`;
 }
 function syncNotice(mode) {
