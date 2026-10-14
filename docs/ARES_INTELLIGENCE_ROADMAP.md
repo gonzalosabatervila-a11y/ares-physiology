@@ -42,6 +42,53 @@ fuentes, ausencia de datos, privacidad y coherencia de fechas. Esta rama
 es de desarrollo y **no** está fusionada con producción. Antes de
 entregarla, ejecutar pruebas Python y validación sintáctica JS en el Mac.
 
+## ARES Atelier · identidad visual, Entrenos y frescura (rama de desarrollo)
+
+- **Diseño:** grafito cálido, champán y salvia, eliminando el cian de UI,
+  gráficos y botones; navegación legible en móvil y escritorio.
+- **Entrenos / Correr:** catálogo COROS declarado vía Tredict. Incluye
+  actividades con resumen aunque todavía no se hayan descargado sus series,
+  y permite abrir el detalle completo cuando esté disponible. Se omiten las
+  carreras de WHOOP para no contarlas dos veces.
+- **Entrenos / Otros:** WHOOP como fuente principal para caminar, senderismo,
+  rucking explícito, fuerza y demás deportes distintos de correr. Un registro
+  llamado walking **no implica** que se llevase una mochila de rucking.
+  Puede haber actividades solo en Tredict: se usan como respaldo, sin
+  eliminar sesiones distintas ocurridas a horas parecidas.
+- **Duplicados:** una coincidencia temporal de ±15 minutos solo se considera
+  duplicada cuando el deporte pertenece a la misma familia.
+  No se afirma que sea la misma sesión sin identificador compartido.
+- **Estado de datos:** `ares app` = solo lectura: el botón circular **recarga
+  la pantalla**, nunca descarga del proveedor. `ares serve` = mismo servidor
+  web + sincronización al arrancar y planificador posterior; en la ventana
+  diurna WHOOP descarga ciclos y entrenamientos terminados. La pantalla
+  se recarga cada cinco minutos mientras está visible.
+- **Datos recientes:** se enseña la última fecha de registro para la fuente;
+  no confundirla con el momento de última sincronización.
+- **Fuente declarada:** la etiqueta COROS en los entrenamientos de Tredict
+  es configuración de origen, no una certificación individual de hardware.
+
+### Cómo activarlo en Mac, sin dos propietarios de DuckDB
+
+Detener `ares app` con Ctrl+C. En la rama de desarrollo, ejecutar
+`uv run --frozen pytest -q` y `node --check src/ares/app/static/app.js`.
+Con ambos comandos correctos:
+
+```bash
+uv run ares serve
+```
+
+Abrir http://127.0.0.1:8443/#/entrenos?tipo=correr
+o http://127.0.0.1:8443/#/entrenos?tipo=otros
+
+**No** ejecutar `ares app` a la vez que `ares serve`; ambos abrirían
+la base de DuckDB desde procesos diferentes. Para importar detalles
+de Tredict manualmente, detener primero el servicio y usar
+`uv run ares tredict-details --days 30 --limit 5`.
+
+El servidor de desarrollo Mac deja de sincronizar cuando se cierra el
+proceso. Las tareas Windows del HP no se han modificado ni activado.
+
 ## Fase 1.5 · Training Intelligence y respuesta fisiológica (en revisión)
 
 La rama de desarrollo implementa, sin modificar los registros originales:
