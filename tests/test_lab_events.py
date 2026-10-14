@@ -316,3 +316,46 @@ def test_cinco_cenas_sin_cinco_hrv_no_se_convierte_en_media(conn, settings):
     assert cohort["hrv_mean_ms"] is None
     assert cohort["rhr_mean"] is not None
     assert not d["ready_for_comparison"]
+
+
+def test_cafe_a_sueno_no_confunde_silencio_con_abstinencia(conn, settings):
+    """25 noches WHOOP, 20 con café anotado: solo esas 20 participan."""
+    base = seed_nights(conn, settings.device_id, count=25)
+    for i in range(20):
+        sleep = base - timedelta(days=i)
+        coffee_at = sleep - timedelta(hours=3 if i < 10 else 12)
+        lab_events.create(
+            conn, settings.device_id, settings.tz,
+            lab_events.NewEvent(**event("coffee", at=coffee_at)),
+        )
+    report = lab_events.caffeine_sleep_analysis(conn, settings.device_id)
+    assert report["total_valid_nights"] == 25
+    assert report["paired_nights"] == 20
+    assert report["ready_for_comparison"]
+    groups = {g["label"]: g for g in report["bands"]}
+    assert groups["<6 h"]["n"] == 10
+    assert groups["10–24 h"]["n"] == 10
+    assert groups["6–10 h"]["hrv"]["median"] is None
+    assert groups["<6 h"]["hrv"]["median"] == 54
+    assert groups["10–24 h"]["hrv"]["median"] == 65
+    assert groups["<6 h"]["rhr"]["n"] == 10
+    assert "NO equivalen a abstinencia" in report["method"]
+    # Solo mediciones registradas, no inferir todos los cafés consumidos.
+    assert report["paired_nights"] != report["total_valid_nights"]
+
+
+def test_cafe_datos_escasos_no_publica_medianasy_cuartiles(conn, settings):
+    base = seed_nights(conn, settings.device_id, count=5)
+    for i in range(3):
+        lab_events.create(
+            conn, settings.device_id, settings.tz,
+            lab_events.NewEvent(**event(
+                "coffee", at=base-timedelta(days=i,hours=2),
+            )),
+        )
+    r = lab_events.caffeine_sleep_analysis(conn, settings.device_id)
+    assert r["paired_nights"] == 3
+    assert not r["ready_for_comparison"]
+    short = next(b for b in r["bands"] if b["label"] == "<6 h")
+    assert short["n"] == 3
+    assert short["hrv"] == {"n":3,"median":None,"p25":None,"p75":None}
