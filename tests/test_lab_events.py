@@ -61,6 +61,15 @@ def test_hora_y_dosis_se_corrigen_sin_perder_traza_y_sin_duplicar(conn, settings
     assert patch.json()["caffeine_mg"]==60
     assert patch.json()["note"]=="espresso corto"
     assert conn.execute("SELECT count(*) FROM lab_events").fetchone()[0]==1
+    changes=conn.execute(
+        "SELECT action,previous_snapshot,current_snapshot FROM lab_event_revisions "
+        "WHERE event_id=? ORDER BY changed_at", [first["id"]]
+    ).fetchall()
+    assert len(changes)==2
+    assert {r[0] for r in changes}=={"create","edit"}
+    import json
+    old_value=json.loads(next(r[1] for r in changes if r[0]=="edit"))
+    assert old_value["caffeine_mg"]==100
     assert conn.execute("SELECT created_at,updated_at FROM lab_events").fetchone() is not None
     hist=api.get("/api/lab/events").json()["events"]
     assert hist[0]["id"]==first["id"]
@@ -83,6 +92,10 @@ def test_cena_y_cama_no_tienen_cafeina_y_borrado_es_logico(conn, settings):
     assert api.get("/api/lab/events").json()["count_30d"]==0
     assert conn.execute(
         "SELECT count(*) FROM lab_events WHERE deleted_at IS NOT NULL"
+    ).fetchone()[0]==1
+    assert conn.execute(
+        "SELECT count(*) FROM lab_event_revisions WHERE event_id=? AND action='delete'",
+        [ident],
     ).fetchone()[0]==1
     assert api.post("/api/lab/events",json=body,headers=HEADERS).status_code==422
     assert api.post(
@@ -244,6 +257,7 @@ def test_upgrade_v4_a_v5_conserva_capa_bruta_y_noches(tmp_path):
         assert db.current_version(c)==5
         assert db.fingerprint(c,["raw_payload","daily_metrics"])==old_hash
         assert c.execute("SELECT count(*) FROM lab_events").fetchone()[0]==0
+        assert c.execute("SELECT count(*) FROM lab_event_revisions").fetchone()[0]==0
     finally:
         c.close()
 
