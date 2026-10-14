@@ -42,6 +42,68 @@ fuentes, ausencia de datos, privacidad y coherencia de fechas. Esta rama
 es de desarrollo y **no** está fusionada con producción. Antes de
 entregarla, ejecutar pruebas Python y validación sintáctica JS en el Mac.
 
+## Plan de maratón conectado a Drive y Fueling ARES · octubre 2026
+
+**Fuentes consultadas en la carpeta de trabajo (FUERA de Old):**
+
+- `000 / ARES / 01 RUNNING / MARATÓN / Plan_Maraton_Gonzalo_MAESTRO_v9.xlsx`
+  ([original](https://docs.google.com/spreadsheets/d/10FyPnvsvkEf2_0sHbix8KoeFmF2KECVV/edit)),
+  versión 08/10/2026, alineada con el plan maestro v3.4 y mesociclos 5-8/9-12 v10.
+- `000 / ARES / 06 NUTRITION / Endurance Fueling /
+  Fueling ARES — Sistema Maestro de Nutrición v1.0`
+  ([original](https://docs.google.com/document/d/1iF-YMdZDY-KRlRnIzktdqTuoaCFu-WmL-x6eyCI09jE/edit)),
+  19/09/2026.
+- Protocolo de hidratación v4, julio 2026, usado como contexto secundario,
+  nunca en contra de la prescripción semanal vigente.
+
+**Integración actual:** archivo legible `src/ares/app/plan_oct_dec_2026.json`,
+generado desde el Excel vigente el 14/10/2026. Contiene **S32–S40**
+(12/10–13/12/2026), siete días por semana, 63 fechas distintas,
+sesiones, duración, detalles, kilómetros cuando constan, calzado, fuerza y
+fuelling específico. La ruta `GET /api/plan?week=S32` presenta
+calendario + nutrición. Inicio incluye la sesión de hoy.
+
+**IMPORTANTE:** el servidor local NO tiene conectada la API de Google Drive:
+es un **snapshot manual**, con enlace de origen y fecha. Si se modifica el
+Excel maestro en Drive, el snapshot debe regenerarse y revisarse antes de
+desplegar. Ningún dato nuevo de planificación se inventa al agotar las semanas
+importadas, ni se usan ficheros del subdirectorio Old.
+
+**Filosofía operacional:**
+- FC manda sobre velocidad/ritmo. Ergo 21/09/2026: Z2 133–152,
+  Z3 153–162, Z4 163–172 ppm.
+- Martes calidad por la mañana y fuerza 14:20 (según maestro).
+- No compensar volumen de entrenamientos perdidos ni alterar prescripciones
+  por una única medición de HRV.
+- Carrera registrada por Tredict = **observación**, NO prueba de haber
+  completado la sesión correspondiente; se muestra separada.
+
+**Fueling diario:** bandas extraídas de v1.0:
+LOW 3–4; MEDIUM 4–5; HIGH 5–6; VERY HIGH 6–7 g CH/kg/día.
+La banda se asigna por carga de hoy y *preparación de mañana*;
+proteína orientativa 1,8 g/kg/día y grasas iniciales 60–75 g/día.
+Se aplica primero la pauta `g/h` ESPECÍFICA de la semana
+(v. gr. S32 largo 135′ 45 g/h; S33 largo 145′ 50 g/h) y solo si falta
+se muestra la banda general de Fueling v1.0, claramente etiquetada.
+La progresión intestinal no se acelera automáticamente.
+Cenas no voluminosas, última ingesta habitual a las 18:00;
+desayuno post-entreno y comida principal como ventanas de recuperación
+y precarga. Mostrar también agua/sodio por contexto y no fomentar
+beber por obligación.
+
+**Peso:** no se almacena en el código ni en Git. Si se configura
+`ARES_NUTRITION_WEIGHT_KG` en `.env` LOCAL, se convierten los objetivos
+por kg a gramos; de lo contrario la UI solo muestra los rangos g/kg.
+El documento v1.0 (19/09/2026) registra un peso de trabajo de 70,5 kg,
+pero NO se considera medición actual sin validarlo. Requiere calibración
+de 7 días de ingestas, rendimiento, GI, sueño y sudoración para afinar.
+
+**Siguientes hitos:** sincronizador de Drive con credenciales autorizadas
+y revisión de versiones; comparación de plan prescrito vs ejecutado
+por tipo de sesión y cumplimiento de zonas, no solo fecha; vistas de
+mesociclo, carga semanal, preparación Valencia y curva rendimiento;
+ingesta real frente a previsionada, sin crear diagnósticos clínicos.
+
 ## Inicio · línea base visible, no una presentación
 
 Cuando existen al menos 21 noches válidas anteriores a la última de WHOOP,
