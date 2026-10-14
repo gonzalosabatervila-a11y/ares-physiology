@@ -326,3 +326,5 @@ td{padding:9px 6px 9px 0;border-top:1px solid var(--line);vertical-align:top}
 .plan-night-grid{display:grid;grid-template-columns:minmax(0,1.45fr) 1fr 1fr;gap:8px 5px;align-items:baseline;margin-top:14px;font-size:11.5px}
 .plan-night-grid span{color:var(--mut)}
 .plan-night-grid b{color:var(--txt);font-variant-numeric:tabular-nums;font-weight:650}
+
+.plan-warning{padding:10px 12px;border:1px solid rgba(214,121,104,.65);border-radius:11px;color:#F2C3B7;background:rgba(214,121,104,.09);font-size:12px;line-height:1.5;margin-top:12px}
