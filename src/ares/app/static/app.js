@@ -16,6 +16,8 @@ const P = { // trazos de 24x24
   chart: '<path d="M5 20V11M12 20V5M19 20v-6"/>',
   flask: '<path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4A2 2 0 0 0 19 18l-5-9V3M8 15h8"/>',
   moon: '<path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/>',
+  coffee: '<path d="M5 7h11v8a5.5 5.5 0 0 1-11 0V7zM16 9h2a3 3 0 0 1 0 6h-2M4 21h14"/>',
+  dinner: '<circle cx="12" cy="12" r="9"/><path d="M7 8v7M9 8v7M7 12h2M16 8v9"/>',
   pulse: '<path d="M3 12h4l2-6 4 12 2-6h6"/>',
   run: '<circle cx="14.5" cy="5" r="1.8"/><path d="M8 21l3-6 3 2 2 4M11 15l-1-4 4-2 3 3h3M6 12l2-3 3-1"/>',
   calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M8 15h3M14 15h3"/>',
@@ -380,9 +382,9 @@ function pairedMetrics(f) {
 function homeQuickCapture(syncMode) {
   const enabled = syncMode === 'automatic';
   const actions = [
-    ['coffee', '☕', 'Café', '100 mg · estimados'],
-    ['dinner_end', '◒', 'Terminé de cenar', 'Registrar ahora'],
-    ['bedtime', '☾', 'Me acuesto', 'Registrar ahora'],
+    ['coffee', 'coffee', 'Café', '100 mg · estimados'],
+    ['dinner_end', 'dinner', 'Terminé de cenar', 'Registrar ahora'],
+    ['bedtime', 'moon', 'Me acuesto', 'Registrar ahora'],
   ];
   return `<section class="home-capture" aria-label="Registro rápido de acontecimientos">
     <div class="home-section-heading">
@@ -394,7 +396,7 @@ function homeQuickCapture(syncMode) {
       ${actions.map(([key,icon,title,sub]) => `<button type="button" class="home-capture-btn"
         data-lab-quick="${key}" ${enabled?'':'disabled'}
         aria-label="${title}: ${sub}">
-        <span class="home-capture-icon" aria-hidden="true">${icon}</span>
+        <span class="home-capture-icon" aria-hidden="true">${svg(icon)}</span>
         <b>${title}</b><small>${sub}</small>
       </button>`).join('')}
     </div>
