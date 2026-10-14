@@ -14,7 +14,7 @@ from typing import Any
 import duckdb
 
 from ..connectors.tredict import ACTIVITY_ID_RE
-from . import training_analysis
+from . import training_analysis, training_zones
 
 
 def num(v: Any) -> float | None:
@@ -145,6 +145,7 @@ def session(conn: duckdb.DuckDBPyConnection, activity_id: str) -> dict[str, Any]
     return {
         **summary,
         "analysis": analysis,
+        "hr_zones": training_zones.heart_rate_zones(selected),
         "laps": laps,
         "sample_seconds": num(period),
         "series": {
