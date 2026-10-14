@@ -58,6 +58,11 @@ entregarla, ejecutar pruebas Python y validación sintáctica JS en el Mac.
 - **Duplicados:** una coincidencia temporal de ±15 minutos solo se considera
   duplicada cuando el deporte pertenece a la misma familia.
   No se afirma que sea la misma sesión sin identificador compartido.
+- **Degradación de Intervals.icu:** si wellness devuelve HTTP 503,
+  ARES conserva los datos previos y registra el error por separado.
+  El planificador aplaza solo Intervals durante 30 minutos, sin pausar
+  WHOOP ni Tredict. Una consulta manual explícita puede reintentar antes.
+  El HTTP cliente ya realiza tres reintentos (2, 8 y 30 s con variación).
 - **Estado de datos:** `ares app` = solo lectura: el botón circular **recarga
   la pantalla**, nunca descarga del proveedor. `ares serve` = mismo servidor
   web + sincronización al arrancar y planificador posterior; en la ventana
