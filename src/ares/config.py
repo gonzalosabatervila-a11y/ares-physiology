@@ -39,6 +39,7 @@ class Settings:
     algo_version: str = "whoop-1"
     whoop_redirect_uri: str = "http://localhost:8765/callback"
     whoop_history_days: int = 90  # carga histórica inicial: mínimo objetivo
+    nutrition_weight_kg: float | None = None  # opcional, solo .env local; sin peso personal en Git
 
     @property
     def db_path(self) -> Path:
@@ -70,6 +71,15 @@ def _positive_int(raw: str, name: str) -> int:
     return value
 
 
+def _optional_nutrition_weight(raw: str | None) -> float | None:
+    if raw is None or not _clean(raw):
+        return None
+    value = float(_clean(raw))
+    if not 35.0 <= value <= 250.0:
+        raise ValueError("ARES_NUTRITION_WEIGHT_KG debe estar entre 35 y 250")
+    return value
+
+
 def load_settings(env_file: Path | None = None) -> Settings:
     load_dotenv(env_file or REPO_ROOT / ".env", override=False)
     env = os.environ
@@ -89,6 +99,7 @@ def load_settings(env_file: Path | None = None) -> Settings:
         algo_version=_clean(env.get("ARES_ALGO_VERSION", "whoop-1")),
         whoop_redirect_uri=_clean(env.get("WHOOP_REDIRECT_URI", "http://localhost:8765/callback")),
         whoop_history_days=_positive_int(env.get("WHOOP_HISTORY_DAYS", "90"), "WHOOP_HISTORY_DAYS"),
+        nutrition_weight_kg=_optional_nutrition_weight(env.get("ARES_NUTRITION_WEIGHT_KG")),
     )
 
 

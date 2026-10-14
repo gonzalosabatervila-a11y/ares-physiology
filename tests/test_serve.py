@@ -50,7 +50,7 @@ def test_una_pasada_de_serve_deja_la_base_migrada_y_no_llama_a_la_red(tmp_path, 
     monkeypatch.setenv("ARES_DATA_DIR", str(tmp_path))
     assert serve.run(run_once=True) == 0
     c = db.connect(tmp_path / "ares.duckdb")
-    assert db.current_version(c) == 4
+    assert db.current_version(c) == 5
     c.close()
 
 
@@ -152,3 +152,51 @@ def test_otros_errores_de_io_no_se_disfrazan_de_base_ocupada(monkeypatch, tmp_pa
     monkeypatch.setattr("ares.db.duckdb.connect", sin_espacio)
     with pytest.raises(duckdb.IOException, match="No space left"):
         db.connect(tmp_path / "x.duckdb")
+
+
+def test_backup_antes_de_migracion_v5_es_verificable_y_no_se_repite(tmp_path, settings):
+    """Migración de un DuckDB v4 real, sin tocar las filas fisiológicas."""
+    import hashlib
+    import shutil
+    from ares.config import REPO_ROOT
+
+    older = tmp_path / "sql-v4"
+    older.mkdir()
+    for number in range(1, 5):
+        src = next((REPO_ROOT / "migrations").glob(f"{number:03d}_*.sql"))
+        shutil.copy2(src, older / src.name)
+    path = tmp_path / "ares.duckdb"
+    conn = db.connect(path)
+    try:
+        assert db.migrate(conn, older) == [1, 2, 3, 4]
+        conn.execute(
+            """INSERT INTO daily_metrics
+               (local_sleep_date,device_id,sleep_min,rmssd_ms,rhr,
+                quality,score_state,calibrating,night_check)
+               VALUES ('2026-10-10','pulsera-principal',425,61,48,
+                       'high','SCORED',false,'ok')"""
+        )
+        before = db.fingerprint(conn, ["daily_metrics"])
+    finally:
+        conn.close()
+    source_hash = hashlib.sha256(path.read_bytes()).hexdigest()
+    current = dataclasses.replace(settings, data_dir=tmp_path,
+                                  migrations_dir=REPO_ROOT / "migrations")
+    backup = serve.backup_before_migration(current)
+    assert backup is not None and backup.is_file()
+    assert backup.parent.name == "backups"
+    assert backup.name.startswith("ares-pre-v5-")
+    assert hashlib.sha256(backup.read_bytes()).hexdigest() == source_hash
+    c = db.connect(path)
+    try:
+        assert db.migrate(c, REPO_ROOT / "migrations") == [5]
+        assert db.fingerprint(c, ["daily_metrics"]) == before
+    finally:
+        c.close()
+    assert serve.backup_before_migration(current) is None
+
+
+def test_backup_para_base_nueva_no_necesita_copia(tmp_path, settings):
+    current = dataclasses.replace(settings, data_dir=tmp_path)
+    assert serve.backup_before_migration(current) is None
+    assert not (tmp_path / "backups").exists()

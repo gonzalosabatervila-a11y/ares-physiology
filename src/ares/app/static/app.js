@@ -8,7 +8,7 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
   ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 const dias = (n) => `${n} ${n === 1 ? 'día' : 'días'}`;
 const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
-const COLOR = {ok: '#45D4E5', warn: '#F0A33A', bad: '#E8573A', none: '#8C979B'};
+const COLOR = {ok: '#A6BDA3', warn: '#D7A56B', bad: '#D67968', none: '#ABA99E'};
 
 // ---------------------------------------------------------------- iconos
 const P = { // trazos de 24x24
@@ -16,8 +16,11 @@ const P = { // trazos de 24x24
   chart: '<path d="M5 20V11M12 20V5M19 20v-6"/>',
   flask: '<path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4A2 2 0 0 0 19 18l-5-9V3M8 15h8"/>',
   moon: '<path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/>',
+  coffee: '<path d="M5 7h11v8a5.5 5.5 0 0 1-11 0V7zM16 9h2a3 3 0 0 1 0 6h-2M4 21h14"/>',
+  dinner: '<circle cx="12" cy="12" r="9"/><path d="M7 8v7M9 8v7M7 12h2M16 8v9"/>',
   pulse: '<path d="M3 12h4l2-6 4 12 2-6h6"/>',
   run: '<circle cx="14.5" cy="5" r="1.8"/><path d="M8 21l3-6 3 2 2 4M11 15l-1-4 4-2 3 3h3M6 12l2-3 3-1"/>',
+  calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M8 15h3M14 15h3"/>',
   chev: '<path d="M9 5l7 7-7 7"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
   back: '<path d="M15 5l-7 7 7 7"/>',
@@ -26,12 +29,12 @@ const P = { // trazos de 24x24
 };
 const svg = (k, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[k]}</svg>`;
 const MARK = `<svg width="38" height="38" viewBox="0 0 22 22" aria-hidden="true">
-<path d="M4.5 14.7A7.48 7.48 0 1 1 17.5 14.7" fill="none" stroke="#3A4548" stroke-width="4.2" stroke-linecap="round"/>
-<path d="M4.5 14.7A7.48 7.48 0 0 1 14.6 4.4" fill="none" stroke="#45D4E5" stroke-width="4.2" stroke-linecap="round"/>
-<circle cx="14.6" cy="4.4" r="2.5" fill="#45D4E5"/></svg>`;
+<path d="M4.5 14.7A7.48 7.48 0 1 1 17.5 14.7" fill="none" stroke="#50564C" stroke-width="4.2" stroke-linecap="round"/>
+<path d="M4.5 14.7A7.48 7.48 0 0 1 14.6 4.4" fill="none" stroke="#D9B782" stroke-width="4.2" stroke-linecap="round"/>
+<circle cx="14.6" cy="4.4" r="2.5" fill="#D9B782"/></svg>`;
 const GLYPH = {
-  intervals: '<svg class="gl" viewBox="0 0 22 22"><rect x="3" y="11" width="4" height="8" rx="1.5" fill="#45D4E5"/><rect x="9" y="6" width="4" height="13" rx="1.5" fill="#45D4E5" opacity=".72"/><rect x="15" y="3" width="4" height="16" rx="1.5" fill="#45D4E5" opacity=".45"/></svg>',
-  tredict: '<svg class="gl" viewBox="0 0 22 22"><path d="M11 3l9 16H2z" fill="none" stroke="#45D4E5" stroke-width="2" stroke-linejoin="round"/></svg>',
+  intervals: '<svg class="gl" viewBox="0 0 22 22"><rect x="3" y="11" width="4" height="8" rx="1.5" fill="#D9B782"/><rect x="9" y="6" width="4" height="13" rx="1.5" fill="#D9B782" opacity=".72"/><rect x="15" y="3" width="4" height="16" rx="1.5" fill="#D9B782" opacity=".45"/></svg>',
+  tredict: '<svg class="gl" viewBox="0 0 22 22"><path d="M11 3l9 16H2z" fill="none" stroke="#D9B782" stroke-width="2" stroke-linejoin="round"/></svg>',
 };
 const SRC_NAME = {intervals: 'Intervals', tredict: 'Tredict', whoop: 'WHOOP'};
 
@@ -78,9 +81,9 @@ function arc(cx, cy, r, p0, p1) {
 const G = {noche: ['moon', 'Noche'], nervioso: ['pulse', 'Sist. nervioso'], carga: ['run', 'Carga']};
 function valueSpans(key, v) {
   const m = key === 'noche' ? /^(\d+):(\d\d)$/.exec(v) : null;
-  if (m) return `<tspan>${m[1]}</tspan><tspan font-size="11" dx="2" fill="#8C979B">h</tspan><tspan dx="3">${m[2]}</tspan>`;
+  if (m) return `<tspan>${m[1]}</tspan><tspan font-size="11" dx="2" fill="#ABA99E">h</tspan><tspan dx="3">${m[2]}</tspan>`;
   const u = /^(\S+)\s+(\S+)$/.exec(v);
-  if (u) return `<tspan>${esc(u[1])}</tspan><tspan font-size="11" dx="3" fill="#8C979B">${esc(u[2])}</tspan>`;
+  if (u) return `<tspan>${esc(u[1])}</tspan><tspan font-size="11" dx="3" fill="#ABA99E">${esc(u[2])}</tspan>`;
   return `<tspan>${esc(v)}</tspan>`;
 }
 function gauge(d) {
@@ -94,8 +97,8 @@ function gauge(d) {
   const needle = d.p === null ? '' : `<circle class="needle" data-p="${d.p}" data-cx="${cx}" data-cy="${cy}" data-r="${r}" cx="${(cx + r * Math.cos(150 * Math.PI / 180)).toFixed(1)}" cy="${(cy + r * Math.sin(150 * Math.PI / 180)).toFixed(1)}" r="6.5" fill="#fff" style="filter:drop-shadow(0 0 5px ${col})"/>`;
   return `<a class="gauge" href="#/senal/${d.signal}" aria-label="${esc(label)}: ${esc(d.value)}, ${esc(stateTxt)}. Ver detalle">
 <svg viewBox="0 0 120 112" role="img" aria-hidden="true">${track}${band}${needle}
-<g transform="translate(50,30) scale(.83)" fill="none" stroke="#8C979B" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${P[icon]}</g>
-<text x="60" y="72" text-anchor="middle" font-family="Archivo,sans-serif" font-size="22" font-weight="700" fill="#EEF1F2">${valueSpans(d.key, d.value)}</text>
+<g transform="translate(50,30) scale(.83)" fill="none" stroke="#ABA99E" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${P[icon]}</g>
+<text x="60" y="72" text-anchor="middle" font-family="Archivo,sans-serif" font-size="22" font-weight="700" fill="#F0EEE7">${valueSpans(d.key, d.value)}</text>
 <text x="60" y="89" text-anchor="middle" font-family="Archivo,sans-serif" font-size="11.5" font-weight="600" fill="${col}">${esc(stateTxt)}</text></svg>
 <span class="lab">${esc(label)}</span><span class="trend">${esc(trend)}</span></a>`;
 }
@@ -117,7 +120,7 @@ function animateGauges() {
     requestAnimationFrame(step);
   });
 }
-function spark(vals, color = '#45D4E5') {
+function spark(vals, color = '#D9B782') {
   if (!vals || vals.length < 3) return '';
   const lo = Math.min(...vals), hi = Math.max(...vals), span = hi - lo || 1, w = 92, h = 34;
   const pts = vals.map((v, i) => [2 + i * (w - 6) / (vals.length - 1), 4 + (h - 8) * (1 - (v - lo) / span)]);
@@ -138,8 +141,8 @@ function lineChart(lines, opts = {}) {
   const y = (v) => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
   const f = (n) => n.toFixed(1);
   const ticks = [hi - pad, (hi + lo) / 2, lo + pad].map((v) =>
-    `<line x1="${L}" x2="${W - R}" y1="${f(y(v))}" y2="${f(y(v))}" stroke="rgba(255,255,255,.06)"/><text x="${L - 6}" y="${f(y(v) + 3.5)}" text-anchor="end" font-size="10" fill="#65727A">${Math.round(v)}</text>`).join('');
-  const bandSvg = band ? `<rect x="${L}" y="${f(y(band[1]))}" width="${W - L - R}" height="${f(y(band[0]) - y(band[1]))}" fill="rgba(69,212,229,.11)"/><line x1="${L}" x2="${W - R}" y1="${f(y(band[1]))}" y2="${f(y(band[1]))}" stroke="rgba(69,212,229,.35)" stroke-dasharray="3 4"/><line x1="${L}" x2="${W - R}" y1="${f(y(band[0]))}" y2="${f(y(band[0]))}" stroke="rgba(69,212,229,.35)" stroke-dasharray="3 4"/>` : '';
+    `<line x1="${L}" x2="${W - R}" y1="${f(y(v))}" y2="${f(y(v))}" stroke="rgba(255,255,255,.06)"/><text x="${L - 6}" y="${f(y(v) + 3.5)}" text-anchor="end" font-size="10" fill="#777A70">${Math.round(v)}</text>`).join('');
+  const bandSvg = band ? `<rect x="${L}" y="${f(y(band[1]))}" width="${W - L - R}" height="${f(y(band[0]) - y(band[1]))}" fill="rgba(217,183,130,.11)"/><line x1="${L}" x2="${W - R}" y1="${f(y(band[1]))}" y2="${f(y(band[1]))}" stroke="rgba(217,183,130,.35)" stroke-dasharray="3 4"/><line x1="${L}" x2="${W - R}" y1="${f(y(band[0]))}" y2="${f(y(band[0]))}" stroke="rgba(217,183,130,.35)" stroke-dasharray="3 4"/>` : '';
   const paths = lines.map((l, i) => {
     const d = l.pts.map((p, k) => `${k ? 'L' : 'M'}${f(x(p.date))} ${f(y(p.v))}`).join('');
     const last = l.pts[l.pts.length - 1];
@@ -148,7 +151,7 @@ function lineChart(lines, opts = {}) {
   }).join('');
   const dates = [...new Set(lines[0].pts.map((p) => p.date))];
   const xl = [dates[0], dates[Math.floor(dates.length / 2)], dates[dates.length - 1]].map((d, i) =>
-    `<text x="${f(x(d))}" y="${H - 8}" text-anchor="${i === 0 ? 'start' : i === 2 ? 'end' : 'middle'}" font-size="10" fill="#65727A">${shortDate(d)}</text>`).join('');
+    `<text x="${f(x(d))}" y="${H - 8}" text-anchor="${i === 0 ? 'start' : i === 2 ? 'end' : 'middle'}" font-size="10" fill="#777A70">${shortDate(d)}</text>`).join('');
   return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opts.label || 'Serie temporal')}"><defs><linearGradient id="${id}" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="${lines[0].color}" stop-opacity=".28"/><stop offset="1" stop-color="${lines[0].color}" stop-opacity="0"/></linearGradient></defs>${ticks}${bandSvg}${paths}${xl}</svg>`;
 }
 
@@ -158,13 +161,33 @@ function openSheet(html) {
   lastFocus = document.activeElement;
   sheetBody.innerHTML = html + '<button class="close" data-close>Cerrar</button>';
   sheetEl.hidden = false;
+  document.getElementById('app').inert = true;
+  tabsEl.inert = true;
   sheetEl.querySelector('.sheet-panel').focus();
 }
 function closeSheet() {
   sheetEl.hidden = true;
-  if (lastFocus && lastFocus.focus) lastFocus.focus();
+  document.getElementById('app').inert = false;
+  tabsEl.inert = false;
+  if (lastFocus?.isConnected && lastFocus.focus) lastFocus.focus({preventScroll:true});
+  else view.focus({preventScroll:true});
 }
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !sheetEl.hidden) closeSheet(); });
+document.addEventListener('keydown', (e) => {
+  if (sheetEl.hidden) return;
+  if (e.key === 'Escape') { e.preventDefault(); closeSheet(); return; }
+  if (e.key !== 'Tab') return;
+  const panel = sheetEl.querySelector('.sheet-panel');
+  const controls = Array.from(panel.querySelectorAll(
+    'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'
+  )).filter(el=>!el.hidden && el.getClientRects().length > 0);
+  if (!controls.length) { e.preventDefault(); panel.focus(); return; }
+  const first=controls[0],last=controls.at(-1),active=document.activeElement;
+  if (e.shiftKey && (active===first || active===panel)) {
+    e.preventDefault(); last.focus();
+  } else if (!e.shiftKey && (active===last || active===panel)) {
+    e.preventDefault(); first.focus();
+  }
+});
 const LEGEND_KV = `<div class="kv">
 <div class="r"><span>MED</span><span>Medido por un dispositivo</span></div>
 <div class="r"><span>CALC</span><span>Calculado a partir de datos medidos</span></div>
@@ -172,8 +195,8 @@ const LEGEND_KV = `<div class="kv">
 <div class="r"><span>EXP</span><span>Experimental, sin validar</span></div></div>`;
 function howtoSheet() {
   openSheet(`<h3 id="sheet-title">Cómo leer estos indicadores</h3>
-<p>La <b style="color:#EEF1F2">aguja</b> marca tu valor más reciente y la <b style="color:#EEF1F2">franja resaltada</b> es tu rango habitual: la media de tus días disponibles más o menos media desviación típica.</p>
-<p><b style="color:#EEF1F2">Sistema nervioso</b> usa la media de los últimos 7 días; <b style="color:#EEF1F2">Noche</b>, la última noche; <b style="color:#EEF1F2">Carga</b> solo describe la dirección de tu forma y no la juzga. El texto de debajo compara con tu propia referencia y aparece cuando hay datos suficientes.</p>
+<p>La <b style="color:#F0EEE7">aguja</b> marca tu valor más reciente y la <b style="color:#F0EEE7">franja resaltada</b> es tu rango habitual: la media de tus días disponibles más o menos media desviación típica.</p>
+<p><b style="color:#F0EEE7">Sistema nervioso</b> usa la media de los últimos 7 días; <b style="color:#F0EEE7">Noche</b>, la última noche; <b style="color:#F0EEE7">Carga</b> solo describe la dirección de tu forma y no la juzga. El texto de debajo compara con tu propia referencia y aparece cuando hay datos suficientes.</p>
 <p>Cada dato lleva su naturaleza y su origen:</p>${LEGEND_KV}`);
 }
 function sourceSheet(name, sources) {
@@ -185,7 +208,7 @@ function sourceSheet(name, sources) {
   if (s.endpoint && s.endpoint !== '—') rows.push(['Datos', s.endpoint]);
   const extra = s.level === 'none'
     ? '<p>Esta fuente aún no ha sincronizado con este servicio. Cuando lo haga, aparecerá aquí con su hora.</p>'
-    : s.error ? `<p style="color:#E8573A">${esc(s.error)}</p>` : '';
+    : s.error ? `<p style="color:#D67968">${esc(s.error)}</p>` : '';
   openSheet(`<h3 id="sheet-title">${esc(SRC_NAME[name] || name)}</h3><div class="kv">${rows.map(([k, v]) => `<div class="r"><span>${esc(k)}</span><span>${esc(v)}</span></div>`).join('')}</div>${extra}`);
 }
 document.addEventListener('click', (e) => {
@@ -194,16 +217,17 @@ document.addEventListener('click', (e) => {
   const c = e.target.closest('[data-chip]');
   if (c) return sourceSheet(c.dataset.chip, ROUTE_STATE.sources || []);
   if (e.target.closest('[data-sync]')) return route(true);
+  if (e.target.closest('[data-route-retry]')) return route(true);
   const seg = e.target.closest('[data-days]');
   if (seg) return setDays(+seg.dataset.days);
 });
 
 // ------------------------------------------------------------------- vistas
-const ROUTE_STATE = {sources: [], days: 28, progDays: 28, data: null};
+const ROUTE_STATE = {sources: [], days: 28, progDays: 28, data: null, syncMode: 'read_only'};
 function pageTop(sources) {
   const date = new Date().toLocaleDateString('es-ES', {weekday: 'long', day: 'numeric', month: 'long'});
   return `<header class="top"><div class="brand">${MARK}<div><h1>ARES</h1><div class="date">${esc(cap(date))}</div></div></div>
-<button class="sync" data-sync aria-label="Actualizar datos">${svg('sync')}<span class="dot ${syncDot(sources)}"></span></button></header>`;
+<button class="sync" data-sync aria-label="Recargar pantalla, no sincroniza las fuentes" title="Recargar datos locales, no sincroniza con los dispositivos">${svg('sync')}<span class="dot ${syncDot(sources)}"></span></button></header>`;
 }
 function chips(sources) {
   const rank = {none: 0, ok: 1, warn: 2, bad: 3};
@@ -221,7 +245,7 @@ function chips(sources) {
     return `<button class="chip" data-chip="${esc(s.source)}" aria-label="${esc(SRC_NAME[s.source] || s.source)}: ${esc(st.text)}. Ver detalle">${GLYPH[s.source] || ''}<span class="${st.cls}"><b>${esc(SRC_NAME[s.source] || s.source)}</b><small><i class="dot-s"></i>${esc(st.text)}</small></span></button>`;
   }).join('')}</div>`;
 }
-const WAVE = `<svg class="wave" viewBox="0 0 200 110" fill="none" aria-hidden="true"><path d="M0 80C25 30 45 100 75 55S130 25 160 45 190 20 200 10" stroke="#45D4E5" stroke-opacity=".5" stroke-width="1.6"/><path d="M0 98C30 60 55 108 90 78S140 50 170 68 195 40 200 34" stroke="#45D4E5" stroke-opacity=".28" stroke-width="1.4"/></svg>`;
+const WAVE = `<svg class="wave" viewBox="0 0 200 110" fill="none" aria-hidden="true"><path d="M0 80C25 30 45 100 75 55S130 25 160 45 190 20 200 10" stroke="#D9B782" stroke-opacity=".5" stroke-width="1.6"/><path d="M0 98C30 60 55 108 90 78S140 50 170 68 195 40 200 34" stroke="#D9B782" stroke-opacity=".28" stroke-width="1.4"/></svg>`;
 const LEVEL_TXT = {sin_cambios: 'Mantener plan', vigilar: 'Vigilar', evitar_intensidad: 'Evitar intensidad', descanso: 'Descanso o revisar salud'};
 function hero(e) {
   if (e.mode === 'sombra') {
@@ -242,6 +266,55 @@ function baseline(e) {
 <div class="full"><div class="bar" role="progressbar" aria-valuenow="${Math.min(e.nights, e.target)}" aria-valuemin="0" aria-valuemax="${e.target}" aria-label="Noches válidas"><i style="width:${pct}%"></i></div>
 <div class="muted"><b style="color:var(--txt)">${e.nights} noches válidas</b> · objetivo inicial ${e.target}. ${ready ? 'Hay histórico suficiente para calcular referencias, pero las decisiones están pendientes de validación.' : 'Esperando más noches para construir la referencia.'}</div></div></section>`;
 }
+function personalBaseline(p) {
+  if (!p?.ready) return '';
+  const format = (x, unit, signed = false) => {
+    if (x === null || x === undefined || !Number.isFinite(Number(x))) return '—';
+    const n = Number(x);
+    if (unit === 'min' && !signed) {
+      const v = Math.round(n);
+      return `${Math.floor(v / 60)}:${String(v % 60).padStart(2, '0')} h`;
+    }
+    const digits = unit === 'rpm' ? 1 : 0;
+    const fixed = n.toLocaleString('es-ES',{maximumFractionDigits:digits});
+    return (signed && n > 0 ? '+' : '') + fixed + (unit === 'min' ? ' min' : ' ' + unit);
+  };
+  const cells = p.metrics.map((m) => {
+    const observed = m.latest !== null && m.latest !== undefined;
+    const typical = m.median !== null && m.median !== undefined;
+    const today = observed ? `Última noche: <strong>${esc(format(m.latest, m.unit))}</strong>` :
+      'Última noche: sin lectura válida';
+    const diff = m.delta === null || m.delta === undefined
+      ? '' : ` <span class="baseline-delta">(${esc(format(m.delta,m.unit,true))} vs referencia)</span>`;
+    return `<div class="baseline-cell">
+      <div class="eyebrow">${esc(m.label)}</div>
+      <div class="baseline-number">${esc(format(m.median,m.unit))}</div>
+      <div class="baseline-range">${typical
+        ? `Habitual: ${esc(format(m.p25,m.unit))} – ${esc(format(m.p75,m.unit))}`
+        : `Aún sin ${21-m.n} medidas suficientes`}</div>
+      <div class="baseline-today">${today}${diff}</div>
+      <div class="baseline-n">Referencia: ${m.n} noches</div>
+    </div>`;
+  }).join('');
+  return `<section class="card baseline-profile" aria-label="Tu línea base fisiológica real">
+    <div class="baseline-head">
+      <div><span class="eyebrow">ARES · FISIOLOGÍA PERSONAL</span>
+        <h2>Tu línea base</h2></div>
+      <span class="pill sig">${p.status === 'establecida' ? 'Establecida' : 'Provisional'}</span>
+    </div>
+    <p class="baseline-subtitle">Referencia estadística de ${p.nights} noches válidas
+      de WHOOP, anteriores al ${esc(shortDate(p.anchor_date))}.
+      No mezclamos aquí las mediciones de COROS.</p>
+    <div class="baseline-metrics">${cells}</div>
+    <div class="baseline-footer">
+      <p>Medianas y rango central (P25–P75) de las últimas 60 noches válidas.
+        La última noche se compara por separado.
+        No es un diagnóstico ni una indicación automática de entrenamiento.</p>
+      <a href="#/fisiologia">Explorar tu fisiología <span aria-hidden="true">↗</span></a>
+    </div>
+  </section>`;
+}
+
 function sigRow(s) {
   const [title, sub] = s.label.split(' · ');
   return `<a class="sig-row" href="#/senal/${s.key}?d=28"><div class="l1"><b>${esc(title)}</b><span>${esc(sub || '')}</span></div>
@@ -326,16 +399,101 @@ function pairedMetrics(f) {
   </section>`;
 }
 
+function homeQuickCapture(syncMode) {
+  const enabled = syncMode === 'automatic';
+  const actions = [
+    ['coffee', 'coffee', 'Café', '100 mg · estimados'],
+    ['dinner_end', 'dinner', 'Terminé de cenar', 'Registrar ahora'],
+    ['bedtime', 'moon', 'Me acuesto', 'Registrar ahora'],
+  ];
+  return `<section class="home-capture" aria-label="Registro rápido de acontecimientos">
+    <div class="home-section-heading">
+      <div><span class="eyebrow">ARES LAB · TU DÍA</span>
+        <h2>Registra. Descubre.</h2></div>
+      <a href="#/laboratorio" aria-label="Abrir ARES LAB">Ir a LAB ↗</a>
+    </div>
+    <div class="home-capture-actions">
+      ${actions.map(([key,icon,title,sub]) => `<button type="button" class="home-capture-btn"
+        data-lab-quick="${key}" ${enabled?'':'disabled'}
+        aria-label="${title}: ${sub}">
+        <span class="home-capture-icon" aria-hidden="true">${svg(icon)}</span>
+        <b>${title}</b><small>${sub}</small>
+      </button>`).join('')}
+    </div>
+    ${enabled ? '<p class="home-capture-note">Un toque guarda la hora exacta. Puedes corregirla después en LAB.</p>' :
+      '<p class="home-capture-note">Registro disponible con <code>uv run ares serve</code>.</p>'}
+  </section>`;
+}
+
+function homeNightSnapshot(w) {
+  if (!w?.latest) return `<section class="home-night home-night-empty" aria-label="Última noche WHOOP">
+    <div class="home-night-head"><span class="eyebrow">01 / ÚLTIMA NOCHE WHOOP</span>
+      <a href="#/fisiologia">Explorar ↗</a></div>
+    <p>No hay una noche WHOOP importada. ARES no sustituye los datos ausentes por estimaciones.</p>
+  </section>`;
+  const n=w.latest, date=esc(shortDate(n.date));
+  const valid=n.score_state==='SCORED' && ['high','fair'].includes(n.quality)
+    && n.calibrating!==true && (!n.night_check || n.night_check==='ok');
+  if (!valid) return `<section class="home-night home-night-empty" aria-label="Última noche WHOOP">
+    <div class="home-night-head"><span class="eyebrow">01 / ÚLTIMA NOCHE WHOOP</span>
+      <span class="home-night-date">${date}</span></div>
+    <p>Última noche no válida para comparar: puntuación pendiente, calibración
+      o revisión de calidad. Consulta la información de origen.</p>
+    <a class="home-night-link" href="#/fisiologia">Ver histórico ↗</a>
+  </section>`;
+  const f=(v,digits=0)=>v===null||v===undefined||!Number.isFinite(Number(v))?'—':
+    Number(v).toLocaleString('es-ES',{maximumFractionDigits:digits});
+  const sleep=n.sleep_min===null||n.sleep_min===undefined?'—':(()=>{
+    const min=Math.round(Number(n.sleep_min));
+    return Number.isFinite(min)?`${Math.floor(min/60)}:${String(min%60).padStart(2,'0')}`:'—';
+  })();
+  return `<section class="home-night" aria-label="Lecturas de la última noche WHOOP">
+    <div class="home-night-head"><span class="eyebrow">01 / ÚLTIMA NOCHE WHOOP</span>
+      <span class="home-night-date">${date} · ${n.quality==='high'?'Calidad alta':'Calidad aceptable'}</span></div>
+    <div class="home-night-data">
+      <div><span>VFC / rMSSD</span><strong>${f(n.rmssd_ms)}<small>ms</small></strong></div>
+      <div><span>FC en reposo</span><strong>${f(n.rhr)}<small>lpm</small></strong></div>
+      <div><span>Sueño efectivo</span><strong>${sleep}<small>h</small></strong></div>
+    </div>
+    <div class="home-night-foot"><span>MED · WHOOP directo · sin estimaciones añadidas</span>
+      <a href="#/fisiologia">Ver evolución ↗</a></div>
+  </section>`;
+}
 function renderInicio(d) {
   ROUTE_STATE.sources = d.sources;
+  ROUTE_STATE.syncMode = d.sync_mode || ROUTE_STATE.syncMode;
   const steps = d.steps === null
     ? '<span class="muted">Sin pasos todavía.</span>'
     : `<div><div class="eyebrow">Pasos · ${esc(shortDate(d.steps_day || d.last_day))}</div><div class="big">${d.steps.toLocaleString('es-ES')}</div></div><span class="muted">${esc(d.steps_source || 'intervals.icu')}</span>`;
-  view.innerHTML = pageTop(d.sources) + chips(d.sources) + hero(d.estado) + nativeWhoop(d.whoop) + pairedMetrics(d.fusion) +
-    `<div class="gauges" role="group" aria-label="Indicadores principales">${d.dials.map(gauge).join('')}</div>
-<button class="howto" data-howto>${svg('info')}Cómo leer estos indicadores</button>` + baseline(d.estado) +
-    `<div class="h2"><span class="eyebrow">Señales principales</span></div>${d.signals.map(sigRow).join('')}
-<div class="h2"><span class="eyebrow">Actividad</span></div><section class="card tile">${steps}</section>`;
+  const hasPersonalBaseline = Boolean(d.personal_baseline?.ready);
+  const mainProfile = hasPersonalBaseline
+    ? personalBaseline(d.personal_baseline)
+    : hero(d.estado);
+  view.innerHTML = pageTop(d.sources) + syncNotice(ROUTE_STATE.syncMode) +
+    homeNightSnapshot(d.whoop) +
+    homeQuickCapture(ROUTE_STATE.syncMode) + mainProfile + renderPlanPreview(d.plan_preview) +
+    `<section class="atelier-section">
+       <header class="atelier-section-head"><span class="eyebrow">01 / TENDENCIAS</span>
+         <a href="#/fisiologia">Ver fisiología ↗</a></header>
+       <div class="atelier-row-list">${d.signals.map(sigRow).join('')}</div>
+     </section>
+     <section class="atelier-section">
+       <header class="atelier-section-head"><span class="eyebrow">02 / MOVIMIENTO</span></header>
+       <div class="home-steps">${steps}</div>
+     </section>
+     <details class="atelier-extras">
+       <summary>Explorar mediciones y fuentes ${svg('chev','phys-chevron')}</summary>
+       <div class="atelier-extras-content">
+         ${nativeWhoop(d.whoop)}
+         ${pairedMetrics(d.fusion)}
+         <div class="gauges" role="group" aria-label="Indicadores principales">${d.dials.map(gauge).join('')}</div>
+         <button class="howto" data-howto>${svg('info')}Cómo leer estos indicadores</button>
+         ${hasPersonalBaseline ? '' : baseline(d.estado)}
+         <section class="home-sources"><div class="home-section-heading">
+           <span class="eyebrow">FUENTES / ESTADO</span>
+           <a href="#/lab">Diagnóstico ↗</a></div>${chips(d.sources)}</section>
+       </div>
+     </details>`;
   animateGauges();
 }
 
@@ -363,7 +521,7 @@ function renderSenal(d) {
   view.innerHTML = head + seg +
     `<section class="card"><div class="hval"><span class="n">${splitUnit(d.value)}</span><span class="state ${lvl === 'ok' ? 'ok' : lvl === 'warn' ? 'warn' : ''}">${esc(stateTxt)}</span></div>
 <p class="muted" style="margin:6px 0 var(--sp3)">Último valor (${esc(shortDate(d.date))})${d.mean_ref ? ` · media ${d.n_ref} d: ${esc(d.mean_ref)}` : ''}</p>
-${lineChart([{pts: d.series, color: '#45D4E5'}], {band: d.range ? [d.range.lo, d.range.hi] : null, label: `${d.label}, últimos ${d.days} días`})}
+${lineChart([{pts: d.series, color: '#D9B782'}], {band: d.range ? [d.range.lo, d.range.hi] : null, label: `${d.label}, últimos ${d.days} días`})}
 ${d.partial ? `<p class="muted" style="margin:8px 0 0">Solo hay ${dias(d.available_days)} de datos en la base; el periodo de ${d.days === 365 ? '1 año' : d.days + ' días'} se completará con el tiempo.</p>` : ''}</section>
 <section class="card"><div class="stats"><div><small>Mín</small><b>${esc(s.min)}</b></div><div><small>Media</small><b>${esc(s.mean)}</b></div><div><small>Máx</small><b>${esc(s.max)}</b></div><div><small>Último</small><b>${esc(s.last)}</b></div></div></section>
 <section class="card callout ${lvl === 'warn' ? 'warn' : ''}"><h3>${esc(d.interpretation.title)}</h3><p>${esc(d.interpretation.text)}</p></section>
@@ -386,12 +544,12 @@ function renderProgreso(d) {
   const head = `<div class="h2"><h2 style="margin:0;font-size:26px;font-weight:700">Progreso</h2></div>`;
   const form = st ? `<section class="card"><div class="row" style="display:flex;justify-content:space-between;align-items:center"><span class="eyebrow">Forma y fatiga</span>${tagChip('CALC', 'INTERVALS')}</div>
 <div class="stats" style="grid-template-columns:repeat(3,1fr);margin:var(--sp3) 0"><div><small>Forma (CTL)</small><b style="font-size:24px">${st.ctl.toFixed(0)}</b></div><div><small>Fatiga (ATL)</small><b style="font-size:24px">${st.atl.toFixed(0)}</b></div><div><small>Balance</small><b style="font-size:24px">${sg(st.form)}</b></div></div>
-${lineChart([{pts: cut(d.ctl), color: '#45D4E5'}, {pts: cut(d.atl), color: '#F0A33A', dash: '4 4'}], {label: 'Forma y fatiga'})}
-<div class="muted" style="display:flex;gap:16px;margin-top:8px"><span><span class="dot-s ok" style="display:inline-block;margin-right:6px"></span>Forma (CTL)</span><span><span class="dot-s" style="display:inline-block;margin-right:6px;background:#F0A33A"></span>Fatiga (ATL)</span>${st.ramp !== null ? `<span style="margin-left:auto">Ritmo de subida ${sg(st.ramp)} / sem</span>` : ''}</div></section>
+${lineChart([{pts: cut(d.ctl), color: '#D9B782'}, {pts: cut(d.atl), color: '#D7A56B', dash: '4 4'}], {label: 'Forma y fatiga'})}
+<div class="muted" style="display:flex;gap:16px;margin-top:8px"><span><span class="dot-s ok" style="display:inline-block;margin-right:6px"></span>Forma (CTL)</span><span><span class="dot-s" style="display:inline-block;margin-right:6px;background:#D7A56B"></span>Fatiga (ATL)</span>${st.ramp !== null ? `<span style="margin-left:auto">Ritmo de subida ${sg(st.ramp)} / sem</span>` : ''}</div></section>
 <details class="card"><summary>De dónde salen forma y fatiga${svg('chev', 'chev')}</summary>
-<p>Son dos promedios de la carga diaria de entrenamiento que calcula intervals.icu (un modelo de tipo Banister/Coggan): la <b style="color:#EEF1F2">forma</b> mira semanas (por defecto 42 días) y la <b style="color:#EEF1F2">fatiga</b>, días (por defecto 7). Sube la forma si entrenas de forma sostenida; sube la fatiga si concentras carga en pocos días.</p>
-<p><b style="color:#EEF1F2">Balance = forma − fatiga.</b> Negativo significa que la carga reciente supera a la habitual; positivo, que vienes de descansar.</p>
-<p>La carga de cada sesión es una <b style="color:#EEF1F2">estimación de intervals.icu</b> (con FC, potencia o ritmo, según lo que traiga cada actividad), no una medida fisiológica. ARES la muestra tal cual y no la reinterpreta. Hoy: forma ${st.ctl.toFixed(0)}, fatiga ${st.atl.toFixed(0)}, balance ${sg(st.form)}.</p></details>` : '<section class="card"><p class="muted" style="margin:0">Sin datos de forma y fatiga todavía.</p></section>';
+<p>Son dos promedios de la carga diaria de entrenamiento que calcula intervals.icu (un modelo de tipo Banister/Coggan): la <b style="color:#F0EEE7">forma</b> mira semanas (por defecto 42 días) y la <b style="color:#F0EEE7">fatiga</b>, días (por defecto 7). Sube la forma si entrenas de forma sostenida; sube la fatiga si concentras carga en pocos días.</p>
+<p><b style="color:#F0EEE7">Balance = forma − fatiga.</b> Negativo significa que la carga reciente supera a la habitual; positivo, que vienes de descansar.</p>
+<p>La carga de cada sesión es una <b style="color:#F0EEE7">estimación de intervals.icu</b> (con FC, potencia o ritmo, según lo que traiga cada actividad), no una medida fisiológica. ARES la muestra tal cual y no la reinterpreta. Hoy: forma ${st.ctl.toFixed(0)}, fatiga ${st.atl.toFixed(0)}, balance ${sg(st.form)}.</p></details>` : '<section class="card"><p class="muted" style="margin:0">Sin datos de forma y fatiga todavía.</p></section>';
   const w = d.weeks, mx = Math.max(3, ...w.map((x) => x.sessions)), totS = w.reduce((a, x) => a + x.sessions, 0), totR = w.reduce((a, x) => a + x.running, 0);
   const bars = `<section class="card"><div class="row" style="display:flex;justify-content:space-between;align-items:center"><span class="eyebrow">Sesiones por semana</span>${tagChip('MED', 'TREDICT')}</div>
 <div class="bars">${w.map((x) => `<div><b>${x.sessions || ''}</b><i class="${x.sessions ? '' : 'zero'}" style="height:${Math.max(3, 84 * x.sessions / mx)}px"></i><span>${shortDate(x.week)}</span></div>`).join('')}</div>
@@ -404,7 +562,7 @@ function renderLab(d) {
   ROUTE_STATE.sources = d.sources;
   const src = d.sources.map((s) => {
     const st = chipState(s);
-    return `<div class="r"><span class="dot-s ${st.cls === 'ok' ? 'ok' : ''}" style="${st.cls === 'warn' ? 'background:#F0A33A' : st.cls === 'bad' ? 'background:#E8573A' : ''}"></span><div><b>${esc(SRC_NAME[s.source] || s.source)}</b><small>${esc(s.endpoint)}${s.error ? ' · ' + esc(s.error) : ''}</small></div><span class="mono" style="font-size:11px;color:var(--mut)">${esc(st.text)}</span></div>`;
+    return `<div class="r"><span class="dot-s ${st.cls === 'ok' ? 'ok' : ''}" style="${st.cls === 'warn' ? 'background:#D7A56B' : st.cls === 'bad' ? 'background:#D67968' : ''}"></span><div><b>${esc(SRC_NAME[s.source] || s.source)}</b><small>${esc(s.endpoint)}${s.error ? ' · ' + esc(s.error) : ''}</small></div><span class="mono" style="font-size:11px;color:var(--mut)">${esc(st.text)}</span></div>`;
   }).join('');
   const raw = d.raw.length
     ? `<table><thead><tr><th>FUENTE</th><th>FILAS</th><th>DESDE</th><th>HASTA</th></tr></thead><tbody>${d.raw.map((r) => `<tr><td>${esc(r.source)}/${esc(r.endpoint)}</td><td>${r.rows}</td><td>${esc(shortDate(r.from))}</td><td>${esc(shortDate(r.to))}</td></tr>`).join('')}</tbody></table>`
@@ -423,14 +581,750 @@ function renderLab(d) {
 <section class="card"><div class="eyebrow" style="margin-bottom:8px">Leyenda</div>${LEGEND_KV}</section>`;
 }
 
+// ------------------------------------------------------- ARES Marathon Planner
+const WEEKDAYS = {lun:'Lunes',mar:'Martes',mie:'Miércoles',jue:'Jueves',vie:'Viernes',sab:'Sábado',dom:'Domingo'};
+const NUTR_LABEL = {LOW:'LOW · Recuperación',MEDIUM:'MEDIUM · Normal',
+  HIGH:'HIGH · Reposición', 'VERY HIGH':'VERY HIGH · Carga alta'};
+function planTime(m) {
+  return !m ? 'Descanso' : m >= 60 ? `${Math.floor(m/60)}h ${String(m%60).padStart(2,'0')}m` : `${m} min`;
+}
+function renderPlanPreview(p) {
+  if (!p?.available || !p.today_session) return '';
+  const s = p.today_session;
+  return `<a class="card plan-preview" href="#/plan" aria-label="Abrir plan y nutrición semanal">
+    <div class="row" style="display:flex;align-items:center;justify-content:space-between">
+      <span class="eyebrow">Tu entrenamiento · ${esc(p.week)}</span>
+      <span class="pill sig">PLANIFICADO</span>
+    </div>
+    <h3 style="margin:11px 0 5px">${esc(s.title)}</h3>
+    <p class="muted" style="margin:0">${esc(planTime(s.duration_min))}
+      ${s.strength_min ? ' · fuerza aparte '+s.strength_min+' min' : ''}
+      · ${esc(s.date)}</p>
+    <div style="margin-top:12px;color:var(--sig);font-size:12px;font-weight:650">
+      Ver calendario y nutrición de la semana ↗
+    </div>
+  </a>`;
+}
+function renderPlanExecution(e, s) {
+  if (!e) return '';
+  const stats = {observed_unverified:'Actividad registrada · sin verificar',
+    rest_day_activity:'Carrera registrada en descanso previsto',
+    no_record_found:'Sin carrera en datos importados',
+    future:'Sesión futura'};
+  const headline=stats[e.status]||'Estado no determinado';
+  const activities=(e.activities||[]).map(a => `<a class="plan-run-item"
+     href="#/entreno/${encodeURIComponent(a.id)}">
+     <span>${esc(a.title)} · ${esc(Math.round((a.duration_s || 0)/60))} min
+      ${a.distance_m ? ' · '+esc((a.distance_m/1000).toFixed(2))+' km' : ''}</span>
+     <span>Detalle ↗</span></a>`).join('');
+  const context=e.night_context;
+  let nights='';
+  if (context) {
+    const pair=[
+      ['VFC', 'rmssd_ms', 'ms'],
+      ['Pulso en reposo', 'rhr', 'lpm'],
+      ['Sueño', 'sleep_min', 'min'],
+      ['Recovery WHOOP', 'recovery_whoop', '%'],
+    ];
+    const fmt=(value,unit)=>value===null||value===undefined?'—':
+      (unit==='min' ? planTime(Math.round(value)) :
+      Number(value).toLocaleString('es-ES',{maximumFractionDigits:1})+' '+unit);
+    nights=`<details class="plan-night">
+      <summary>Respuesta fisiológica · WHOOP (descriptiva)</summary>
+      <div class="plan-night-grid">
+      <span>Indicador</span><span>Antes</span><span>Después</span>
+      ${pair.map(([name,key,unit])=>`<span>${esc(name)}</span>
+         <b>${esc(fmt(context.before?.[key],unit))}</b>
+         <b>${esc(fmt(context.after?.[key],unit))}</b>`).join('')}
+      </div>
+      <p>${esc(context.method)}</p></details>`;
+  }
+  const hint=e.status==='future' ?
+    'Aún no corresponde evaluar esta sesión.' :
+    e.status==='no_record_found' ?
+    'No hay carrera importada para este día. No significa que se haya omitido el entrenamiento.' :
+    'La coincidencia de fecha no demuestra que los bloques, zonas o descansos fueran los previstos.';
+  return `<section class="plan-execution" aria-label="Ejecución y respuesta del día">
+    <div class="plan-exec-head"><span class="eyebrow">Ejecución · COROS/Tredict</span>
+      <span class="plan-exec-status">${esc(headline)}</span></div>
+    ${e.count>0 ? `<div class="plan-exec-data">
+       ${esc(e.count)} carrera(s) · ${esc(e.observed_minutes ?? '—')} min
+       · ${e.observed_km===null?'distancia no disponible':esc(e.observed_km)+' km'}
+      </div>`: ''}
+    ${e.duration_difference_min!==null
+      ? `<p>Duración observada vs prevista: ${e.duration_difference_min>0?'+':''}${esc(e.duration_difference_min)} min.
+           Sin verificación de intervalos ni zonas.</p>` : ''}
+    <p>${esc(hint)}</p>
+    ${activities}
+    ${nights}
+  </section>`;
+}
+function renderPlan(d) {
+  const header = pageTop(ROUTE_STATE.sources);
+  const weeks = (d.weeks||[]).map(w => `<option value="${esc(w.id)}"
+    ${w.id===d.week?'selected':''}>${esc(w.id)} · ${esc(shortDate(w.start))} – ${esc(shortDate(w.end))}</option>`).join('');
+  if (!d.available) {
+    view.innerHTML = header +
+      `<section class="card"><span class="eyebrow">ARES · plan de maratón</span>
+       <h3>Plan fuera del intervalo disponible</h3><p class="muted">${esc(d.reason)}</p>
+       <p class="muted">La copia importada solo cubre octubre–diciembre de 2026;
+       no se atribuyen sesiones de una semana a otra.</p>
+       <a style="color:var(--sig)" href="${esc(d.source_url)}" target="_blank"
+       rel="noopener noreferrer">Abrir Excel maestro ↗</a></section>
+       <section class="card"><label for="plan-week">Consultar otra semana</label>
+       <select id="plan-week" class="plan-select" data-week>${weeks}</select></section>`;
+    return;
+  }
+  const nutrient = (s) => {
+    const n=s.nutrition, during=n.during, r=during.g_per_hour;
+    const intra = r[0]===r[1] ? `${r[0]} g/h` : `${r[0]}–${r[1]} g/h`;
+    const total = `${Math.round(r[0]*s.duration_min/60)}–${Math.round(r[1]*s.duration_min/60)} g`;
+    const macros = n.carbs_g ?
+      `${n.carbs_g[0]}–${n.carbs_g[1]} g CH/día` :
+      `${n.carbs_g_kg[0]}–${n.carbs_g_kg[1]} g/kg/día`;
+    const meal = n.preload ? 'Precarga del entrenamiento de mañana' :
+      'Reposición según trabajo de hoy';
+    return `<div class="plan-fuel">
+        <div class="plan-nutr-type">${esc(NUTR_LABEL[n.category]||n.category)}</div>
+        <b>${esc(macros)}</b>
+        <div class="plan-fuel-detail">${esc(meal)}.
+          ${s.duration_min && (r[0]||r[1]) ? `Durante: ${esc(intra)}
+          (≈${esc(total)} en esta sesión)` : 'Durante: sin aporte obligatorio registrado.'}
+          ${during.basis === 'EXCEL_MAESTRO' ? ' · Fuente: Excel maestro' :
+            ' · Guía general Fueling ARES, no pauta individual validada'}
+          ${n.post_rice_cooked_g ? ` · Arroz cocido post: ${n.post_rice_cooked_g[0]}–${n.post_rice_cooked_g[1]} g.` : ''}
+        </div>
+        <details class="plan-extra"><summary>Hidratación y ajustes de comida</summary>
+          <p>${esc(n.hydration)}</p>
+          ${n.sodium_mg_h ? `<p>Sodio de partida: ${n.sodium_mg_h[0]}–${n.sodium_mg_h[1]} mg/h
+           en sesiones prolongadas, personalizar según sudoración y calor.</p>` : ''}
+          <p>${esc(n.main_meal)}</p>
+          ${n.post_strength ? `<p>${esc(n.post_strength)}</p>` : ''}
+          <p>Proteína diaria: ${n.protein_g === null ? '1,8 g/kg' :
+            n.protein_g + ' g orientativos'}. Grasas: 60–75 g/día.</p>
+        </details>
+    </div>`;
+  };
+  const days = d.days.map(s => {
+    const isToday = s.date === d.today;
+    const rest = s.type === 'DESCANSO';
+    return `<details class="plan-day ${isToday?'plan-today':''}" ${isToday?'open':''}>
+      <summary class="plan-day-summary">
+        <div class="plan-day-top">
+          <div><span class="eyebrow">${esc(WEEKDAYS[s.weekday]||s.weekday)}
+            · ${esc(shortDate(s.date))}</span>
+            ${isToday?'<span class="pill sig">HOY</span>':''}
+          </div>
+          <span class="source-mark source-coros">${rest?'DESCANSO':esc(s.type)}</span>
+        </div>
+        <h3>${esc(s.title)} <span class="plan-day-arrow" aria-hidden="true">↗</span></h3>
+        <div class="plan-day-meta">
+          <span>${esc(planTime(s.duration_min))}</span>
+          ${s.km_estimate !== null ? `<span>${esc(s.km_estimate)} km previstos</span>` : ''}
+          ${s.strength_min ? `<span>Fuerza ${s.strength_min} min · ${esc(d.training_rules.strength_local_start)}</span>` : ''}
+        </div>
+      </summary>
+      <div class="plan-day-detail">
+        ${s.detail && !rest ? `<p class="muted">${esc(s.detail)}</p>`:''}
+        ${renderPlanExecution(d.execution?.days?.[s.date],s)}
+        ${nutrient(s)}
+        ${s.shoe ? `<p class="muted plan-shoe">Calzado previsto: ${esc(s.shoe)}</p>` : ''}
+      </div>
+    </details>`;
+  }).join('');
+  const grams= d.weight_kg ? `Configurado: ${esc(d.weight_kg)} kg.
+     Proteína aproximada ${Math.round(d.weight_kg*1.8)} g/día.` :
+    'Para convertir g/kg en gramos diarios, configura ARES_NUTRITION_WEIGHT_KG en tu .env local.';
+  view.innerHTML = header +
+    `<section class="plan-head">
+      <div class="eyebrow">ARES / MARATHON LAB · VALENCIA 2027</div>
+      <h2>Entrenar. <em>Recuperar.</em></h2>
+      <div class="plan-total">
+       <div><b>${esc(d.week)}</b><small>${esc(shortDate(d.start))}–${esc(shortDate(d.end))}</small></div>
+       <div><b>${esc(d.run_minutes)}′</b><small>Tiempo de carrera</small></div>
+       <div><b>${d.run_km_approx===null?'—':esc(d.run_km_approx)+' km'}</b><small>Distancia prevista</small></div>
+      </div>
+      <div class="plan-actions"><a href="#/plan">Semana actual ↗</a>
+       <a href="#/fisiologia">Fisiología ↗</a></div>
+      <label for="plan-week" class="eyebrow">Seleccionar semana</label>
+      <select id="plan-week" class="plan-select" data-week>${weeks}</select>
+      <p class="muted" style="margin:10px 0 0">Plan prescrito desde Excel maestro
+      ${esc(d.source_version)}, importación manual ${esc(d.snapshot_date)}.
+      <b>No se sincroniza en directo con Drive.</b></p>
+      ${d.snapshot_warning ? `<p class="plan-warning" role="alert">
+        ${esc(d.snapshot_warning)}</p>` : ''}
+    </section>
+    <section class="plan-exec-summary">
+      <div class="eyebrow">ARES · PRESCRITO / REGISTRADO / RESPUESTA</div>
+      <h3>Dos fuentes, una historia de entrenamiento</h3>
+      <div class="plan-exec-stats">
+        <div><b>${esc(d.execution?.summary?.days_with_running_activity ?? 0)}</b>
+          <small>Días con carrera registrada</small></div>
+        <div><b>${esc(d.execution?.summary?.recorded_run_minutes ?? 0)}′</b>
+          <small>Minutos observados</small></div>
+        <div><b>${esc(d.execution?.summary?.days_with_night_context ?? 0)}</b>
+          <small>Días con respuesta WHOOP</small></div>
+      </div>
+      <p class="muted">No se muestra «cumplimiento» sin verificar duración, bloques y
+      zonas con registros de calidad. Una ausencia en Tredict no significa que no entrenases.
+      Los cambios nocturnos no demuestran que una sesión los causase.</p>
+      <p class="muted">Última sincronización Tredict (actividades):
+        <span class="mono">${d.tredict_last_sync ? esc(d.tredict_last_sync.replace('T',' ').slice(0,19)) :
+          'sin registro de sincronización correcta'}</span>.
+        Este momento no demuestra que el entrenamiento de hoy ya esté disponible.</p>
+    </section>
+    <section class="plan-nutrition-summary">
+      <div class="eyebrow">Fueling ARES v1.0 · previsión semanal</div>
+      <h3>Come hoy para entrenar mañana</h3>
+      <p class="muted">${esc(grams)}</p>
+      <p class="muted">Carbohidratos periodizados por carga y precarga del día
+        siguiente. Proteína orientativa 1,8 g/kg; grasas 60–75 g/día.
+        Comida principal como ventana de carga; última ingesta ligera a las 18:00.</p>
+      <p class="muted">Combustible durante los entrenos:
+        ${esc(d.intra_training_carbs_g_week[0])}–${esc(d.intra_training_carbs_g_week[1])}
+        g aproximados en toda la semana (incluye pautas y rangos generales).
+        En largos, partir de la tolerancia entrenada; no subir de golpe.
+        Sodio inicial 300–600 mg/h según sudoración y calor.</p>
+      <p class="muted">Fuentes:
+      <a href="${esc(d.source_url)}" target="_blank" rel="noopener noreferrer">Excel v9 ↗</a>
+      · <a href="${esc(d.fueling_source_url)}" target="_blank" rel="noopener noreferrer">
+      Fueling ARES v1.0 ↗</a></p>
+    </section>
+    ${days}
+    <section class="atelier-method"><span class="eyebrow">REGLAS DEL PROGRAMA</span>
+      <p class="muted">${esc(d.caveat)}
+       La frecuencia cardíaca manda sobre el ritmo y las sesiones perdidas
+       no se compensan con volumen añadido.</p>
+      <a style="color:var(--sig)" href="#/progreso">Ver evolución y carga ↗</a>
+    </section>`;
+}
+
+// ------------------------------------------------------ laboratorio fisiológico
+function physFmt(value, unit) {
+  if (value === null || value === undefined || !Number.isFinite(Number(value))) return '—';
+  const num = Number(value);
+  if (unit === 'min') {
+    const minutes = Math.round(num);
+    return `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')} h`;
+  }
+  return num.toLocaleString('es-ES', {maximumFractionDigits: unit === '°C' || unit === 'rpm' ? 1 : 0}) + ' ' + unit;
+}
+const PHYS_SERIES = new Map();
+let physSeq = 0;
+function physReadable(value, unit) {
+  return physFmt(value, unit);
+}
+function physChart(points, title, unit) {
+  const valid = points.flatMap(p => {
+    const v = Number(p.v), t = Date.parse(p.date);
+    return p.v !== null && p.v !== undefined && Number.isFinite(v) && Number.isFinite(t)
+      ? [{date:p.date,v,t}] : [];
+  });
+  if (valid.length < 2) return '<p class="phys-empty">Todavía no hay suficientes lecturas válidas para mostrar la evolución.</p>';
+  const W=360,H=182,L=14,R=14,T=16,B=30,base=H-B,usableW=W-L-R;
+  const timestamps=points.map(p=>Date.parse(p.date)).filter(Number.isFinite);
+  const t0=Math.min(...timestamps),t1=Math.max(...timestamps);
+  const span=t1-t0||86400000;
+  const values=valid.map(p=>p.v),min=Math.min(...values),max=Math.max(...values);
+  const pad=(max-min||Math.max(Math.abs(max)*.03,.5))*0.20;
+  const lower=min-pad,upper=max+pad;
+  const x=t=>L+usableW*(t-t0)/span;
+  const y=v=>T+(base-T)*(1-(v-lower)/(upper-lower));
+  const fx=n=>n.toFixed(2);
+  const segments=[];
+  let previous=null, path='';
+  for(const p of points){
+    const v=Number(p.v),t=Date.parse(p.date);
+    if(p.v===null||p.v===undefined||!Number.isFinite(v)||!Number.isFinite(t)){
+      previous=null;continue;
+    }
+    const isolated=previous===null || t-previous>86400000*1.5;
+    if(isolated && path){segments.push(path);path='';}
+    path+=`${isolated?'M':'L'}${fx(x(t))} ${fx(y(v))}`;
+    previous=t;
+  }
+  if(path)segments.push(path);
+  const id=`phys-${++physSeq}`;
+  const coords=valid.map(p=>({ ...p, x:x(p.t), y:y(p.v) }));
+  PHYS_SERIES.set(id,{points:coords,title,unit});
+  const last=coords.at(-1);
+  const guide=[.25,.5,.75].map(frac=>`<line x1="${L}" x2="${W-R}" y1="${fx(T+(base-T)*frac)}"
+    y2="${fx(T+(base-T)*frac)}" stroke="currentColor" class="phys-guide"/>`).join('');
+  const labels=[points[0].date,points[Math.floor((points.length-1)/2)].date,
+    points.at(-1).date].map((d,i)=>`<text x="${i===0?L:i===2?W-R:W/2}"
+    y="${H-7}" text-anchor="${i===0?'start':i===2?'end':'middle'}"
+    class="phys-axis-label">${esc(shortDate(d))}</text>`).join('');
+  return `<div class="phys-chart-wrap">
+    <svg class="phys-chart" viewBox="0 0 ${W} ${H}" data-phys-id="${id}"
+      role="slider" tabindex="0" aria-label="${esc(title)}. Explora las lecturas con las flechas izquierda y derecha."
+      aria-valuemin="1" aria-valuemax="${coords.length}" aria-valuenow="${coords.length}"
+      aria-valuetext="${esc(last.date)}: ${esc(physReadable(last.v,unit))}">
+      ${guide}
+      ${segments.map(d=>`<path d="${d}" class="phys-path"/>`).join('')}
+      <circle cx="${fx(last.x)}" cy="${fx(last.y)}" r="4.8" class="phys-endpoint"/>
+      <g class="phys-cursor">
+        <line x1="${fx(last.x)}" x2="${fx(last.x)}" y1="${T}" y2="${base}"
+          class="phys-cursor-line"/>
+        <circle cx="${fx(last.x)}" cy="${fx(last.y)}" r="5.8" class="phys-cursor-dot"/>
+      </g>
+      ${labels}
+    </svg>
+    <div class="phys-readout" data-phys-readout="${id}" aria-live="off">
+      <span>${esc(last.date.split('-').reverse().join('/'))}</span>
+      <b>${esc(physReadable(last.v,unit))}</b>
+      <small>Desliza sobre el gráfico o usa las flechas ← →</small>
+    </div>
+  </div>`;
+}
+function physCursor(svg, index) {
+  const graph=PHYS_SERIES.get(svg.dataset.physId);
+  if(!graph||!graph.points.length)return;
+  const i=Math.max(0,Math.min(graph.points.length-1,index));
+  const p=graph.points[i],group=svg.querySelector('.phys-cursor');
+  group.querySelector('line').setAttribute('x1',p.x.toFixed(2));
+  group.querySelector('line').setAttribute('x2',p.x.toFixed(2));
+  const dot=group.querySelector('circle');
+  dot.setAttribute('cx',p.x.toFixed(2));
+  dot.setAttribute('cy',p.y.toFixed(2));
+  svg.setAttribute('aria-valuenow',String(i+1));
+  svg.setAttribute('aria-valuetext',`${p.date}: ${physReadable(p.v,graph.unit)}`);
+  const label=document.querySelector('[data-phys-readout="'+svg.dataset.physId+'"]');
+  if(label){
+    label.querySelector('span').textContent=p.date.split('-').reverse().join('/');
+    label.querySelector('b').textContent=physReadable(p.v,graph.unit);
+  }
+}
+document.addEventListener('pointermove',e=>{
+  const svg=e.target.closest?.('svg[data-phys-id]');
+  if(!svg)return;
+  const graph=PHYS_SERIES.get(svg.dataset.physId);
+  if(!graph)return;
+  const rect=svg.getBoundingClientRect();
+  if(!rect.width)return;
+  const px=(e.clientX-rect.left)/rect.width*360;
+  let index=0,best=Infinity;
+  graph.points.forEach((p,i)=>{const distance=Math.abs(p.x-px);if(distance<best){best=distance;index=i;}});
+  physCursor(svg,index);
+});
+document.addEventListener('keydown',e=>{
+  const svg=e.target.closest?.('svg[data-phys-id]');
+  if(!svg)return;
+  const graph=PHYS_SERIES.get(svg.dataset.physId);
+  if(!graph)return;
+  let at=Number(svg.getAttribute('aria-valuenow'))-1;
+  if(e.key==='ArrowLeft')at--;else if(e.key==='ArrowRight')at++;
+  else if(e.key==='Home')at=0;else if(e.key==='End')at=graph.points.length-1;
+  else return;
+  e.preventDefault();physCursor(svg,at);
+});
+function physNumber(value, unit) {
+  // Dato y unidad separados por tipografía: ningún redondeo adicional.
+  const formatted=physFmt(value, unit);
+  if(formatted==='—')return '<strong class="phys-data"><span class="phys-digits">—</span></strong>';
+  const suffix=unit==='min'?'h':unit;
+  const digits=formatted.slice(0,-(' '+suffix).length);
+  return `<strong class="phys-data">
+    <span class="phys-digits">${esc(digits)}</span>
+    <span class="phys-unit">${esc(suffix)}</span>
+  </strong>`;
+}
+function physCard(m, featured=false) {
+  const originLabel=m.key==='recovery'?'MODELO · WHOOP':'MED · WHOOP';
+  const difference=m.difference===null||m.relative_change_pct===null ? null :
+    (m.difference>0?'+':'')+physFmt(m.difference,m.unit);
+  const intro=`<div class="phys-metric-heading">
+    <span class="eyebrow">${esc(m.label)}</span>
+    <span class="tag ${m.key==='recovery'?'exp':''}">${originLabel}</span>
+  </div>`;
+  const value=`<div class="phys-current">
+    ${physNumber(m.latest,m.unit)}
+    <span>${m.latest===null?'Sin lectura válida en la noche más reciente':'Lectura de la última noche válida indicada'}</span>
+  </div>`;
+  const explanation=`<div class="phys-comparison">
+      <div class="phys-stat-grid">
+        <div><span>Últimos 7 días</span><b>${esc(physFmt(m.mean7,m.unit))}</b></div>
+        <div><span>Últimos 28 días</span><b>${esc(physFmt(m.mean28,m.unit))}</b></div>
+        <div><span>Referencia anterior</span><b>${esc(physFmt(m.reference,m.unit))}</b></div>
+      </div>
+      <p class="phys-difference">
+        ${difference===null?'Aún no hay muestras suficientes para calcular el cambio frente a tu referencia.' :
+        `Cambio de la media de 7 días: <strong>${esc(difference)}</strong>
+        (${m.relative_change_pct>0?'+':''}${esc(m.relative_change_pct.toFixed(1))} %) frente a los 28 días anteriores.`}
+        <span>Referencia basada en ${m.n_reference} noches válidas; no indica por sí sola mejora ni empeoramiento.</span>
+      </p>
+    </div>`;
+  const body=`${physChart(m.series,m.label,m.unit)}${explanation}`;
+  if(featured)return `<section class="card phys-metric phys-featured" aria-label="${esc(m.label)}">
+    ${intro}${value}${body}</section>`;
+  return `<details class="card phys-metric phys-secondary">
+    <summary aria-label="Ver evolución de ${esc(m.label)}">
+      <span class="phys-secondary-main">${intro}${value}</span>
+      ${svg('chev','phys-chevron')}
+    </summary>
+    <div class="phys-secondary-detail">${body}</div>
+  </details>`;
+}
+function renderFisiologia(d) {
+  ROUTE_STATE.physDays=d.days;
+  PHYS_SERIES.clear();
+  const controls=[28,90,365].map(n=>`<button data-days="${n}" aria-pressed="${n===d.days}">
+      ${n===365?'1 año':n+' días'}</button>`).join('');
+  const quality=d.breakdown;
+  const coverage=d.nights>0?Math.round(d.usable_nights/d.nights*100):0;
+  const metrics=d.metrics || [];
+  const highlighted=['hrv','rhr'].map(key=>metrics.find(m=>m.key===key)).filter(Boolean);
+  const other=metrics.filter(m=>!['hrv','rhr'].includes(m.key));
+  const title=d.anchor_date? `${esc(shortDate(d.first_date))}–${esc(shortDate(d.anchor_date))}` :
+    'Historial pendiente';
+  view.innerHTML=pageTop(ROUTE_STATE.sources)+
+    `<header class="phys-header">
+      <div class="phys-header-top">
+        <span class="eyebrow">ARES / FISIOLOGÍA</span>
+        <span class="phys-edition">01 — OBSERVATORIO</span>
+      </div>
+      <h1>Lo que cuenta<br><em>tu organismo.</em></h1>
+      <p>Tu registro nocturno, en perspectiva. Cada lectura en su fecha, cada conclusión con su contexto.</p>
+    </header>
+    <section class="phys-overview" aria-label="Calidad y cobertura de las mediciones">
+      <div class="phys-overview-heading">
+        <div><span class="eyebrow">ARCHIVO NOCTURNO</span><h2>${title}</h2></div>
+        <span class="phys-origin">● WHOOP / DIRECTO</span>
+      </div>
+      <div class="phys-overview-stats">
+        <div class="phys-record-count">
+          <strong>${d.usable_nights}</strong>
+          <span class="phys-record-total">/ ${d.nights}</span>
+          <small>Noches válidas / procesadas</small>
+        </div>
+        <div class="phys-coverage-count">
+          <strong>${coverage}<span>%</span></strong>
+          <small>Calidad utilizable*</small>
+        </div>
+      </div>
+      <div class="phys-quality-track" role="img" aria-label="${coverage}% de registros utilizables de los procesados">
+        <span style="width:${coverage}%"></span>
+      </div>
+      <div class="seg phys-period" role="group" aria-label="Seleccionar periodo fisiológico">${controls}</div>
+      <p class="phys-quality-note">*De las noches procesadas: ${quality.high} alta calidad,
+        ${quality.fair} aceptables, ${quality.excluded} excluidas.
+        ${quality.night_flags?`${quality.night_flags} con revisión pendiente.`:''}
+        ${d.nights===0?'Pendiente de sincronizar WHOOP.':'Se conservan las fechas sin lectura.'}
+      </p>
+    </section>
+    <div class="phys-section-heading"><div><span class="eyebrow">01 / SEÑALES ESENCIALES</span>
+      <h2>Corazón y recuperación</h2></div>
+      <span class="phys-section-meta">VFC / FC EN REPOSO</span></div>
+    <div class="phys-feature-grid">${highlighted.map(m=>physCard(m,true)).join('')}</div>
+    <div class="phys-section-heading"><div><span class="eyebrow">02 / REGISTRO COMPLEMENTARIO</span>
+      <h2>Otras señales</h2></div>
+      <span class="phys-section-meta">PULSA PARA EXPLORAR</span></div>
+    <div class="phys-secondary-list">${other.map(m=>physCard(m)).join('')}</div>
+    <details class="card phys-method">
+      <summary>Cómo interpretamos las referencias ${svg('chev','phys-chevron')}</summary>
+      <p>${esc(d.reference_method)}</p>
+      <p>${esc(d.caution)}</p>
+      <p>La puntuación Recovery pertenece al modelo de WHOOP; ARES no la recalcula.
+      Las fechas sin medición válida aparecen como huecos, no como datos estimados.</p>
+    </details>`;
+}
+
+// ----------------------------------------------------- explorador de entrenos
+function runTime(sec) {
+  if (sec === null || sec === undefined || !Number.isFinite(Number(sec)) || sec < 0) return '—';
+  const s = Math.round(sec);
+  return s >= 3600
+    ? `${Math.floor(s / 3600)}h ${String(Math.floor(s % 3600 / 60)).padStart(2, '0')}m`
+    : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+function runPace(sec) {
+  if (sec === null || sec === undefined || !Number.isFinite(Number(sec)) || sec <= 0) return '—';
+  const s = Math.round(sec);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')} /km`;
+}
+function runSeries(points, title, color) {
+  const valid = points.filter((p) => p.v !== null && Number.isFinite(Number(p.v)));
+  if (valid.length < 2) return '<p class="muted" style="margin:6px 0">Este sensor no aportó una serie suficiente.</p>';
+  const W = 330, H = 112, left = 10, right = 8, top = 8, bottom = 18;
+  const maxT = Math.max(...points.map((p) => p.second), 1);
+  let min = Math.min(...valid.map((p) => p.v)), max = Math.max(...valid.map((p) => p.v));
+  const pad = (max - min || 1) * .14; min -= pad; max += pad;
+  const x = (t) => left + (W-left-right)*t/maxT;
+  const y = (v) => top + (H-top-bottom)*(1-(v-min)/(max-min));
+  let path = '', prev = false;
+  for (const p of points) {
+    if (p.v === null || !Number.isFinite(Number(p.v))) {prev = false; continue;}
+    path += `${prev ? 'L' : 'M'}${x(p.second).toFixed(1)} ${y(p.v).toFixed(1)}`;
+    prev = true;
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" class="chart" role="img"
+    aria-label="${esc(title)}, ${valid.length} puntos disponibles">
+    <path d="${path}" stroke="${color}" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <text x="${left}" y="${H-3}" fill="#ABA99E" font-size="10">0 min</text>
+    <text x="${W-right}" y="${H-3}" text-anchor="end" fill="#ABA99E" font-size="10">${Math.round(maxT/60)} min</text>
+  </svg>`;
+}
+function syncNotice(mode) {
+  return mode === 'automatic'
+    ? `<div class="sync-compact" role="status">
+        <span class="sync-indicator" aria-hidden="true"></span>
+        <span>Actualización automática activa</span>
+        <a href="#/lab">Ver fuentes ↗</a>
+      </div>`
+    : `<div class="sync-compact" role="status">
+        <span class="sync-indicator paused" aria-hidden="true"></span>
+        <span>Solo lectura · los datos no se sincronizan</span>
+        <a href="#/lab">Ver fuentes ↗</a>
+      </div>`;
+}
+function renderEntrenos(d) {
+  ROUTE_STATE.syncMode = d.sync_mode || ROUTE_STATE.syncMode;
+  const category = d.category === 'other' ? 'other' : 'running';
+  const counts = d.counts || {running:0, other:0};
+  const tabs = `<nav class="training-tabs" aria-label="Tipos de entrenamiento">
+    <a href="#/entrenos?tipo=correr" ${category === 'running' ? 'aria-current="page"' : ''}>
+      Correr <small>${counts.running}</small></a>
+    <a href="#/entrenos?tipo=otros" ${category === 'other' ? 'aria-current="page"' : ''}>
+      Otros <small>${counts.other}</small></a>
+  </nav>`;
+  const comparisons = (d.comparisons || []).map((p) => {
+    const sign = p.speed_change_pct > 0 ? '+' : '';
+    return `<div style="padding:12px 0;border-top:1px solid var(--line)">
+      <div class="row" style="display:flex;justify-content:space-between;gap:8px">
+        <span class="eyebrow">${esc(shortDate(p.old_date))} → ${esc(shortDate(p.new_date))}</span>
+        <b class="mono" style="font-size:16px">${esc(sign + p.speed_change_pct.toFixed(1))} %</b>
+      </div>
+      <p class="muted" style="margin:6px 0 0">
+        ${esc(runPace(p.old_pace_s_km))} → ${esc(runPace(p.new_pace_s_km))}
+        · FC ${esc(p.old_avg_hr)} → ${esc(p.new_avg_hr)} lpm
+        · ${esc(p.old_distance_km)} → ${esc(p.new_distance_km)} km.
+      </p>
+      <div style="display:flex;gap:18px;margin-top:9px">
+        <a href="#/entreno/${encodeURIComponent(p.old_id)}" style="color:var(--sig)">Anterior</a>
+        <a href="#/entreno/${encodeURIComponent(p.new_id)}" style="color:var(--sig)">Reciente</a>
+      </div>
+    </div>`;
+  }).join('');
+  const comparisonPanel = comparisons && category === 'running' ? `<section class="card training-comparison">
+    <div class="row" style="display:flex;align-items:center;justify-content:space-between">
+      <span class="eyebrow">Comparador de sesiones</span>${tagChip('EXP','ARES')}
+    </div><h3 style="margin:10px 0 6px">¿Mejora tu ritmo a pulso similar?</h3>
+    <p class="muted" style="margin:0 0 12px">Parejas con distancia ±10 % y FC media ±5 lpm.
+      Diferencias descriptivas, no causales.</p>${comparisons}</section>` : '';
+  // La fecha corresponde solo a las sesiones de esta categoría, no al
+  // máximo global de una fuente que puede representar otro deporte.
+  const lastTraining = d.sessions.length ? d.sessions[0].date : null;
+  const cards = d.sessions.map((a) => {
+    const isWhoop = a.source === 'whoop';
+    const distance = a.distance_m === null ? '—' :
+      (a.distance_m / 1000).toLocaleString('es-ES', {maximumFractionDigits:2})+' km';
+    return `<a href="#/entreno/${encodeURIComponent(a.id)}" class="workout-tile"
+      aria-label="Abrir entrenamiento ${esc(a.title)}">
+      <div class="row" style="display:flex;justify-content:space-between;gap:12px;align-items:center">
+        <span class="eyebrow">${esc(a.sport)} · ${esc(shortDate(a.date))}</span>
+        <span class="source-mark ${isWhoop ? 'source-whoop' : 'source-coros'}">
+          ${isWhoop ? 'WHOOP' : 'COROS · Tredict'}</span>
+      </div>
+      <h3 style="margin:11px 0">${esc(a.title)}</h3>
+      <div class="stats" style="grid-template-columns:repeat(3,1fr)">
+        <div><small>Distancia</small><b>${esc(distance)}</b></div>
+        <div><small>Tiempo</small><b>${esc(runTime(a.duration_s))}</b></div>
+        <div><small>${category === 'running' ? 'Ritmo' : 'FC media'}</small>
+          <b>${category === 'running' ? esc(runPace(a.pace_s_km))
+          : (a.avg_hr === null ? '—' : esc(a.avg_hr.toFixed(0)) + ' lpm')}</b></div>
+      </div>
+      <p class="muted" style="margin:10px 0 0">
+        ${a.has_series ? 'Series y detalles disponibles' :
+          (isWhoop ? 'Resumen de WHOOP · sin series de ritmo' :
+          'Resumen disponible · importa detalle de Tredict para ver curvas')}
+      </p>
+    </a>`;
+  }).join('');
+  view.innerHTML = pageTop(ROUTE_STATE.sources) +
+    `<header class="atelier-intro training-intro">
+      <div class="eyebrow">ARES / ARCHIVO DE ACTIVIDAD</div>
+      <h2>Movimiento, <em>medido.</em></h2>
+      <p>${category === 'running'
+        ? 'Carreras y series registradas por COROS a través de Tredict.'
+        : 'Caminatas y demás actividades registradas por WHOOP.'}</p>
+    </header>` + tabs + syncNotice(ROUTE_STATE.syncMode) +
+    `<div class="training-record-count">
+      <span class="eyebrow">${category === 'running' ? 'CARRERAS' : 'OTRAS ACTIVIDADES'} / ${esc(category === 'running' ? counts.running : counts.other)}</span>
+      <span>Último registro: ${lastTraining ? esc(shortDate(lastTraining)) : 'sin registros'}</span>
+    </div>` + comparisonPanel +
+    `<div class="atelier-row-list workout-list">
+      ${cards || `<section class="atelier-empty"><h3>No hay actividades de este tipo todavía</h3>
+         <p class="muted">Comprueba la sincronización de fuentes. Las series y vueltas
+           requieren importar también los detalles de Tredict.</p></section>`}
+     </div>
+     <p class="training-caveat">${esc(d.source_caveat || '')}</p>`;
+}
+
+function renderTrainingIntelligence(a) {
+  if (!a) return '';
+  const q = a.quality || {}, drift = a.drift || {}, laps = a.laps || {};
+  const pct = (x) => x === null || x === undefined ? '—' :
+    Number(x).toLocaleString('es-ES', {maximumFractionDigits:1})+' %';
+  const row = (title, value, note) =>
+    `<div style="padding:10px 0;border-top:1px solid var(--line)">
+      <div class="row" style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <b style="font-size:14px">${esc(title)}</b><b class="mono">${esc(value)}</b>
+      </div><p class="muted" style="font-size:12px;margin:6px 0 0">${esc(note)}</p>
+    </div>`;
+  const driftDesc = drift.available
+    ? `FC media ${drift.first.hr} → ${drift.second.hr} lpm; velocidad
+       ${drift.first.speed_m_s} → ${drift.second.speed_m_s} m/s.
+       ${drift.caution}`
+    : `No calculable: ${drift.reason || 'sin datos suficientes'}. No inferimos deriva con series,
+       pausas, terrenos variables o sensores incompletos.`;
+  const lapDesc = laps.available
+    ? `${laps.count} vueltas de longitud comparable; ritmo medio
+       ${runPace(laps.mean_pace_s_km)}. ${laps.caution}`
+    : `No calculable: ${laps.reason || 'faltan vueltas comparables'}.`;
+  return `<section class="card" aria-label="ARES Training Intelligence">
+    <div class="row" style="display:flex;justify-content:space-between;align-items:center">
+      <span class="eyebrow">ARES · Training Intelligence</span>${tagChip('EXP','ARES')}
+    </div>
+    <h3 style="margin:12px 0 6px">Cómo respondió tu cuerpo</h3>
+    <p class="muted" style="margin:0 0 14px">Análisis exploratorio basado en series reales.
+      No es una evaluación médica ni sustituye una prueba de esfuerzo.</p>
+    <div class="stats" style="grid-template-columns:repeat(3,minmax(0,1fr));margin:10px 0 16px">
+      <div><small>FC válida</small><b>${esc(pct(q.hr_coverage_pct))}</b></div>
+      <div><small>Velocidad válida</small><b>${esc(pct(q.speed_coverage_pct))}</b></div>
+      <div><small>Pares FC/ritmo</small><b>${esc(pct(q.paired_coverage_pct))}</b></div>
+    </div>
+    ${row('Deriva FC / velocidad', drift.available ?
+      (drift.value_pct > 0 ? '+' : '') + pct(drift.value_pct) : 'No evaluable', driftDesc)}
+    ${row('Consistencia de vueltas', laps.available ? 'CV '+pct(laps.pace_cv_pct) :
+      'No evaluable', lapDesc)}
+    <p class="muted" style="font-size:12px;margin:12px 0 0">Las métricas solo
+      aparecen cuando cumplen los criterios de calidad definidos.
+      El signo de la deriva, por sí solo, no determina mejora ni fatiga.</p>
+  </section>`;
+}
+function renderHrZones(z) {
+  if (!z?.available) return `<section class="card"><span class="eyebrow">Zonas de pulso</span>
+    <p class="muted">Sin distribución de FC verificable para esta sesión:
+      ${esc(z?.reason || 'no disponible')}.</p></section>`;
+  const max = Math.max(1, ...z.zones.map(r => r.seconds));
+  const bars = z.zones.map((r, i) => {
+    const range = r.min_hr === -1 ? `≤ ${r.max_hr} lpm` :
+      r.max_hr === -1 ? `≥ ${r.min_hr} lpm` :
+      `${r.min_hr}–${r.max_hr} lpm`;
+    const width = Math.max(0, Math.min(100, r.seconds / max * 100));
+    return `<div style="margin-top:12px">
+      <div style="display:flex;justify-content:space-between;gap:8px;font-size:12px">
+        <b>${esc(r.name)}</b><span class="muted">${esc(range)}</span>
+        <span class="mono">${esc(runTime(r.seconds))} · ${esc(r.percent_recorded)} %</span>
+      </div>
+      <div style="height:8px;border-radius:99px;background:var(--s3);margin-top:6px;overflow:hidden">
+        <div style="width:${width}%;height:100%;background:var(--sig);border-radius:99px;
+        opacity:${(0.4 + 0.1 * i).toFixed(2)}"></div>
+      </div>
+    </div>`;
+  }).join('');
+  return `<section class="card" aria-label="Zonas de frecuencia cardíaca">
+    <div class="row" style="display:flex;justify-content:space-between;align-items:center">
+      <span class="eyebrow">Distribución por zonas</span>${tagChip('CALC','TREDICT')}
+    </div><h3 style="margin:12px 0 6px">¿Dónde estuvo tu esfuerzo?</h3>
+    <p class="muted" style="font-size:12px;margin:0">Zonas configuradas para la fecha
+      de este entrenamiento. ${z.coverage_pct === null ? '' :
+        'Tiempo clasificado: ' + esc(z.coverage_pct) + ' % de la duración.'}</p>
+    ${bars}
+    <p class="muted" style="font-size:12px;margin:12px 0 0">${esc(z.method)}</p>
+  </section>`;
+}
+
+function renderTrainingContext(ctx) {
+  if (!ctx) return '';
+  const num = (v, unit, decimals=0) => v === null || v === undefined ? '—' :
+    Number(v).toLocaleString('es-ES', {maximumFractionDigits:decimals}) + unit;
+  const item = (night, heading) => night ? `<div style="flex:1;min-width:0">
+    <span class="eyebrow">${esc(heading)} · ${esc(shortDate(night.date))}</span>
+    <div style="margin-top:10px;font-size:15px"><b>VFC</b> ${esc(num(night.rmssd_ms,' ms'))}</div>
+    <div style="margin-top:7px;font-size:15px"><b>Reposo</b> ${esc(num(night.rhr,' lpm'))}</div>
+    <div style="margin-top:7px;font-size:15px"><b>Sueño</b> ${esc(runTime(night.sleep_min === null ? null : night.sleep_min*60))}</div>
+    <div style="margin-top:7px;font-size:15px"><b>Recovery</b> ${esc(num(night.recovery_whoop,' %'))}</div>
+  </div>` : `<div style="flex:1;min-width:0"><span class="eyebrow">${esc(heading)}</span>
+    <p class="muted">No hay noche válida dentro de la ventana de 72 h.</p></div>`;
+  const d = ctx.difference || {};
+  const delta = ctx.before && ctx.after ?
+    `<p class="muted" style="margin:12px 0 0">Cambio registrado:
+      VFC ${esc(num(d.rmssd_ms,' ms',1))},
+      pulso ${esc(num(d.rhr,' lpm',1))},
+      sueño ${esc(num(d.sleep_min,' min',0))}.
+      Son diferencias observadas entre dos noches, no efectos atribuibles al ejercicio.</p>` : '';
+  return `<section class="card" aria-label="Fisiología alrededor del entrenamiento">
+    <div class="row" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+      <span class="eyebrow">ARES · Relación entrenamiento y fisiología</span>
+      ${tagChip('CALC','ARES')}
+    </div>
+    <h3 style="margin:12px 0 8px">Antes y después del esfuerzo</h3>
+    <div style="display:flex;gap:14px;margin-top:16px">
+      ${item(ctx.before, 'Antes')}
+      <div style="width:1px;background:var(--line2)"></div>
+      ${item(ctx.after, 'Después')}
+    </div>
+    ${delta}
+    <p class="muted" style="font-size:12px;margin:14px 0 0">
+      ${esc(ctx.method || ctx.reason || 'No hay contexto suficiente todavía.')}</p>
+  </section>`;
+}
+function renderEntreno(d) {
+  const laps = (d.laps || []).map((l) => `<tr><td>${l.number}</td>
+    <td>${l.distance_m === null ? '—' : esc((l.distance_m/1000).toFixed(2)) + ' km'}</td>
+    <td>${esc(runPace(l.pace_s_km))}</td>
+    <td>${l.avg_hr === null ? '—' : esc(l.avg_hr.toFixed(0))}</td>
+    <td>${l.power === null ? '—' : esc(l.power.toFixed(0))}</td></tr>`).join('');
+  const s = d.series || {};
+  const sensors = [
+    ['Frecuencia cardíaca · lpm', s.heartrate || [], '#D9B782'],
+    ['Velocidad · m/s', s.speed || [], '#D7A56B'],
+    ['Potencia · W', s.power || [], '#7ABBAA'],
+    ['Cadencia', s.cadence || [], '#B9A5E3'],
+  ].map(([title, pts, color]) =>
+    `<section class="card"><span class="eyebrow">${esc(title)}</span>
+    ${runSeries(pts,title,color)}</section>`).join('');
+  view.innerHTML = `<header class="dtop"><a class="back" href="#/entrenos"
+      aria-label="Volver a Entrenos">${svg('back')}</a>
+      <h1>${esc(d.title)}<small>${esc(d.sport)} · ${esc(shortDate(d.date))}</small></h1>
+      ${tagChip('MED', d.source === 'whoop' ? 'WHOOP' : 'COROS vía Tredict')}</header>
+    <section class="card">
+      <div class="stats" style="grid-template-columns:repeat(3,1fr)">
+        <div><small>Distancia</small><b>${d.distance_m === null ? '—' :
+          esc((d.distance_m/1000).toFixed(2)) + ' km'}</b></div>
+        <div><small>Duración</small><b>${esc(runTime(d.duration_s))}</b></div>
+        <div><small>Ritmo</small><b>${esc(runPace(d.pace_s_km))}</b></div>
+        <div><small>FC media</small><b>${d.avg_hr === null ? '—' : esc(d.avg_hr.toFixed(0))}</b></div>
+        <div><small>FC máx.</small><b>${d.max_hr === null ? '—' : esc(d.max_hr.toFixed(0))}</b></div>
+        <div><small>Potencia</small><b>${d.avg_power === null ? '—' : esc(d.avg_power.toFixed(0)) + ' W'}</b></div>
+        ${d.source === 'whoop' && d.score_strain !== null && d.score_strain !== undefined
+          ? `<div><small>Strain WHOOP</small><b>${esc(Number(d.score_strain).toFixed(1))}</b></div>`
+          : ''}
+      </div>
+      <p class="muted">${esc(d.attribution)}
+        ${d.pace_calculated ? ' · Ritmo calculado desde tiempo y distancia' : ''}
+      </p>
+      ${d.source === 'whoop'
+        ? '<span class="eyebrow" style="color:#A6BDA3">Datos de entrenamiento · WHOOP</span>'
+        : `<a href="https://www.tredict.com/app/training/activity/${encodeURIComponent(d.id)}"
+            target="_blank" rel="noopener noreferrer" style="color:var(--sig);font-size:13px">
+            Abrir actividad original en Tredict ↗</a>`}</section>` + renderTrainingIntelligence(d.analysis) + renderTrainingContext(d.night_context) +
+    renderHrZones(d.hr_zones) + sensors +
+    `<section class="card"><h3>Vueltas y segmentos</h3>
+      ${laps ? '<div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Dist.</th><th>Ritmo</th><th>FC</th><th>W</th></tr></thead><tbody>'+
+        laps+'</tbody></table></div>' : '<p class="muted">El sensor no proporcionó vueltas.</p>'}
+      <p class="muted" style="margin:12px 0 0">${esc(d.method)}</p>
+    </section>`;
+}
+
 // ------------------------------------------------------------------- router
-const TABS = [['inicio', 'Inicio', 'home'], ['progreso', 'Progreso', 'chart'], ['lab', 'Lab', 'flask']];
+const TABS = [['inicio', 'Inicio', 'home'], ['entrenos', 'Entrenos', 'run'], ['plan', 'Plan', 'calendar'], ['laboratorio', 'LAB', 'flask'], ['fisiologia', 'Fisiología', 'pulse']];
 function setTabs(active) {
   tabsEl.innerHTML = TABS.map(([k, l, i]) => `<a href="#/${k}"${k === active ? ' aria-current="page"' : ''}>${svg(i)}<span>${l}</span></a>`).join('');
 }
 function setDays(n) {
   const [name] = currentHash().path.split('/');
-  if (name === 'senal') {
+  if (name === 'senal' || name === 'fisiologia') {
     location.hash = `#/${currentHash().path}?d=${n}`;
   } else {
     ROUTE_STATE.progDays = n;
@@ -443,17 +1337,36 @@ function currentHash() {
   return {path, params: new URLSearchParams(qs || '')};
 }
 let lastPath = null;
+let routeSeq = 0;
 async function route(refresh = false) {
+  const seq = ++routeSeq;
   const {path, params} = currentHash();
   const parts = path.split('/');
-  const tab = parts[0] === 'senal' ? 'inicio' : (['inicio', 'progreso', 'lab'].includes(parts[0]) ? parts[0] : 'inicio');
+  const tab = parts[0] === 'senal' ? 'inicio' : parts[0] === 'entreno' ? 'entrenos' : (['inicio', 'entrenos', 'progreso', 'fisiologia', 'plan', 'lab', 'laboratorio'].includes(parts[0]) ? parts[0] : 'inicio');
   setTabs(tab);
   let url, fn;
   if (parts[0] === 'senal' && parts[1]) {
     const days = [7, 28, 90, 365].includes(+params.get('d')) ? +params.get('d') : 28;
     url = `/api/senal/${encodeURIComponent(parts[1])}?days=${days}`;
     fn = renderSenal;
-  } else if (tab === 'progreso') { url = '/api/progreso'; fn = renderProgreso; }
+  } else if (parts[0] === 'entreno' && parts[1]) {
+    url = `/api/entreno/${encodeURIComponent(parts[1])}`; fn = renderEntreno;
+  } else if (tab === 'entrenos') {
+    const category = params.get('tipo') === 'otros' ? 'other' : 'running';
+    url = `/api/entrenos?category=${category}`; fn = renderEntrenos;
+  }
+  else if (tab === 'plan') {
+    const week = /^S(3[2-9]|40)$/.test(params.get('semana') || '') ?
+      params.get('semana') : null;
+    url = `/api/plan${week ? '?week='+encodeURIComponent(week) : ''}`;
+    fn = renderPlan;
+  }
+  else if (tab === 'progreso') { url = '/api/progreso'; fn = renderProgreso; }
+  else if (tab === 'fisiologia') {
+    const days = [28, 90, 365].includes(+params.get('d')) ? +params.get('d') : 90;
+    url = `/api/fisiologia?days=${days}`; fn = renderFisiologia;
+  }
+  else if (tab === 'laboratorio') { url = '/api/lab/events'; fn = renderAresLab; }
   else if (tab === 'lab') { url = '/api/lab'; fn = renderLab; }
   else { url = '/api/home'; fn = renderInicio; }
   const btn = document.querySelector('[data-sync]');
@@ -462,14 +1375,38 @@ async function route(refresh = false) {
     const r = await fetch(url, {cache: 'no-store'});
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const data = await r.json();
+    // Si se navega muy rápido, una respuesta antigua no debe pintar otra vista.
+    if (seq !== routeSeq) return;
     const y = window.scrollY;
     fn(data);
     view.classList.remove('view-in'); void view.offsetWidth; view.classList.add('view-in');
+    // Las rutas SPA desplazan el foco al área principal. Un refresco silencioso
+    // (p.ej. guardar café) no roba el foco al usuario.
+    if (!refresh && lastPath !== location.hash) view.focus({preventScroll:true});
     window.scrollTo(0, refresh || lastPath === location.hash ? y : 0);
   } catch (err) {
-    view.innerHTML = `<div class="errbox" style="margin-top:24px"><b>Sin conexión con ARES.</b><br>No se han podido cargar los datos (${esc(err.message)}). Comprueba que <span class="mono">ares app</span> sigue en marcha.</div>`;
+    if (seq !== routeSeq) return;
+    view.innerHTML = `<div class="errbox" style="margin-top:24px" role="alert">
+      <b>No se han podido cargar estos datos.</b>
+      <p>El servidor ARES puede estar detenido o temporalmente ocupado.
+        ${esc(err.message)}</p>
+      <button type="button" class="lab-primary" data-route-retry>Reintentar carga</button>
+      <a href="#/inicio" class="lab-link">Volver a Inicio ↗</a>
+    </div>`;
   }
   lastPath = location.hash;
 }
+document.addEventListener('change', (e) => {
+  const selector = e.target.closest('[data-week]');
+  if (selector) location.hash = `#/plan?semana=${encodeURIComponent(selector.value)}`;
+});
 window.addEventListener('hashchange', () => route());
+// La sincronización real pertenece al planificador de ares serve.
+// Refrescar la vista local cada 5 minutos solo si está visible y el
+// servidor declaró explícitamente que sincroniza en segundo plano.
+window.setInterval(() => {
+  if (ROUTE_STATE.syncMode === 'automatic' && document.visibilityState === 'visible') {
+    route(true);
+  }
+}, 5 * 60 * 1000);
 route();

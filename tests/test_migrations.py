@@ -13,7 +13,7 @@ import pytest
 from ares import db
 from ares.config import REPO_ROOT
 
-EXPECTED = {1: "raw", 2: "core", 3: "decisions", 4: "provider_whoop"}
+EXPECTED = {1: "raw", 2: "core", 3: "decisions", 4: "provider_whoop", 5: "lab_events"}
 
 
 def test_schema_version_registra_las_migraciones_con_hash(conn, settings):
@@ -24,12 +24,12 @@ def test_schema_version_registra_las_migraciones_con_hash(conn, settings):
     for v, _, sha in rows:
         path = next(settings.migrations_dir.glob(f"{v:03d}_*.sql"))
         assert sha == hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
-    assert db.current_version(conn) == 4
+    assert db.current_version(conn) == 5
 
 
 def test_migrar_dos_veces_no_hace_nada(conn, settings):
     assert db.migrate(conn, settings.migrations_dir) == []
-    assert conn.execute("SELECT count(*) FROM schema_version").fetchone()[0] == 4
+    assert conn.execute("SELECT count(*) FROM schema_version").fetchone()[0] == 5
 
 
 def test_migracion_editada_tras_aplicarse_se_detecta(settings, tmp_path: Path):
@@ -142,7 +142,7 @@ def test_una_base_nueva_guarda_la_huella_canonica_sea_cual_sea_el_salto_de_linea
     c.close()
 
 
-@pytest.mark.parametrize("schema_version", [3, 4])
+@pytest.mark.parametrize("schema_version", [3, 4, 5])
 def test_lectura_de_version_y_verificacion_sin_ddl_en_conexion_read_only(
     tmp_path: Path, schema_version: int
 ):
@@ -168,7 +168,7 @@ def test_lectura_de_version_y_verificacion_sin_ddl_en_conexion_read_only(
     try:
         assert db.current_version(reader) == schema_version
         pending = db.verify(reader, db.discover(REPO_ROOT / "migrations"))
-        assert [m.version for m in pending] == list(range(schema_version + 1, 5))
+        assert [m.version for m in pending] == list(range(schema_version + 1, 6))
     finally:
         reader.close()
 
@@ -324,7 +324,7 @@ def snapshot(conn: duckdb.DuckDBPyConnection) -> dict[str, tuple[int, str]]:
 def test_la_004_deja_la_capa_bruta_y_las_decisiones_identicas(legacy_db):
     before = snapshot(legacy_db)
     assert before["raw_payload"][0] == 8 and before["decisions"][0] == 1
-    assert db.migrate(legacy_db, REPO_ROOT / "migrations") == [4]
+    assert db.migrate(legacy_db, REPO_ROOT / "migrations") == [4, 5]
     after = db.fingerprint(legacy_db, list(before))
     assert after == before
 
