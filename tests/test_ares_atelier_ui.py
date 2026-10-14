@@ -24,9 +24,9 @@ def test_shell_delivers_premium_lab_scripts_and_feedback(client):
     assert 'id="tabs"' in html
     assert 'id="ares-toast"' in html
     assert 'aria-live="polite"' in html
-    assert '/static/lab_ui.js?v=physiology-atelier-20261014' in html
-    assert '/static/app.js?v=physiology-atelier-20261014' in html
-    assert '/static/app.css?v=physiology-atelier-20261014' in html
+    assert '/static/lab_ui.js?v=scientific-atelier-20261014' in html
+    assert '/static/app.js?v=scientific-atelier-20261014' in html
+    assert '/static/app.css?v=scientific-atelier-20261014' in html
 
 
 def test_one_tap_home_and_diary_tabs_are_present(client):
@@ -106,3 +106,17 @@ def test_fisiologia_prioriza_dos_senales_y_separa_modelo_whoop(client):
     assert "Noches válidas / procesadas" in js
     assert "Calidad utilizable*" in js
     assert "Cambios estadísticos" not in js  # no atribuir un diagnóstico inexistente
+
+
+def test_fisiologia_scientific_atelier_typographic_design(client):
+    js = client.get("/static/app.js").text
+    css = client.get("/static/app.css").text
+    assert "function physNumber(value, unit)" in js
+    assert 'class="phys-data"' in js
+    assert "phys-record-count" in js and "phys-feature-grid" in js
+    assert "font-variation-settings:'wdth' 74" in css
+    assert "font-family:'Iowan Old Style'" in css
+    assert ".phys-secondary{border:0" in css
+    assert ".phys-overview{padding:" in css
+    assert "ARES Fisiología / Scientific Atelier" in css
+    assert "Fisiología · estudio longitudinal" not in css
