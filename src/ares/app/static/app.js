@@ -779,9 +779,11 @@ function renderEntreno(d) {
       <p class="muted">${esc(d.attribution)}
         ${d.pace_calculated ? ' · Ritmo calculado desde tiempo y distancia' : ''}
       </p>
-      <a href="https://www.tredict.com/app/training/activity/${encodeURIComponent(d.id)}"
-        target="_blank" rel="noopener noreferrer" style="color:var(--sig);font-size:13px">
-        Abrir actividad original en Tredict ↗</a></section>` + renderTrainingIntelligence(d.analysis) + renderTrainingContext(d.night_context) +
+      ${d.source === 'whoop'
+        ? '<span class="eyebrow" style="color:#A6BDA3">Datos de entrenamiento · WHOOP</span>'
+        : `<a href="https://www.tredict.com/app/training/activity/${encodeURIComponent(d.id)}"
+            target="_blank" rel="noopener noreferrer" style="color:var(--sig);font-size:13px">
+            Abrir actividad original en Tredict ↗</a>`}</section>` + renderTrainingIntelligence(d.analysis) + renderTrainingContext(d.night_context) +
     renderHrZones(d.hr_zones) + sensors +
     `<section class="card"><h3>Vueltas y segmentos</h3>
       ${laps ? '<div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Dist.</th><th>Ritmo</th><th>FC</th><th>W</th></tr></thead><tbody>'+
