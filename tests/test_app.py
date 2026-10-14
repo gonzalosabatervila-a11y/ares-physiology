@@ -194,7 +194,7 @@ def test_rutas_http(client, conn):
     assert home.status_code == 200 and home.json()["estado"]["mode"] == "sombra"
     assert client.get("/api/progreso").json()["ctl"]
     lab = client.get("/api/lab").json()
-    assert lab["gate"]["level"] == "sin evaluar" and lab["versions"]["schema"] == 4
+    assert lab["gate"]["level"] == "sin evaluar" and lab["versions"]["schema"] == 5
     page = client.get("/")
     assert page.status_code == 200 and "ARES" in page.text
     assert page.headers["cache-control"] == "no-store"
