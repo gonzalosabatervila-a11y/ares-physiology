@@ -17,7 +17,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from ..config import Settings
-from . import data, physiology, training_catalog
+from . import data, physiology, training_catalog, planning
 
 STATIC = Path(__file__).parent / "static"
 mimetypes.add_type("application/manifest+json", ".webmanifest")  # según el sistema no viene
@@ -42,7 +42,29 @@ def create_app(
             device=settings.intervals_wellness_device,
             device_id=settings.device_id,
         )
-        return {**result, "sync_mode": "automatic" if auto_sync else "read_only"}
+        weekly = planning.plan(tz=settings.tz, weight_kg=settings.nutrition_weight_kg)
+        return {
+            **result,
+            "sync_mode": "automatic" if auto_sync else "read_only",
+            "plan_preview": {
+                "available": weekly["available"],
+                "week": weekly.get("week"),
+                "start": weekly.get("start"),
+                "end": weekly.get("end"),
+                "today": weekly.get("today"),
+                "today_session": next(
+                    (s for s in weekly.get("days", []) if s["date"] == weekly["today"]), None
+                ),
+                "source_version": weekly.get("source_version"),
+            },
+        }
+
+    @app.get("/api/plan")
+    def api_plan(week: str | None = None) -> dict:
+        if week is not None and week not in {f"S{i}" for i in range(32, 41)}:
+            raise HTTPException(status_code=422, detail="Semana fuera del plan disponible")
+        return planning.plan(week=week, tz=settings.tz,
+                             weight_kg=settings.nutrition_weight_kg)
 
     @app.get("/api/progreso")
     def api_progreso() -> dict:
