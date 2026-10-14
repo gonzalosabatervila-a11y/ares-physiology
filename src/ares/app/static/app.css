@@ -304,3 +304,25 @@ td{padding:9px 6px 9px 0;border-top:1px solid var(--line);vertical-align:top}
 .plan-extra{margin-top:11px;color:var(--mut);font-size:12px;border-top:1px dashed var(--line2);padding-top:10px}
 .plan-extra summary{cursor:pointer;color:var(--sig);font-weight:600;list-style:auto}
 .plan-extra p{font-size:12px;line-height:1.55;margin:9px 0}
+
+/* Marathon Lab · Prescrito / registrado / fisiología WHOOP */
+.plan-actions{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:2px 0 14px}
+.plan-actions a{font-size:12px;color:var(--sig);font-weight:650}
+.plan-exec-summary{border:1px solid rgba(166,189,163,.25)}
+.plan-exec-summary h3{font-size:19px;margin:10px 0}
+.plan-exec-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:15px 0}
+.plan-exec-stats div{min-width:0;background:rgba(0,0,0,.16);padding:12px 7px;border-radius:12px;border:1px solid var(--line2);text-align:center}
+.plan-exec-stats b{display:block;font-size:22px;font-variant-numeric:tabular-nums}
+.plan-exec-stats small{display:block;color:var(--mut);font-size:10px;line-height:1.4;margin-top:4px}
+.plan-execution{border-top:1px solid var(--line2);margin-top:14px;padding-top:14px}
+.plan-exec-head{display:flex;justify-content:space-between;gap:9px;align-items:flex-start}
+.plan-exec-status{color:#A6BDA3;font-size:11px;font-weight:650;text-align:right}
+.plan-exec-data{font-size:14px;color:var(--txt);font-weight:700;margin:8px 0 0;font-variant-numeric:tabular-nums}
+.plan-execution p{color:var(--mut);font-size:11.5px;line-height:1.55;margin:7px 0}
+.plan-run-item{display:flex;justify-content:space-between;gap:10px;font-size:12px;border:1px solid rgba(166,189,163,.24);background:rgba(166,189,163,.06);border-radius:9px;padding:9px 10px;margin-top:8px;color:var(--txt)}
+.plan-run-item span:last-child{white-space:nowrap;color:var(--sig)}
+.plan-night{margin-top:9px;padding:10px 0;border-top:1px dotted var(--line2);font-size:12px}
+.plan-night summary{cursor:pointer;color:var(--sig);font-weight:650}
+.plan-night-grid{display:grid;grid-template-columns:minmax(0,1.45fr) 1fr 1fr;gap:8px 5px;align-items:baseline;margin-top:14px;font-size:11.5px}
+.plan-night-grid span{color:var(--mut)}
+.plan-night-grid b{color:var(--txt);font-variant-numeric:tabular-nums;font-weight:650}
