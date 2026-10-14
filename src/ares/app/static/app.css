@@ -523,3 +523,28 @@ main{gap:18px}
   html{scroll-behavior:auto}
   .ares-toast{animation:none}
 }
+
+/* Desktop workstation: permanent slim navigation rail, no mobile obstruction */
+@media (min-width:1180px){
+  #app{max-width:760px}
+  #tabs{
+    left:calc(50% - 560px);
+    top:120px;
+    bottom:auto;
+    transform:none;
+    width:146px;
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+    padding:9px;
+    border-radius:22px;
+    box-shadow:0 15px 38px -18px rgba(0,0,0,.65);
+  }
+  #tabs a{
+    display:flex;flex-direction:row;justify-content:flex-start;
+    padding:10px 13px;gap:12px;text-align:left;
+    min-height:49px;border-radius:13px;font-size:12.5px;
+  }
+  #tabs a svg{width:20px;height:20px;flex:none}
+  .ares-toast{bottom:26px}
+}
