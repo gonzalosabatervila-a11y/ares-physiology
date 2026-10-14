@@ -411,7 +411,8 @@ def test_manifiesto_e_iconos_para_la_pantalla_de_inicio(client):
     r = client.get("/static/manifest.webmanifest")
     assert r.status_code == 200 and "manifest+json" in r.headers["content-type"]
     m = json.loads(r.text)
-    assert m["display"] == "standalone" and m["start_url"] == "/" and m["name"] == "ARES"
+    assert m["display"] == "standalone" and m["start_url"] == "/#/laboratorio" and m["name"] == "ARES"
+    assert m["scope"] == "/"  # el icono del iPhone abre LAB; el resto de vistas sigue disponible
     for icon in m["icons"]:
         png = client.get(icon["src"])
         assert png.status_code == 200
