@@ -1069,7 +1069,7 @@ function renderEntreno(d) {
 }
 
 // ------------------------------------------------------------------- router
-const TABS = [['inicio', 'Inicio', 'home'], ['entrenos', 'Entrenos', 'run'], ['plan', 'Plan', 'calendar'], ['fisiologia', 'Fisiología', 'pulse'], ['progreso', 'Progreso', 'chart']];
+const TABS = [['inicio', 'Inicio', 'home'], ['entrenos', 'Entrenos', 'run'], ['plan', 'Plan', 'calendar'], ['laboratorio', 'LAB', 'flask'], ['fisiologia', 'Fisiología', 'pulse']];
 function setTabs(active) {
   tabsEl.innerHTML = TABS.map(([k, l, i]) => `<a href="#/${k}"${k === active ? ' aria-current="page"' : ''}>${svg(i)}<span>${l}</span></a>`).join('');
 }
@@ -1091,7 +1091,7 @@ let lastPath = null;
 async function route(refresh = false) {
   const {path, params} = currentHash();
   const parts = path.split('/');
-  const tab = parts[0] === 'senal' ? 'inicio' : parts[0] === 'entreno' ? 'entrenos' : (['inicio', 'entrenos', 'progreso', 'fisiologia', 'plan', 'lab'].includes(parts[0]) ? parts[0] : 'inicio');
+  const tab = parts[0] === 'senal' ? 'inicio' : parts[0] === 'entreno' ? 'entrenos' : (['inicio', 'entrenos', 'progreso', 'fisiologia', 'plan', 'lab', 'laboratorio'].includes(parts[0]) ? parts[0] : 'inicio');
   setTabs(tab);
   let url, fn;
   if (parts[0] === 'senal' && parts[1]) {
@@ -1115,6 +1115,7 @@ async function route(refresh = false) {
     const days = [28, 90, 365].includes(+params.get('d')) ? +params.get('d') : 90;
     url = `/api/fisiologia?days=${days}`; fn = renderFisiologia;
   }
+  else if (tab === 'laboratorio') { url = '/api/lab/events'; fn = renderAresLab; }
   else if (tab === 'lab') { url = '/api/lab'; fn = renderLab; }
   else { url = '/api/home'; fn = renderInicio; }
   const btn = document.querySelector('[data-sync]');
