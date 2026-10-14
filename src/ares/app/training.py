@@ -59,6 +59,7 @@ def _summary(rec: dict[str, Any]) -> dict[str, Any]:
         "id": str(rec.get("_id") or rec.get("id")),
         "date": str(rec.get("date", ""))[:10],
         "sport": str(rec.get("sportType") or "—"),
+        "sub_sport": str(rec.get("subSportType") or ""),
         "title": str(rec.get("title") or rec.get("sportType") or "Entrenamiento")[:160],
         "distance_m": d,
         "duration_s": duration,
@@ -87,9 +88,15 @@ def _downsample(values: Any, sample_s: Any, max_points: int = 250) -> list[dict[
     sample = num(sample_s)
     if sample is None or not (0 < sample <= 300):
         return []
-    step = max(1, math.ceil(len(values) / max_points))
+    # Muestreo uniforme para visualización, preservando SIEMPRE el primer
+    # y último punto. El motor de análisis trabaja con la serie completa.
+    count = min(max_points, len(values))
+    if count < 2:
+        indexes = [0] if values else []
+    else:
+        indexes = [round(j * (len(values) - 1) / (count - 1)) for j in range(count)]
     return [{"second": round(i * sample), "v": num(values[i])}
-            for i in range(0, len(values), step)]
+            for i in indexes]
 
 
 def session(conn: duckdb.DuckDBPyConnection, activity_id: str) -> dict[str, Any] | None:
