@@ -41,7 +41,7 @@ def start_app(
     la sincronización es más importante que la app y no debe caer por esto."""
     host, _, port = settings.app_bind.rpartition(":")
     config = uvicorn.Config(
-        create_app(lambda: conn, settings), host=host, port=int(port), log_level="warning"
+        create_app(lambda: conn, settings, auto_sync=True), host=host, port=int(port), log_level="warning"
     )
     server = uvicorn.Server(config)
 
