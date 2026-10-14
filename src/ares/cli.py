@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import getpass
+import json
 import sys
 
 from . import __version__, db, doctor, log, runner, serve
@@ -220,6 +221,51 @@ def cmd_whoop_auth(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_plan_check(args: argparse.Namespace) -> int:
+    """Compara un XLSX maestro DESCARGADO, y solo escribe si se indicó --apply.
+
+    El origen Google Drive no se consulta desde este CLI: comprobar que el
+    archivo descargado es el maestro vigente y no una copia dentro de Old.
+    """
+    from pathlib import Path
+
+    from .app import planning, plan_workbook
+
+    s = load_settings()
+    local = s.data_dir / "training_plan.json"
+    try:
+        existing = planning._snapshot(local)
+        candidate = plan_workbook.import_workbook(Path(args.xlsx), reference=existing)
+        changes = plan_workbook.changes(existing, candidate)
+    except (ValueError, OSError, json.JSONDecodeError) as exc:
+        print(f"No se ha modificado el plan: {exc}")
+        return 1
+
+    print("ARES · Control de versiones del plan de maratón")
+    print(f"Fichero leído: {args.xlsx}")
+    print(f"SHA256 de descarga: {candidate['source_sha256']}")
+    print(f"Sesiones modificadas: {len(changes)} / 63")
+    for changed in changes[:25]:
+        print(
+            f"  {changed['date']} · {', '.join(changed['fields'])} "
+            f"· {changed['old_title'][:45]} -> {changed['new_title'][:45]}"
+        )
+    if len(changes) > 25:
+        print(f"  ... y {len(changes)-25} fechas adicionales")
+    print("El CLI no puede verificar que el fichero local sea la última versión de Drive.")
+    if not args.apply:
+        print("Revisión SIN ESCRITURA. Para aplicar: repetir con --apply.")
+        return 0
+    if not changes:
+        print("Sin cambios de sesiones: no se reemplaza el plan.")
+        return 0
+    backup = plan_workbook.save_local(local, candidate)
+    print(f"Plan actualizado atómicamente: {local}")
+    print(f"Versión previa: {backup or 'snapshot original incluido en Git'}")
+    print("El servidor leerá la nueva versión sin modificar los documentos de Drive.")
+    return 0
+
+
 def cmd_app(args: argparse.Namespace) -> int:
     import uvicorn  # solo hace falta aquí
 
@@ -308,6 +354,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="vuelve a pedir Client ID y Client Secret aunque ya estén guardados",
     )
     pw.set_defaults(func=cmd_whoop_auth)
+
+    pp = sub.add_parser(
+        "plan-check",
+        help="revisa diferencias de un Excel maestro descargado de Drive; no escribe sin --apply",
+    )
+    pp.add_argument("xlsx", help="ruta local al fichero .xlsx descargado")
+    pp.add_argument("--apply", action="store_true",
+                    help="tras revisar, reemplaza solo el plan local con copia de seguridad")
+    pp.set_defaults(func=cmd_plan_check)
 
     pa = sub.add_parser(
         "app", help="app local (Inicio, Progreso, Lab) sobre tus datos reales; solo lectura"
