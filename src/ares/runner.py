@@ -28,6 +28,7 @@ from .metrics import nightly
 SyncOutcome = IntervalsResult | TredictResult | whoop.SyncResult
 
 INCREMENTAL_DAYS = 3
+INTERVALS_503_COOLDOWN = timedelta(minutes=30)  # no insistir en el siguiente tick si el proveedor está temporalmente indisponible
 SOURCE_SECRETS = {"intervals": "intervals_api_key", "tredict": "tredict_token"}
 SOURCE_ENDPOINT = {
     "intervals": "wellness",
@@ -217,6 +218,30 @@ def _sync_whoop(
     return res, nights
 
 
+def intervals_503_cooldown(
+    conn: duckdb.DuckDBPyConnection, *, now: datetime | None = None
+) -> timedelta | None:
+    """Espera 30 min tras un 503 reciente de wellness sin afectar a otras fuentes.
+
+    Consulta errores persistidos y solo aplaza el planificador: `ares sync intervals`
+    manual conserva la posibilidad de reintento inmediato. Un éxito posterior
+    limpia el bloqueo por comparación de marcas de tiempo.
+    """
+    row = conn.execute(
+        """SELECT last_ok, last_error, error FROM source_status
+           WHERE source='intervals' AND endpoint='wellness' AND device_id='global'"""
+    ).fetchone()
+    if not row:
+        return None
+    last_ok, last_error, error = row
+    if last_error is None or not isinstance(error, str) or "HTTP 503" not in error:
+        return None
+    if last_ok is not None and last_ok >= last_error:
+        return None
+    remaining = INTERVALS_503_COOLDOWN - ((now or datetime.now(UTC)) - last_error)
+    return remaining if timedelta(0) < remaining <= INTERVALS_503_COOLDOWN else None
+
+
 def run_all(
     conn: duckdb.DuckDBPyConnection,
     settings: Settings,
@@ -230,6 +255,16 @@ def run_all(
     whoop_endpoints = DAY_WHOOP_ENDPOINTS if job == "day" else whoop.ALL_ENDPOINTS
     for source in SOURCES:
         try:
+            if source == "intervals":
+                remaining = intervals_503_cooldown(conn)
+                if remaining is not None:
+                    minutes = max(1, int((remaining.total_seconds() + 59) // 60))
+                    logger.warning(
+                        "sync_deferred", source="intervals", endpoint="wellness",
+                        reason="HTTP 503 temporal", retry_in_minutes=minutes,
+                    )
+                    out.append(SyncSkipped(f"Intervals.icu HTTP 503: reintento en ~{minutes} min"))
+                    continue
             out.append(
                 run_source_sync(
                     conn, source, settings, logger=logger, whoop_endpoints=whoop_endpoints
