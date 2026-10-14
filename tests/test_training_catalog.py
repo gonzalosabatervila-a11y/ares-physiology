@@ -69,6 +69,16 @@ def test_other_activity_duplicate_15_min_priority_whoop(conn, settings):
     assert o["sessions"][0]["source"] == "whoop"
 
 
+def test_same_time_different_sports_not_deduplicated(conn, settings):
+    whoop(conn, settings.device_id, ident="whoop-walking",
+          when="2026-10-13T05:30:00Z", sport="walking")
+    tredict(conn, ident="coros-strength", when="2026-10-13T05:32:00Z",
+            sport="misc", summary={"duration": 3600})
+    r = training_catalog.catalog(conn, settings.device_id, category="other")
+    assert r["counts"]["other"] == 2
+    assert {x["source"] for x in r["sessions"]} == {"whoop", "tredict"}
+
+
 def test_whoop_device_id_isolation_and_detail_without_series(conn, settings):
     whoop(conn, "other-wearer", ident="another-walk",
           when="2026-10-13T05:00:00Z")
