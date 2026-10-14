@@ -27,21 +27,38 @@ ORDER = tuple(BANDS)
 FUELING_SOURCE = "Fueling ARES — Sistema Maestro de Nutrición v1.0 (19/09/2026)"
 
 
-def _snapshot(source_file: Path | None = None) -> dict[str, Any]:
-    file = source_file if source_file is not None and source_file.is_file() else FILE
-    with file.open(encoding="utf-8") as f:
-        obj = json.load(f)
+def validate_snapshot(obj: dict[str, Any]) -> None:
     if obj.get("format") != "ares-marathon-plan-v1":
         raise ValueError("Snapshot ARES desconocido")
     weeks = obj.get("weeks")
-    if not isinstance(weeks, list) or not weeks:
-        raise ValueError("Plan sin semanas")
+    if not isinstance(weeks, list) or len(weeks) != 9:
+        raise ValueError("El plan aprobado requiere las nueve semanas S32–S40")
+    expected = [f"S{i}" for i in range(32, 41)]
+    if [w.get("id") for w in weeks] != expected:
+        raise ValueError("Semanas inesperadas o desordenadas en el plan")
     for week in weeks:
         rows = week.get("sessions", [])
         if len(rows) != 7 or len({r["date"] for r in rows}) != 7:
             raise ValueError("Semana incompleta o fechas duplicadas")
-    return obj
+        if [r["date"] for r in rows] != sorted(r["date"] for r in rows):
+            raise ValueError("Las sesiones deben estar ordenadas por fecha")
+        if rows[0]["date"] != week["start"] or rows[-1]["date"] != week["end"]:
+            raise ValueError("Fechas de semana incongruentes")
+        for row in rows:
+            if row["type"] not in {"Z2", "CALIDAD", "MLR", "LARGO", "DESCANSO", "TEST"}:
+                raise ValueError("Tipo de sesión no admitido")
+            if not isinstance(row["duration_min"], int) or not 0 <= row["duration_min"] <= 400:
+                raise ValueError("Duración no válida en el plan")
+        if sum(row["duration_min"] for row in rows) != week["run_minutes"]:
+            raise ValueError("Total semanal inconsistente")
 
+
+def _snapshot(source_file: Path | None = None) -> dict[str, Any]:
+    file = source_file if source_file is not None and source_file.is_file() else FILE
+    with file.open(encoding="utf-8") as f:
+        obj = json.load(f)
+    validate_snapshot(obj)
+    return obj
 
 def _kind(s: dict[str, Any]) -> str:
     if s["type"] == "DESCANSO":
