@@ -122,10 +122,10 @@ def test_validacion_estricta_no_guarda_entradas_invalidas(conn,settings,bad):
 
 
 def test_cambio_de_dia_y_dst_conserva_offset_real(conn,settings):
-    local=datetime(2026,10,25,2,30,tzinfo=ZoneInfo("Europe/Madrid"),fold=1)
+    local=datetime(2025,10,26,2,30,tzinfo=ZoneInfo("Europe/Madrid"),fold=1)
     data=lab_events.create(conn,settings.device_id,settings.tz,
         lab_events.NewEvent(**event("dinner_end",at=local)))
-    assert data["local_date"]=="2026-10-25"
+    assert data["local_date"]=="2025-10-26"
     assert data["local_time"]=="02:30"
     assert datetime.fromisoformat(data["occurred_at"]).utcoffset()==timedelta(0)
 
