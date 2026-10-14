@@ -555,3 +555,108 @@ main{gap:18px}
 .home-capture-icon svg{width:27px;height:27px;stroke-width:1.65}
 .lab-action>span svg{width:31px;height:31px;stroke-width:1.65}
 .lab-entry-icon svg{width:19px;height:19px}
+
+
+/* ─── Fisiología · estudio longitudinal, no otra pantalla de puntuaciones ─── */
+.phys-header{padding:15px 2px 1px}
+.phys-header h1{font-size:clamp(31px,7vw,44px);line-height:1.08;letter-spacing:-.055em;
+  margin:13px 0 11px;font-weight:770;text-wrap:balance}
+.phys-header p{font-size:13.5px;line-height:1.65;color:var(--mut);margin:0;max-width:54ch}
+.phys-overview{padding:19px 17px;border-color:var(--sig-line);
+  background:linear-gradient(125deg,rgba(217,183,130,.075),transparent 70%),var(--s1)}
+.phys-overview-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.phys-overview-heading h2{font-size:20px;font-weight:720;line-height:1.2;
+  margin:8px 0 0;letter-spacing:-.025em}
+.phys-origin{font-size:9px;letter-spacing:.07em;padding:7px 9px;border:1px solid var(--line2);
+  border-radius:7px;color:var(--sage);white-space:nowrap;font-family:'Martian Mono',monospace}
+.phys-overview-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:23px}
+.phys-overview-stats>div{min-width:0}
+.phys-overview-stats strong{display:block;font-size:35px;line-height:1.2;letter-spacing:-.045em;
+  font-weight:780;font-variant-numeric:tabular-nums}
+.phys-overview-stats strong span{font-size:17px;font-weight:550;color:var(--mut)}
+.phys-overview-stats small{display:block;font-size:11px;line-height:1.45;color:var(--mut);margin-top:6px}
+.phys-quality-track{height:5px;border-radius:9px;background:rgba(255,255,255,.075);overflow:hidden;margin:17px 0 21px}
+.phys-quality-track span{display:block;background:var(--sage);height:100%;border-radius:9px;transition:width .3s var(--ease)}
+.phys-period{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;background:var(--s2)}
+.phys-period button{min-height:46px}
+.phys-period button[aria-pressed=true]{border-color:var(--sig-line);background:var(--s3);
+  box-shadow:inset 0 -2px 0 var(--sig);color:var(--txt)}
+.phys-quality-note{font-size:11px;line-height:1.55;color:var(--mut);margin:14px 0 0}
+.phys-section-heading{display:flex;align-items:flex-end;justify-content:space-between;
+  gap:12px;margin:12px 3px -2px}
+.phys-section-heading h2{font-size:22px;letter-spacing:-.035em;line-height:1.2;margin:7px 0 0;
+  font-weight:750}
+.phys-section-meta{font-size:10px;color:var(--mut);text-align:right;max-width:105px;line-height:1.4}
+.phys-feature-grid{display:grid;grid-template-columns:1fr;gap:13px}
+.phys-metric{min-width:0;background:linear-gradient(175deg,var(--s2),var(--s1));padding:18px 16px}
+.phys-metric-heading{display:flex;justify-content:space-between;align-items:center;gap:9px}
+.phys-metric-heading .eyebrow{font-size:10px;letter-spacing:.08em;line-height:1.4}
+.phys-metric-heading .tag{font-size:9px;letter-spacing:0;flex-shrink:0;color:var(--sage)}
+.phys-metric-heading .tag.exp{color:var(--mut)}
+.phys-current{margin:17px 0 12px;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px}
+.phys-current strong{font-size:clamp(30px,7vw,38px);line-height:1.1;font-weight:760;
+  letter-spacing:-.055em;font-variant-numeric:tabular-nums}
+.phys-current span{color:var(--mut);font-size:11px;line-height:1.45}
+.phys-chart-wrap{border:1px solid var(--line);background:rgba(0,0,0,.11);
+  border-radius:14px;padding:8px 9px 10px;overflow:hidden}
+.phys-chart{display:block;width:100%;height:auto;max-height:220px;
+  color:rgba(255,255,255,.085);touch-action:pan-y;outline-offset:4px;cursor:crosshair}
+.phys-chart:focus-visible{outline:2px solid var(--sig);border-radius:6px}
+.phys-path{stroke:var(--sig);stroke-width:2.2;stroke-linecap:round;
+  stroke-linejoin:round;fill:none;vector-effect:non-scaling-stroke}
+.phys-guide{stroke-width:1;stroke-dasharray:2 7}
+.phys-axis-label{fill:var(--mut);font-size:10px;letter-spacing:.025em}
+.phys-cursor-line{stroke:var(--sage);stroke-width:1;stroke-dasharray:3 4;opacity:.8}
+.phys-cursor-dot{fill:var(--sage);stroke:var(--s1);stroke-width:2.2}
+.phys-endpoint{fill:var(--sig);stroke:var(--s1);stroke-width:2}
+.phys-readout{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 12px;
+  padding:8px 3px 1px;font-size:11px;color:var(--mut)}
+.phys-readout b{color:var(--txt);font-size:16px;line-height:1.2;
+  font-variant-numeric:tabular-nums;font-weight:750}
+.phys-readout small{font-size:10px;color:var(--mut2);flex-basis:100%}
+.phys-empty{color:var(--mut);font-size:12px;line-height:1.5;
+  border-radius:11px;background:var(--s1);padding:13px;margin:6px 0}
+.phys-comparison{margin-top:16px}
+.phys-stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.phys-stat-grid>div{min-width:0;padding:10px 9px;border-radius:10px;
+  border:1px solid var(--line);background:rgba(0,0,0,.12)}
+.phys-stat-grid span{display:block;font-size:10px;line-height:1.35;min-height:26px;color:var(--mut)}
+.phys-stat-grid b{display:block;font-size:15px;line-height:1.3;margin-top:7px;white-space:nowrap;
+  font-weight:710;font-variant-numeric:tabular-nums}
+.phys-difference{font-size:11px;line-height:1.65;margin:14px 1px 0;color:var(--mut)}
+.phys-difference strong{color:var(--txt);font-weight:720}
+.phys-difference span{display:block;font-size:10.5px;color:var(--mut2);margin-top:5px}
+.phys-secondary-list{display:grid;grid-template-columns:1fr;gap:10px}
+.phys-secondary{padding:14px 15px}
+.phys-secondary summary{cursor:pointer;display:flex;align-items:center;gap:12px;
+  justify-content:space-between;list-style:none}
+.phys-secondary summary::-webkit-details-marker{display:none}
+.phys-secondary-main{display:block;flex:1;min-width:0}
+.phys-secondary .phys-current{margin:9px 0 0}
+.phys-secondary .phys-current strong{font-size:25px;letter-spacing:-.035em}
+.phys-secondary .phys-current span{font-size:10px}
+.phys-chevron{width:19px;height:19px;flex-shrink:0;color:var(--sig);
+  transition:transform .18s var(--ease)}
+.phys-secondary[open] .phys-chevron,.phys-method[open] .phys-chevron{transform:rotate(90deg)}
+.phys-secondary-detail{border-top:1px solid var(--line2);padding-top:14px;margin-top:15px}
+.phys-method{padding:17px}
+.phys-method summary{display:flex;align-items:center;justify-content:space-between;gap:15px;
+  font-weight:670;font-size:13px;color:var(--txt);list-style:none;cursor:pointer;min-height:30px}
+.phys-method summary::-webkit-details-marker{display:none}
+.phys-method p{color:var(--mut);line-height:1.65;font-size:12px;margin:12px 0 0}
+@media(min-width:700px){
+  .phys-feature-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .phys-secondary-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .phys-current strong{font-size:32px}
+  .phys-featured .phys-stat-grid{grid-template-columns:1fr}
+  .phys-featured .phys-stat-grid>div{display:flex;align-items:center;justify-content:space-between}
+  .phys-featured .phys-stat-grid span{min-height:0}
+  .phys-featured .phys-stat-grid b{margin-top:0}
+}
+@media(max-width:370px){
+  .phys-origin{font-size:8px;padding:6px}
+  .phys-stat-grid{gap:5px}
+  .phys-stat-grid>div{padding:8px 6px}
+  .phys-stat-grid b{font-size:12px}
+  .phys-current strong{font-size:30px}
+}
