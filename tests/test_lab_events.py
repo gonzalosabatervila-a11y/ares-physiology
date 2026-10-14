@@ -212,3 +212,37 @@ def test_idempotency_no_encubre_cambios_de_evento_con_misma_clave(conn,settings)
     assert first["id"]==fake["id"]
     assert fake["already_saved"] is True
     assert fake["caffeine_mg"]==100
+
+
+def test_upgrade_v4_a_v5_conserva_capa_bruta_y_noches(tmp_path):
+    import shutil
+
+    old=tmp_path/"migrations-v4"
+    old.mkdir()
+    for version in range(1,5):
+        source=next((REPO_ROOT/"migrations").glob(f"{version:03d}_*.sql"))
+        shutil.copy2(source,old/source.name)
+    dbpath=tmp_path/"historico.duckdb"
+    c=db.connect(dbpath)
+    try:
+        assert db.migrate(c,old)==[1,2,3,4]
+        from ares.connectors.base import store_raw
+        store_raw(
+            c,source="whoop",endpoint="sleep",day=date(2026,10,12),
+            device_id="pulsera-principal",
+            body={"id":"SYNTHETIC001","score_state":"SCORED"},
+        )
+        c.execute(
+            """INSERT INTO daily_metrics
+            (local_sleep_date,device_id,sleep_min,rmssd_ms,rhr,
+             quality,score_state,calibrating,night_check)
+            VALUES ('2026-10-12','pulsera-principal',410,64,49,
+                    'high','SCORED',false,'ok')"""
+        )
+        old_hash=db.fingerprint(c,["raw_payload","daily_metrics"])
+        assert db.migrate(c,REPO_ROOT/"migrations")==[5]
+        assert db.current_version(c)==5
+        assert db.fingerprint(c,["raw_payload","daily_metrics"])==old_hash
+        assert c.execute("SELECT count(*) FROM lab_events").fetchone()[0]==0
+    finally:
+        c.close()
