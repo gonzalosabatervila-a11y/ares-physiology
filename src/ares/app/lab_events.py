@@ -301,11 +301,49 @@ def timeline(
     return sorted(items, key=lambda item: item["at"], reverse=True)[:180]
 
 
+def daily_overview(events: list[dict], tz: str) -> dict:
+    """Observación inmediata con eventos manuales; no atribuir causalidad."""
+    now = datetime.now(ZoneInfo(tz)).date().isoformat()
+    coffees = [e for e in events if e["event_type"]=="coffee"
+               and e["local_date"]==now]
+    dinners = [e for e in events if e["event_type"]=="dinner_end"]
+    bedtimes = [e for e in events if e["event_type"]=="bedtime"]
+    pairs=[]
+    for bed in bedtimes:
+        at = datetime.fromisoformat(bed["occurred_at"])
+        chosen = next((
+            dinner for dinner in dinners
+            if datetime.fromisoformat(dinner["occurred_at"]) <= at and
+            timedelta(0) <= at-datetime.fromisoformat(dinner["occurred_at"])
+            <= timedelta(hours=12)
+        ), None)
+        if chosen:
+            mins = round((at-datetime.fromisoformat(chosen["occurred_at"])).total_seconds()/60)
+            pairs.append({"dinner_at":chosen["occurred_at"],"bedtime_at":bed["occurred_at"],
+                          "gap_minutes":mins})
+    return {
+        "coffee_entries_today":len(coffees),
+        "caffeine_logged_mg_today":round(sum(float(e["caffeine_mg"]) for e in coffees)),
+        "last_coffee_at":coffees[0]["occurred_at"] if coffees else None,
+        "last_dinner_bedtime_gap_min":pairs[0]["gap_minutes"] if pairs else None,
+        "manual_pairs_30d":len(pairs),
+        "mean_dinner_bedtime_gap_min":round(sum(p["gap_minutes"] for p in pairs)/len(pairs))
+                                    if pairs else None,
+        "method":(
+            "Última cena registrada antes de cada evento «Me acuesto» "
+            "(máximo 12 horas). Registro manual, distinto del inicio de "
+            "sueño que WHOOP estima. Las dosis de cafeína son entradas "
+            "registradas y pueden ser estimadas o incompletas."
+        ),
+    }
+
+
 def overview(conn: duckdb.DuckDBPyConnection, device_id: str, tz: str) -> dict:
     events = history(conn, device_id, tz, days=30, limit=100)
     return {
         "events": events,
         "count_30d": len(events),
+        "daily": daily_overview(events, tz),
         "dinner_sleep": dinner_sleep_analysis(conn, device_id, tz),
         "timeline": timeline(conn, device_id, tz),
         "quick_presets": [
