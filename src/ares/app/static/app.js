@@ -587,11 +587,9 @@ function renderEntrenos(d) {
     </div><h3 style="margin:10px 0 6px">¿Mejora tu ritmo a pulso similar?</h3>
     <p class="muted" style="margin:0 0 12px">Parejas con distancia ±10 % y FC media ±5 lpm.
       Diferencias descriptivas, no causales.</p>${comparisons}</section>` : '';
-  const dates = d.last_record_dates || {};
-  const maxDate = (keys) => keys.map(k => dates[k]).filter(Boolean).sort().at(-1);
-  const lastTraining = category === 'running'
-    ? maxDate(['tredict/activity_detail', 'tredict/activity'])
-    : maxDate(['whoop/workout', 'tredict/activity_detail', 'tredict/activity']);
+  // La fecha corresponde solo a las sesiones de esta categoría, no al
+  // máximo global de una fuente que puede representar otro deporte.
+  const lastTraining = d.sessions.length ? d.sessions[0].date : null;
   const cards = d.sessions.map((a) => {
     const isWhoop = a.source === 'whoop';
     const distance = a.distance_m === null ? '—' :
