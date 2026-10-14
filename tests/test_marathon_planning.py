@@ -100,3 +100,26 @@ def test_api_plan_y_home_comparten_la_misma_fuente_y_sin_escritura(conn, setting
     assert home.status_code == 200
     assert "plan_preview" in home.json()
     assert conn.execute("SELECT count(*) FROM raw_payload").fetchone()[0] == 0
+
+
+def test_actividad_coros_en_el_dia_se_muestra_sin_marcar_sesion_completada(conn, settings):
+    from ares.connectors.base import store_raw
+
+    store_raw(
+        conn, source="tredict", endpoint="activity", day=date(2026, 10, 14),
+        body={
+            "id": "test-run-plan-001",
+            "date": "2026-10-14T05:30:00Z",
+            "sportType": "running",
+            "title": "Carrera libre",
+            "summary": {"duration": 4200, "distance": 12200, "heartrate": 149},
+        }
+    )
+    api = TestClient(create_app(lambda: conn, settings))
+    payload = api.get("/api/plan?week=S32").json()
+    run = payload["observed_runs"]["2026-10-14"]
+    assert run["source"] == "Tredict"
+    assert run["count"] == 1 and run["minutes"] == 70 and run["km"] == 12.2
+    assert run["verified_match"] is False
+    wed = _day(payload,"mie")
+    assert wed["duration_min"] == 60  # PRESCRITO, no se sobrescribe
