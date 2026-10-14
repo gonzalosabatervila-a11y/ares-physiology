@@ -42,6 +42,26 @@ fuentes, ausencia de datos, privacidad y coherencia de fechas. Esta rama
 es de desarrollo y **no** está fusionada con producción. Antes de
 entregarla, ejecutar pruebas Python y validación sintáctica JS en el Mac.
 
+## Inicio · línea base visible, no una presentación
+
+Cuando existen al menos 21 noches válidas anteriores a la última de WHOOP,
+Inicio muestra la **línea base personal real**, sin exigir decisiones del
+entrenador todavía no validado. La referencia es provisional con 21–59
+noches y establecida a partir de 60 noches aptas.
+
+El cálculo utiliza hasta las **60 últimas noches puntuadas y válidas previas
+a la noche actual**, con control del estado de calibración, calidad y
+`night_check`. Para cada señal (rMSSD, pulso en reposo, sueño y frecuencia
+respiratoria) calcula la mediana y percentiles 25 y 75; cada una exige 21
+observaciones no nulas. En la misma tarjeta se muestra el valor de la
+última noche y su diferencia absoluta frente a la mediana, pero ese valor
+**no forma parte de la mediana**.
+
+El rango central no constituye un rango clínico, zona segura ni semáforo de
+entrenamiento. ARES Coach aún no prescribe intensidades de forma autónoma.
+La portada sustituye el antiguo mensaje gigante «Línea base disponible»
+y el aviso de sincronización se reduce a una fila discreta.
+
 ## ARES Atelier · identidad visual, Entrenos y frescura (rama de desarrollo)
 
 - **Diseño:** grafito cálido, champán y salvia, eliminando el cian de UI,
