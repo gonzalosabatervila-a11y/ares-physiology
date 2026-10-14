@@ -70,7 +70,7 @@ def create_app(get_conn: Callable[[], duckdb.DuckDBPyConnection], settings: Sett
 
     @app.get("/api/entreno/{activity_id}")
     def api_entreno(activity_id: str) -> dict:
-        workout = training.session(cursor(), activity_id)
+        workout = training.session(cursor(), activity_id, device_id=settings.device_id)
         if workout is None:
             raise HTTPException(status_code=404, detail="Entrenamiento no encontrado")
         return workout
