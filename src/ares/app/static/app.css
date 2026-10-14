@@ -297,3 +297,10 @@ td{padding:9px 6px 9px 0;border-top:1px solid var(--line);vertical-align:top}
 .plan-fuel b{display:block;font-size:17px;margin-top:5px}
 .plan-nutr-type{font-size:10.5px;letter-spacing:.04em;color:#A6BDA3;font-weight:650}
 .plan-fuel-detail{font-size:12px;color:var(--mut);line-height:1.55;margin-top:7px}
+
+.plan-observed{background:rgba(166,189,163,.08);border:1px solid rgba(166,189,163,.27);border-radius:11px;padding:11px 12px;margin:12px 0 0}
+.plan-observed .eyebrow{color:#A6BDA3;letter-spacing:.055em}
+.plan-observed div{font-size:12px;margin-top:6px;color:var(--txt)}
+.plan-extra{margin-top:11px;color:var(--mut);font-size:12px;border-top:1px dashed var(--line2);padding-top:10px}
+.plan-extra summary{cursor:pointer;color:var(--sig);font-weight:600;list-style:auto}
+.plan-extra p{font-size:12px;line-height:1.55;margin:9px 0}
