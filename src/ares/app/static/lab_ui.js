@@ -101,6 +101,21 @@ function renderAresLab(d) {
       <p class="lab-footnote">El café predeterminado es una estimación de 100 mg.
       Puedes corregir cantidad y hora. No se envía ningún dato a servicios de IA.</p>
     </section>
+    <section class="card lab-now">
+      <span class="eyebrow">TU DÍA · REGISTROS MANUALES</span>
+      <div class="lab-now-stats">
+        <div><small>Cafeína registrada hoy</small>
+          <b>${esc(d.daily?.caffeine_logged_mg_today ?? 0)} <em>mg</em></b>
+          <span>${esc(d.daily?.coffee_entries_today ?? 0)} café(s) anotados</span></div>
+        <div><small>Última cena → acostarse</small>
+          <b>${d.daily?.last_dinner_bedtime_gap_min == null ? '—' :
+            `${Math.floor(d.daily.last_dinner_bedtime_gap_min/60)}:${String(d.daily.last_dinner_bedtime_gap_min%60).padStart(2,'0')} <em>h</em>`}</b>
+          <span>${esc(d.daily?.manual_pairs_30d ?? 0)} intervalos emparejados en 30 días</span></div>
+      </div>
+      <p class="lab-footnote">Son cantidades y horarios anotados, no necesariamente
+        toda la cafeína consumida. Cena→cama utiliza tu pulsación «Me acuesto»;
+        el siguiente análisis utiliza el inicio de sueño estimado por WHOOP.</p>
+    </section>
     <section class="card lab-insight">
       <div class="eyebrow">CENA → SUEÑO WHOOP · OBSERVACIÓN</div>
       <div class="lab-stat-line">
