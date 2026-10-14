@@ -35,7 +35,7 @@ SOURCE_ENDPOINT = {
     "whoop": "recovery",
 }
 SOURCES = ("intervals", "tredict", "whoop")  # WHOOP se autentica con OAuth, no con una clave
-DAY_WHOOP_ENDPOINTS = ("cycle",)  # de día solo cambian los pasos y el strain del ciclo
+DAY_WHOOP_ENDPOINTS = ("cycle", "workout")  # las caminatas y rucking también pueden terminar durante el día
 
 
 class SyncSkipped(RuntimeError):
@@ -224,7 +224,8 @@ def run_all(
     job: str = "manual",
 ) -> list[RunResult | SyncSkipped]:
     """Sincroniza todas las fuentes conocidas; una fuente fallida no bloquea las demás.
-    De día (`job="day"`) WHOOP solo pide el ciclo."""
+    De día (`job="day"`) WHOOP pide ciclo y entrenos terminados,
+    sin volver a descargar sueño/recuperación hasta la ventana matinal."""
     out: list[RunResult | SyncSkipped] = []
     whoop_endpoints = DAY_WHOOP_ENDPOINTS if job == "day" else whoop.ALL_ENDPOINTS
     for source in SOURCES:
