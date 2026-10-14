@@ -13,7 +13,7 @@ html,body{margin:0;background:var(--bg);color:var(--txt);
   font-family:'Archivo','Helvetica Neue',sans-serif;-webkit-text-size-adjust:100%;
   font-variant-numeric:tabular-nums}
 body{overflow-x:hidden;background:
-  radial-gradient(120% 60% at 50% -10%,rgba(213,178,122,.07),transparent 60%),var(--bg)}
+  radial-gradient(120% 60% at 50% -10%,rgba(217,183,130,.07),transparent 60%),var(--bg)}
 a{color:inherit;text-decoration:none}
 button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:inherit}
 :focus-visible{outline:2px solid var(--sig);outline-offset:2px;border-radius:8px}
@@ -63,7 +63,7 @@ main{padding:0 var(--sp4);display:flex;flex-direction:column;gap:var(--sp4)}
 
 /* hero */
 .hero{position:relative;overflow:hidden;padding:var(--sp5) var(--sp4);
-  background:radial-gradient(90% 120% at 100% 0%,rgba(213,178,122,.17),transparent 60%),
+  background:radial-gradient(90% 120% at 100% 0%,rgba(217,183,130,.17),transparent 60%),
   linear-gradient(180deg,var(--s2),var(--s1));border-color:var(--sig-line)}
 .hero .row{display:flex;justify-content:space-between;align-items:center;gap:8px;position:relative;z-index:1}
 .hero h2{margin:var(--sp3) 0 var(--sp2);font-size:28px;line-height:1.1;font-weight:700;position:relative;z-index:1;max-width:62%}
@@ -136,7 +136,7 @@ main{padding:0 var(--sp4);display:flex;flex-direction:column;gap:var(--sp4)}
 .kv{display:flex;flex-direction:column}
 .kv .r{display:flex;justify-content:space-between;gap:var(--sp4);padding:11px 0;border-top:1px solid var(--line);font-size:14px}
 .kv .r:first-child{border-top:0}.kv .r span:first-child{color:var(--mut)}.kv .r span:last-child{text-align:right}
-.callout{border-color:var(--sig-line);background:linear-gradient(180deg,rgba(213,178,122,.07),transparent),var(--s1)}
+.callout{border-color:var(--sig-line);background:linear-gradient(180deg,rgba(217,183,130,.07),transparent),var(--s1)}
 .callout.warn{border-color:rgba(240,163,58,.4);background:linear-gradient(180deg,rgba(240,163,58,.08),transparent),var(--s1)}
 .callout h3{margin:0 0 6px;font-size:16px;font-weight:700}
 .callout p{margin:0;font-size:14px;line-height:1.5;color:var(--mut)}
@@ -223,7 +223,7 @@ td{padding:9px 6px 9px 0;border-top:1px solid var(--line);vertical-align:top}
 .workout-intro h3{font-size:21px;margin:8px 0 10px;letter-spacing:-.02em}
 .sync-note{
   padding:13px 15px;border:1px solid var(--line2);border-radius:15px;
-  color:var(--mut);background:rgba(213,178,122,.035);
+  color:var(--mut);background:rgba(217,183,130,.035);
   font-size:12px;line-height:1.65
 }
 .sync-note b{color:var(--txt)}
@@ -236,7 +236,7 @@ td{padding:9px 6px 9px 0;border-top:1px solid var(--line);vertical-align:top}
 /* ARES Personal Baseline · reemplaza el estado vacío en Inicio */
 .baseline-profile{
   border-color:var(--sig-line);
-  background:radial-gradient(100% 65% at 95% -12%,rgba(213,178,122,.10),transparent 72%),
+  background:radial-gradient(100% 65% at 95% -12%,rgba(217,183,130,.10),transparent 72%),
     linear-gradient(180deg,var(--s2),var(--s1));
   padding:20px 17px 16px;
 }
@@ -277,7 +277,7 @@ td{padding:9px 6px 9px 0;border-top:1px solid var(--line);vertical-align:top}
 /* ARES Marathon Lab / Fueling ARES · semana prescrito vs realizado */
 .plan-preview{display:block;border-color:var(--sig-line);position:relative;overflow:hidden}
 .plan-preview:hover{background:var(--s3)}
-.plan-head{background:radial-gradient(110% 160% at 100% -15%,rgba(213,178,122,.12),transparent 55%),linear-gradient(180deg,var(--s2),var(--s1))}
+.plan-head{background:radial-gradient(110% 160% at 100% -15%,rgba(217,183,130,.12),transparent 55%),linear-gradient(180deg,var(--s2),var(--s1))}
 .plan-head h2{font-size:26px;letter-spacing:-.03em;line-height:1.16;margin:12px 0 16px}
 .plan-total{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:18px 0}
 .plan-total div{padding:10px 8px;border:1px solid var(--line2);border-radius:13px;background:rgba(0,0,0,.16)}
@@ -336,7 +336,7 @@ td{padding:9px 6px 9px 0;border-top:1px solid var(--line);vertical-align:top}
 .lab-head p{font-size:13px;color:var(--mut);line-height:1.6;margin:0;max-width:42ch}
 .lab-capture{border:1px solid var(--sig-line);border-radius:20px;
   padding:17px 14px 14px;background:
-  radial-gradient(110% 100% at 100% 0%,rgba(213,178,122,.13),transparent 70%),var(--s1)}
+  radial-gradient(110% 100% at 100% 0%,rgba(217,183,130,.13),transparent 70%),var(--s1)}
 .lab-section-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .lab-section-head h3{font-size:19px;margin:8px 0 0}
 .lab-live{font-size:10px;color:var(--mut2);white-space:nowrap}
@@ -345,7 +345,7 @@ td{padding:9px 6px 9px 0;border-top:1px solid var(--line);vertical-align:top}
   text-align:center;border:1px solid var(--line2);border-radius:15px;
   padding:12px 5px;min-height:122px;background:var(--s2);
   transition:transform .13s ease,border-color .13s ease,background .13s ease}
-.lab-action:first-child{background:linear-gradient(155deg,rgba(213,178,122,.15),var(--s2));
+.lab-action:first-child{background:linear-gradient(155deg,rgba(217,183,130,.15),var(--s2));
   border-color:var(--sig-line)}
 .lab-action span{font-size:29px;line-height:1.1;color:var(--sig)}
 .lab-action b{font-size:12.5px;font-weight:750;line-height:1.15}
