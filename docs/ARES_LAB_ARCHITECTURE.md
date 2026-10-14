@@ -23,7 +23,10 @@ La tabla `lab_events` es independiente de `raw_payload`. Cada evento
 contiene UUID, tipo, `occurred_at` con zona, zona de usuario, dosis de
 cafeína en mg (solo si aplica), base de estimación, nota corta, fuente
 manual, clave de idempotencia única y fechas de creación, última revisión
-y anulación lógica. La anulación excluye el registro de los análisis sin
+y anulación lógica. `lab_event_revisions` conserva inmutablemente
+las fotografías anterior y posterior (JSON) de cada creación/corrección/anulación.
+Las escrituras usan transacciones: un fallo de auditoría revierte el cambio.
+La anulación excluye el registro de los análisis sin
 reescribir ni borrar el histórico previo.
 
 Primera taxonomía intencionadamente mínima:
@@ -67,7 +70,7 @@ Para cada noche WHOOP con:
 cena manual dentro de las 12 horas anteriores al comienzo del sueño**.
 Las franjas son: menos de 2h, 2–3h, 3–4h, 4–12h.
 Se muestran `n` y medias de VFC (rMSSD), RHR y sueño efectivo,
-solo si la franja tiene al menos 5 noches; comparación mínima: >=20
+solo si la franja tiene al menos 5 noches Y cada indicador tiene 5 lecturas válidas; comparación mínima: >=20
 noches emparejadas y dos franjas con al menos 5 observaciones.
 Son promedios exploratorios sin ajuste por entreno, estrés, alcohol,
 horario, temperatura ni ciclo de carga. No aplicar inferencia causal ni
