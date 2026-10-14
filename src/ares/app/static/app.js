@@ -242,6 +242,55 @@ function baseline(e) {
 <div class="full"><div class="bar" role="progressbar" aria-valuenow="${Math.min(e.nights, e.target)}" aria-valuemin="0" aria-valuemax="${e.target}" aria-label="Noches válidas"><i style="width:${pct}%"></i></div>
 <div class="muted"><b style="color:var(--txt)">${e.nights} noches válidas</b> · objetivo inicial ${e.target}. ${ready ? 'Hay histórico suficiente para calcular referencias, pero las decisiones están pendientes de validación.' : 'Esperando más noches para construir la referencia.'}</div></div></section>`;
 }
+function personalBaseline(p) {
+  if (!p?.ready) return '';
+  const format = (x, unit, signed = false) => {
+    if (x === null || x === undefined || !Number.isFinite(Number(x))) return '—';
+    const n = Number(x);
+    if (unit === 'min' && !signed) {
+      const v = Math.round(n);
+      return `${Math.floor(v / 60)}:${String(v % 60).padStart(2, '0')} h`;
+    }
+    const digits = unit === 'rpm' ? 1 : 0;
+    const fixed = n.toLocaleString('es-ES',{maximumFractionDigits:digits});
+    return (signed && n > 0 ? '+' : '') + fixed + (unit === 'min' ? ' min' : ' ' + unit);
+  };
+  const cells = p.metrics.map((m) => {
+    const observed = m.latest !== null && m.latest !== undefined;
+    const typical = m.median !== null && m.median !== undefined;
+    const today = observed ? `Última noche: <strong>${esc(format(m.latest, m.unit))}</strong>` :
+      'Última noche: sin lectura válida';
+    const diff = m.delta === null || m.delta === undefined
+      ? '' : ` <span class="baseline-delta">(${esc(format(m.delta,m.unit,true))} vs referencia)</span>`;
+    return `<div class="baseline-cell">
+      <div class="eyebrow">${esc(m.label)}</div>
+      <div class="baseline-number">${esc(format(m.median,m.unit))}</div>
+      <div class="baseline-range">${typical
+        ? `Habitual: ${esc(format(m.p25,m.unit))} – ${esc(format(m.p75,m.unit))}`
+        : `Aún sin ${21-m.n} medidas suficientes`}</div>
+      <div class="baseline-today">${today}${diff}</div>
+      <div class="baseline-n">Referencia: ${m.n} noches</div>
+    </div>`;
+  }).join('');
+  return `<section class="card baseline-profile" aria-label="Tu línea base fisiológica real">
+    <div class="baseline-head">
+      <div><span class="eyebrow">ARES · FISIOLOGÍA PERSONAL</span>
+        <h2>Tu línea base</h2></div>
+      <span class="pill sig">${p.status === 'establecida' ? 'Establecida' : 'Provisional'}</span>
+    </div>
+    <p class="baseline-subtitle">Referencia estadística de ${p.nights} noches válidas
+      de WHOOP, anteriores al ${esc(shortDate(p.anchor_date))}.
+      No mezclamos aquí las mediciones de COROS.</p>
+    <div class="baseline-metrics">${cells}</div>
+    <div class="baseline-footer">
+      <p>Medianas y rango central (P25–P75) de las últimas 60 noches válidas.
+        La última noche se compara por separado.
+        No es un diagnóstico ni una indicación automática de entrenamiento.</p>
+      <a href="#/fisiologia">Explorar tu fisiología <span aria-hidden="true">↗</span></a>
+    </div>
+  </section>`;
+}
+
 function sigRow(s) {
   const [title, sub] = s.label.split(' · ');
   return `<a class="sig-row" href="#/senal/${s.key}?d=28"><div class="l1"><b>${esc(title)}</b><span>${esc(sub || '')}</span></div>
@@ -332,9 +381,15 @@ function renderInicio(d) {
   const steps = d.steps === null
     ? '<span class="muted">Sin pasos todavía.</span>'
     : `<div><div class="eyebrow">Pasos · ${esc(shortDate(d.steps_day || d.last_day))}</div><div class="big">${d.steps.toLocaleString('es-ES')}</div></div><span class="muted">${esc(d.steps_source || 'intervals.icu')}</span>`;
-  view.innerHTML = pageTop(d.sources) + chips(d.sources) + syncNotice(ROUTE_STATE.syncMode) + hero(d.estado) + nativeWhoop(d.whoop) + pairedMetrics(d.fusion) +
+  const hasPersonalBaseline = Boolean(d.personal_baseline?.ready);
+  const mainProfile = hasPersonalBaseline
+    ? personalBaseline(d.personal_baseline)
+    : hero(d.estado);
+  view.innerHTML = pageTop(d.sources) + chips(d.sources) + syncNotice(ROUTE_STATE.syncMode) +
+    mainProfile + nativeWhoop(d.whoop) + pairedMetrics(d.fusion) +
     `<div class="gauges" role="group" aria-label="Indicadores principales">${d.dials.map(gauge).join('')}</div>
-<button class="howto" data-howto>${svg('info')}Cómo leer estos indicadores</button>` + baseline(d.estado) +
+<button class="howto" data-howto>${svg('info')}Cómo leer estos indicadores</button>` +
+    (hasPersonalBaseline ? '' : baseline(d.estado)) +
     `<div class="h2"><span class="eyebrow">Señales principales</span></div>${d.signals.map(sigRow).join('')}
 <div class="h2"><span class="eyebrow">Actividad</span></div><section class="card tile">${steps}</section>`;
   animateGauges();
