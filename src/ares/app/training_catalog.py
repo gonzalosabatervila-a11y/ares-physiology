@@ -81,7 +81,8 @@ def _whoop_sessions(
             "date": _date(rec["start"], tz),
             "start_utc": start.isoformat(),
             "sport": sport or "other",
-            "title": WHOOP_NAMES.get(sport, (sport or "Actividad").replace("_", " ").capitalize()),
+            "title": ("Rucking" if "ruck" in sport else
+                      WHOOP_NAMES.get(sport, (sport or "Actividad").replace("_", " ").capitalize())),
             "distance_m": None, "duration_s": duration, "elapsed_s": duration,
             "pace_s_km": None, "pace_calculated": False,
             "avg_hr": training.num(score.get("average_heart_rate")),
@@ -136,6 +137,21 @@ def _tredict_sessions(
     return out
 
 
+def _activity_family(item: dict[str, Any]) -> str | None:
+    kind = f"{item.get('sport', '')} {item.get('sub_sport', '')}".lower()
+    if any(token in kind for token in ("strength", "weight", "functional", "gym")):
+        return "strength"
+    if any(token in kind for token in ("walk", "hike", "hiking", "ruck")):
+        return "walk"
+    if any(token in kind for token in ("cycle", "cycl", "bike")):
+        return "cycling"
+    if "swim" in kind:
+        return "swimming"
+    if "yoga" in kind:
+        return "yoga"
+    return None
+
+
 def catalog(
     conn: duckdb.DuckDBPyConnection,
     device_id: str,
@@ -156,8 +172,10 @@ def catalog(
     for item in all_tredict:
         if item["group"] == "other":
             date_a = _dt(item.get("start_utc"))
-            matches_whoop = any(
-                date_a is not None and (date_b := _dt(w.get("start_utc"))) is not None
+            item_family = _activity_family(item)
+            matches_whoop = item_family is not None and any(
+                _activity_family(w) == item_family
+                and date_a is not None and (date_b := _dt(w.get("start_utc"))) is not None
                 and abs((date_a - date_b).total_seconds()) <= 900
                 for w in whoop
             )
