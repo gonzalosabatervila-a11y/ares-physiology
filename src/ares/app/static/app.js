@@ -645,6 +645,39 @@ function renderTrainingIntelligence(a) {
       El signo de la deriva, por sí solo, no determina mejora ni fatiga.</p>
   </section>`;
 }
+function renderHrZones(z) {
+  if (!z?.available) return `<section class="card"><span class="eyebrow">Zonas de pulso</span>
+    <p class="muted">Sin distribución de FC verificable para esta sesión:
+      ${esc(z?.reason || 'no disponible')}.</p></section>`;
+  const max = Math.max(1, ...z.zones.map(r => r.seconds));
+  const bars = z.zones.map((r, i) => {
+    const range = r.min_hr === -1 ? `≤ ${r.max_hr} lpm` :
+      r.max_hr === -1 ? `≥ ${r.min_hr} lpm` :
+      `${r.min_hr}–${r.max_hr} lpm`;
+    const width = Math.max(0, Math.min(100, r.seconds / max * 100));
+    return `<div style="margin-top:12px">
+      <div style="display:flex;justify-content:space-between;gap:8px;font-size:12px">
+        <b>${esc(r.name)}</b><span class="muted">${esc(range)}</span>
+        <span class="mono">${esc(runTime(r.seconds))} · ${esc(r.percent_recorded)} %</span>
+      </div>
+      <div style="height:8px;border-radius:99px;background:var(--s3);margin-top:6px;overflow:hidden">
+        <div style="width:${width}%;height:100%;background:var(--sig);border-radius:99px;
+        opacity:${(0.4 + 0.1 * i).toFixed(2)}"></div>
+      </div>
+    </div>`;
+  }).join('');
+  return `<section class="card" aria-label="Zonas de frecuencia cardíaca">
+    <div class="row" style="display:flex;justify-content:space-between;align-items:center">
+      <span class="eyebrow">Distribución por zonas</span>${tagChip('CALC','TREDICT')}
+    </div><h3 style="margin:12px 0 6px">¿Dónde estuvo tu esfuerzo?</h3>
+    <p class="muted" style="font-size:12px;margin:0">Zonas configuradas para la fecha
+      de este entrenamiento. ${z.coverage_pct === null ? '' :
+        'Tiempo clasificado: ' + esc(z.coverage_pct) + ' % de la duración.'}</p>
+    ${bars}
+    <p class="muted" style="font-size:12px;margin:12px 0 0">${esc(z.method)}</p>
+  </section>`;
+}
+
 function renderEntreno(d) {
   const laps = (d.laps || []).map((l) => `<tr><td>${l.number}</td>
     <td>${l.distance_m === null ? '—' : esc((l.distance_m/1000).toFixed(2)) + ' km'}</td>
@@ -676,7 +709,7 @@ function renderEntreno(d) {
       </div>
       <p class="muted">${esc(d.attribution)}
         ${d.pace_calculated ? ' · Ritmo calculado desde tiempo y distancia' : ''}
-      </p></section>` + renderTrainingIntelligence(d.analysis) + sensors +
+      </p></section>` + renderTrainingIntelligence(d.analysis) + renderHrZones(d.hr_zones) + sensors +
     `<section class="card"><h3>Vueltas y segmentos</h3>
       ${laps ? '<div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Dist.</th><th>Ritmo</th><th>FC</th><th>W</th></tr></thead><tbody>'+
         laps+'</tbody></table></div>' : '<p class="muted">El sensor no proporcionó vueltas.</p>'}
