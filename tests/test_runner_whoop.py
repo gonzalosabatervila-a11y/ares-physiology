@@ -128,7 +128,7 @@ def test_de_dia_solo_se_pide_el_ciclo(conn, settings, monkeypatch):
     monkeypatch.setattr("ares.runner.HttpClient", lambda: api(data, seen=seen))
     runner.run_all(conn, settings, Recorder(), job="day")  # type: ignore[arg-type]
     whoop_paths = {urlparse(str(r.url)).path for r in seen if "whoop" in str(r.url)}
-    assert whoop_paths == {"/developer/v2/cycle"}
+    assert whoop_paths == {"/developer/v2/cycle", "/developer/v2/activity/workout"}
 
 
 def test_por_la_manana_se_piden_las_cuatro_colecciones(conn, settings, monkeypatch):
