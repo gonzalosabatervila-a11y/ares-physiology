@@ -405,6 +405,38 @@ function homeQuickCapture(syncMode) {
   </section>`;
 }
 
+function homeNightSnapshot(w) {
+  if (!w?.latest) return `<section class="home-night home-night-empty" aria-label="Última noche WHOOP">
+    <div class="home-night-head"><span class="eyebrow">01 / ÚLTIMA NOCHE WHOOP</span>
+      <a href="#/fisiologia">Explorar ↗</a></div>
+    <p>No hay una noche WHOOP importada. ARES no sustituye los datos ausentes por estimaciones.</p>
+  </section>`;
+  const n=w.latest, date=esc(shortDate(n.date));
+  const valid=n.score_state==='SCORED' && ['high','fair'].includes(n.quality)
+    && n.calibrating!==true && (!n.night_check || n.night_check==='ok');
+  if (!valid) return `<section class="home-night home-night-empty" aria-label="Última noche WHOOP">
+    <div class="home-night-head"><span class="eyebrow">01 / ÚLTIMA NOCHE WHOOP</span>
+      <span class="home-night-date">${date}</span></div>
+    <p>Última noche no válida para comparar: puntuación pendiente, calibración
+      o revisión de calidad. Consulta la información de origen.</p>
+    <a class="home-night-link" href="#/fisiologia">Ver histórico ↗</a>
+  </section>`;
+  const f=(v,digits=0)=>v===null||v===undefined||!Number.isFinite(Number(v))?'—':
+    Number(v).toLocaleString('es-ES',{maximumFractionDigits:digits});
+  const sleep=n.sleep_min===null||n.sleep_min===undefined?'—':
+    `${Math.floor(n.sleep_min/60)}:${String(Math.round(n.sleep_min)%60).padStart(2,'0')}`;
+  return `<section class="home-night" aria-label="Lecturas de la última noche WHOOP">
+    <div class="home-night-head"><span class="eyebrow">01 / ÚLTIMA NOCHE WHOOP</span>
+      <span class="home-night-date">${date} · ${n.quality==='high'?'Calidad alta':'Calidad aceptable'}</span></div>
+    <div class="home-night-data">
+      <div><span>VFC / rMSSD</span><strong>${f(n.rmssd_ms)}<small>ms</small></strong></div>
+      <div><span>FC en reposo</span><strong>${f(n.rhr)}<small>lpm</small></strong></div>
+      <div><span>Sueño efectivo</span><strong>${sleep}<small>h</small></strong></div>
+    </div>
+    <div class="home-night-foot"><span>MED · WHOOP directo · sin estimaciones añadidas</span>
+      <a href="#/fisiologia">Ver evolución ↗</a></div>
+  </section>`;
+}
 function renderInicio(d) {
   ROUTE_STATE.sources = d.sources;
   ROUTE_STATE.syncMode = d.sync_mode || ROUTE_STATE.syncMode;
@@ -415,12 +447,8 @@ function renderInicio(d) {
   const mainProfile = hasPersonalBaseline
     ? personalBaseline(d.personal_baseline)
     : hero(d.estado);
-  view.innerHTML = pageTop(d.sources) +
-    `<header class="atelier-intro home-intro">
-      <div class="eyebrow">ARES / HOY</div>
-      <h2>Tu día, <em>en perspectiva.</em></h2>
-      <p>Datos reales, hábitos y decisiones. Todo en un mismo lugar.</p>
-    </header>` + syncNotice(ROUTE_STATE.syncMode) +
+  view.innerHTML = pageTop(d.sources) + syncNotice(ROUTE_STATE.syncMode) +
+    homeNightSnapshot(d.whoop) +
     homeQuickCapture(ROUTE_STATE.syncMode) + mainProfile + renderPlanPreview(d.plan_preview) +
     `<section class="atelier-section">
        <header class="atelier-section-head"><span class="eyebrow">01 / TENDENCIAS</span>
