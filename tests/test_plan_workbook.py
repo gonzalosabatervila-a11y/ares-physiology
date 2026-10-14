@@ -115,3 +115,26 @@ def test_no_acepta_datos_contradictorios_entre_hojas(tmp_path):
         out.writestr("xl/worksheets/sheet2.xml",b.read("xl/worksheets/sheet1.xml"))
     with pytest.raises(plan_workbook.ImportErrorPlan,match="contradictorios"):
         plan_workbook.import_workbook(target)
+
+
+def test_api_copia_local_se_actualiza_sin_tocar_db_y_fallback_si_corrupta(conn, settings):
+    from fastapi.testclient import TestClient
+    from ares.app.server import create_app
+
+    source=settings.data_dir/"nuevo.xlsx"
+    _xlsx(source,change="Modificación revisada en Drive")
+    converted=plan_workbook.import_workbook(source)
+    local=settings.data_dir/"training_plan.json"
+    plan_workbook.save_local(local,converted)
+    client=TestClient(create_app(lambda: conn,settings))
+    updated=client.get("/api/plan?week=S32")
+    assert updated.status_code==200
+    assert updated.json()["days"][0]["title"]=="Modificación revisada en Drive"
+    assert updated.json()["sync"]=="SNAPSHOT_LOCAL_VERIFIED_NO_LIVE_DRIVE"
+    # Una rotura accidental solo del fichero de configuración no inutiliza ARES.
+    local.write_text("{THIS IS INVALID JSON",encoding="utf-8")
+    safe=client.get("/api/plan?week=S32")
+    assert safe.status_code==200
+    assert safe.json()["source_version"]=="v9 · 2026-10-08"
+    assert "snapshot_warning" in safe.json()
+    assert conn.execute("SELECT count(*) FROM raw_payload").fetchone()[0]==0
