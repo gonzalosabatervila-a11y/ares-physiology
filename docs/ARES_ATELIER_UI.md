@@ -40,6 +40,40 @@ evita que las estadísticas bloqueen la captura rápida.
 navegación lateral solo a partir de 1180 px; de otro modo
 se conserva la navegación inferior para el pulgar.
 
+## Fisiología · Atelier científico (iteración posterior)
+
+Vista `#/fisiologia` rediseñada en esta rama como panel editorial,
+sin modificar cálculos, `daily_metrics` ni API.
+
+- Primero contexto: noches válidas/procesadas, cobertura entre registros
+  existentes, periodo (28/90/365 días), procedencia WHOOP y calidad de origen.
+  La barra expresa proporción de **registros procesados** utilizables,
+  NO la cobertura de todos los días de calendario del periodo.
+- Dos indicadores principales abiertos: rMSSD (VFC) y FC reposo.
+  Sueño, respiración, SpO₂, temperatura y Recovery de WHOOP pasan a
+  tarjetas desplegables, sin ocultar sus datos ni alterar su sentido.
+- **Gráficos honestos:** la abscisa utiliza `Date.parse(date)`
+  en lugar del índice del array. Fechas omitidas provocan huecos,
+  no distorsión temporal ni interpolación. Valores explícitos `null`
+  interrumpen el trazo.
+- **Exploración:** cursor local sobre la serie que muestra fecha y medida;
+  teclado flechas izquierda/derecha, inicio y fin; SVG accesible
+  descriptivamente. No se envía información al exterior.
+- **Fuentes:** Recovery = `MODELO · WHOOP`, no `CALC · ARES`.
+  Cambios de 7 días frente a referencia previa se describen sin
+  «mejor»/«peor» automáticos. El método se conserva en desplegable.
+- Adaptación móvil del eje de fechas a vista SVG de 360 unidades,
+  tamaños legibles y reglas de pantalla estrecha/anchas.
+- Nuevas comprobaciones estáticas en `tests/test_ares_atelier_ui.py`
+  y prueba dinámica sintética en el motor JS (dos trazos separados
+  ante registros ausentes, gráfico vacío si n insuficiente).
+
+**No aprobado todavía:** inspección real en Safari iPhone y Mac,
+VoiceOver, contraste WCAG cuantificado, comprobación de gestos
+táctiles, tamaños de letra con accesibilidad del sistema,
+latencia real o screenshots de 375/390/430/820/1440 px. No
+declarar UI «perfecta» ni plenamente accesible hasta completarlo.
+
 ## Objetivos visuales y operativos
 
 - Paleta: grafito `#0C0E0D`, champagne `#D9B782`,
