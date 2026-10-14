@@ -845,6 +845,17 @@ document.addEventListener('keydown',e=>{
   else return;
   e.preventDefault();physCursor(svg,at);
 });
+function physNumber(value, unit) {
+  // Dato y unidad separados por tipografía: ningún redondeo adicional.
+  const formatted=physFmt(value, unit);
+  if(formatted==='—')return '<strong class="phys-data"><span class="phys-digits">—</span></strong>';
+  const suffix=unit==='min'?'h':unit;
+  const digits=formatted.slice(0,-(' '+suffix).length);
+  return `<strong class="phys-data">
+    <span class="phys-digits">${esc(digits)}</span>
+    <span class="phys-unit">${esc(suffix)}</span>
+  </strong>`;
+}
 function physCard(m, featured=false) {
   const originLabel=m.key==='recovery'?'MODELO · WHOOP':'MED · WHOOP';
   const difference=m.difference===null||m.relative_change_pct===null ? null :
@@ -854,8 +865,8 @@ function physCard(m, featured=false) {
     <span class="tag ${m.key==='recovery'?'exp':''}">${originLabel}</span>
   </div>`;
   const value=`<div class="phys-current">
-    <strong>${esc(physFmt(m.latest,m.unit))}</strong>
-    <span>${m.latest===null?'Sin lectura válida la última noche':'Última noche del histórico'}</span>
+    ${physNumber(m.latest,m.unit)}
+    <span>${m.latest===null?'Sin lectura válida en la noche más reciente':'Lectura de la última noche válida indicada'}</span>
   </div>`;
   const explanation=`<div class="phys-comparison">
       <div class="phys-stat-grid">
@@ -895,36 +906,46 @@ function renderFisiologia(d) {
     'Historial pendiente';
   view.innerHTML=pageTop(ROUTE_STATE.sources)+
     `<header class="phys-header">
-      <div class="eyebrow">ARES · TU LABORATORIO FISIOLÓGICO</div>
-      <h1>Entender tu cuerpo.</h1>
-      <p>Lecturas nocturnas de WHOOP, referencias personales y evolución real, sin puntuaciones inventadas.</p>
+      <div class="phys-header-top">
+        <span class="eyebrow">ARES / FISIOLOGÍA</span>
+        <span class="phys-edition">01 — OBSERVATORIO</span>
+      </div>
+      <h1>Lo que cuenta<br><em>tu organismo.</em></h1>
+      <p>Tu registro nocturno, en perspectiva. Cada lectura en su fecha, cada conclusión con su contexto.</p>
     </header>
-    <section class="card phys-overview" aria-label="Calidad y cobertura de las mediciones">
+    <section class="phys-overview" aria-label="Calidad y cobertura de las mediciones">
       <div class="phys-overview-heading">
-        <div><span class="eyebrow">TU HISTÓRICO</span><h2>${title}</h2></div>
-        <span class="phys-origin">WHOOP · DIRECTO</span>
+        <div><span class="eyebrow">ARCHIVO NOCTURNO</span><h2>${title}</h2></div>
+        <span class="phys-origin">● WHOOP / DIRECTO</span>
       </div>
       <div class="phys-overview-stats">
-        <div><strong>${d.usable_nights}<span> / ${d.nights}</span></strong><small>Noches válidas / procesadas</small></div>
-        <div><strong>${coverage}<span> %</span></strong><small>Calidad utilizable*</small></div>
+        <div class="phys-record-count">
+          <strong>${d.usable_nights}</strong>
+          <span class="phys-record-total">/ ${d.nights}</span>
+          <small>Noches válidas / procesadas</small>
+        </div>
+        <div class="phys-coverage-count">
+          <strong>${coverage}<span>%</span></strong>
+          <small>Calidad utilizable*</small>
+        </div>
       </div>
       <div class="phys-quality-track" role="img" aria-label="${coverage}% de registros utilizables de los procesados">
         <span style="width:${coverage}%"></span>
       </div>
       <div class="seg phys-period" role="group" aria-label="Seleccionar periodo fisiológico">${controls}</div>
-      <p class="phys-quality-note">*De las noches procesadas en este periodo: ${quality.high} alta calidad,
+      <p class="phys-quality-note">*De las noches procesadas: ${quality.high} alta calidad,
         ${quality.fair} aceptables, ${quality.excluded} excluidas.
         ${quality.night_flags?`${quality.night_flags} con revisión pendiente.`:''}
-        ${d.nights===0?'Conecta o sincroniza WHOOP para empezar.':'Se conservan los huecos del histórico.'}
+        ${d.nights===0?'Pendiente de sincronizar WHOOP.':'Se conservan las fechas sin lectura.'}
       </p>
     </section>
-    <div class="phys-section-heading"><div><span class="eyebrow">LAS DOS REFERENCIAS CLAVE</span>
+    <div class="phys-section-heading"><div><span class="eyebrow">01 / SEÑALES ESENCIALES</span>
       <h2>Corazón y recuperación</h2></div>
-      <span class="phys-section-meta">Mediciones nocturnas</span></div>
+      <span class="phys-section-meta">VFC / FC EN REPOSO</span></div>
     <div class="phys-feature-grid">${highlighted.map(m=>physCard(m,true)).join('')}</div>
-    <div class="phys-section-heading"><div><span class="eyebrow">PROFUNDIZAR</span>
+    <div class="phys-section-heading"><div><span class="eyebrow">02 / REGISTRO COMPLEMENTARIO</span>
       <h2>Otras señales</h2></div>
-      <span class="phys-section-meta">Abre para explorar</span></div>
+      <span class="phys-section-meta">PULSA PARA EXPLORAR</span></div>
     <div class="phys-secondary-list">${other.map(m=>physCard(m)).join('')}</div>
     <details class="card phys-method">
       <summary>Cómo interpretamos las referencias ${svg('chev','phys-chevron')}</summary>
