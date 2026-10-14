@@ -278,11 +278,15 @@ def dinner_sleep_analysis(conn: duckdb.DuckDBPyConnection, device_id: str, tz: s
     for label, _, _ in BUCKETS:
         entries = grouped[label]
         ready = len(entries) >= 5
+        hrv = [float(z["hrv_ms"]) for z in entries if z["hrv_ms"] is not None]
+        rest = [float(z["rhr"]) for z in entries if z["rhr"] is not None]
+        sleep = [float(z["sleep_min"]) for z in entries if z["sleep_min"] is not None]
         result.append({
             "label": label, "n": len(entries),
-            "hrv_mean_ms": avg([float(z["hrv_ms"]) for z in entries if z["hrv_ms"] is not None]) if ready else None,
-            "rhr_mean": avg([float(z["rhr"]) for z in entries if z["rhr"] is not None]) if ready else None,
-            "sleep_mean_min": avg([float(z["sleep_min"]) for z in entries if z["sleep_min"] is not None]) if ready else None,
+            "n_hrv": len(hrv), "n_rhr": len(rest), "n_sleep": len(sleep),
+            "hrv_mean_ms": avg(hrv) if len(hrv) >= 5 else None,
+            "rhr_mean": avg(rest) if len(rest) >= 5 else None,
+            "sleep_mean_min": avg(sleep) if len(sleep) >= 5 else None,
             "status": "exploratory" if ready else "insufficient",
         })
     return {
@@ -375,7 +379,7 @@ def daily_overview(events: list[dict], tz: str) -> dict:
 
 
 def overview(conn: duckdb.DuckDBPyConnection, device_id: str, tz: str) -> dict:
-    events = history(conn, device_id, tz, days=30, limit=100)
+    events = history(conn, device_id, tz, days=30, limit=500)
     return {
         "events": events,
         "count_30d": len(events),
