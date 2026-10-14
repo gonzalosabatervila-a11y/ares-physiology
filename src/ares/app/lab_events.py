@@ -343,6 +343,97 @@ def timeline(
     return sorted(items, key=lambda item: item["at"], reverse=True)[:180]
 
 
+def caffeine_sleep_analysis(
+    conn: duckdb.DuckDBPyConnection, device_id: str,
+) -> dict[str, Any]:
+    """Último café REGISTRADO en 24h anteriores al sueño WHOOP, no abstinencia.
+
+    Sin registro no se etiqueta «sin cafeína»: podría ser subregistro.
+    Grupos descriptivos preliminares, con dispersión y n verificable.
+    """
+    nights = conn.execute(
+        """SELECT local_sleep_date, sleep_start, sleep_min, rmssd_ms, rhr
+           FROM daily_metrics WHERE device_id = ?
+           AND quality IN ('high','fair') AND score_state = 'SCORED'
+           AND calibrating = false AND coalesce(night_check,'ok') = 'ok'
+           AND sleep_start IS NOT NULL
+           ORDER BY sleep_start DESC LIMIT 180""",
+        [device_id],
+    ).fetchall()
+    earliest = min((n[1] for n in nights), default=None)
+    rows = conn.execute(
+        """SELECT occurred_at FROM lab_events
+           WHERE device_id=? AND event_type='coffee'
+           AND deleted_at IS NULL AND occurred_at >= ?
+           ORDER BY occurred_at ASC""",
+        [device_id, earliest - timedelta(hours=24)],
+    ).fetchall() if earliest else []
+    timestamps = [x[0] for x in rows]
+    windows = (("<6 h", 0, 360), ("6–10 h", 360, 600),
+               ("10–24 h", 600, 1441))
+    groups: dict[str, list[dict]] = {name: [] for name, _, _ in windows}
+    count = 0
+    for day, start, sleep, hrv, rhr in reversed(nights):
+        coffee = next(
+            (t for t in reversed(timestamps)
+             if t <= start and start-t <= timedelta(hours=24)), None,
+        )
+        if coffee is None:
+            continue
+        minutes = round((start-coffee).total_seconds() / 60, 1)
+        name = next((label for label, low, high in windows
+                     if low <= minutes < high), None)
+        if name is None:
+            continue
+        count += 1
+        groups[name].append({
+            "date": day.isoformat(), "sleep_min": sleep,
+            "hrv_ms": hrv, "rhr": rhr,
+        })
+
+    from statistics import median
+
+    def stat(entries: list[dict], field: str) -> dict:
+        numbers = sorted(float(x[field]) for x in entries if x[field] is not None)
+        n = len(numbers)
+        if n < 5:
+            return {"n": n, "median": None, "p25": None, "p75": None}
+        def q(p: float) -> float:
+            pos = p * (n-1)
+            left = int(pos)
+            right = min(left+1, n-1)
+            return round(numbers[left]+(numbers[right]-numbers[left])*(pos-left), 1)
+        return {"n": n, "median": round(median(numbers),1),
+                "p25": q(.25), "p75": q(.75)}
+    result=[]
+    for label, _, _ in windows:
+        group=groups[label]
+        result.append({
+            "label": label, "n": len(group),
+            "hrv": stat(group,"hrv_ms"), "rhr": stat(group,"rhr"),
+            "sleep": stat(group,"sleep_min"),
+            "status": "exploratory" if len(group) >= 5 else "insufficient",
+        })
+    return {
+        "total_valid_nights": len(nights),
+        "paired_nights": count,
+        "bands": result,
+        "ready_for_comparison": count >= 20 and sum(
+            x["status"] == "exploratory" for x in result
+        ) >= 2,
+        "method": (
+            "Solo noches con al menos un café MANUAL registrado en las 24 h "
+            "previas al inicio del sueño WHOOP. Distancia desde el ÚLTIMO "
+            "café, no dosis acumulada ni ausencia de cafeína. "
+            "Las noches sin café anotado se excluyen: NO equivalen a abstinencia. "
+            "Se muestran medianas y P25–P75 solo con >=5 valores válidos. "
+            "No ajustado por carga, horario, estrés ni otras sustancias; "
+            "NO establece causalidad."
+        ),
+        "source": "Café · ARES LAB manual; sueño/HRV/RHR · WHOOP",
+    }
+
+
 def daily_overview(events: list[dict], tz: str) -> dict:
     """Observación inmediata con eventos manuales; no atribuir causalidad."""
     now = datetime.now(ZoneInfo(tz)).date().isoformat()
@@ -387,6 +478,7 @@ def overview(conn: duckdb.DuckDBPyConnection, device_id: str, tz: str) -> dict:
         "count_30d": len(events),
         "daily": daily_overview(events, tz),
         "dinner_sleep": dinner_sleep_analysis(conn, device_id, tz),
+        "caffeine_sleep": caffeine_sleep_analysis(conn, device_id),
         "timeline": timeline(conn, device_id, tz),
         "quick_presets": [
             {"type":"coffee","mg":100,"basis":"estimated","label":"Café · 100 mg estimados"},
