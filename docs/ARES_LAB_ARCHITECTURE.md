@@ -84,6 +84,48 @@ todo el consumo real.
 La línea temporal de 7 días muestra eventos y marcas horarias del
 **inicio de sueño WHOOP**; sin curva cardíaca segundo a segundo.
 
+## Refuerzos añadidos antes de la primera prueba real
+
+**Copia previa automática.** Al iniciar `ares serve`, si existe una base
+DuckDB y faltan migraciones (por ejemplo, v4 → v5), se abre en solo
+lectura para verificar el historial, se cierra y se copia a
+`~/ares-data/backups/ares-pre-v5-<fecha>.duckdb`. La copia se
+contrasta contra el SHA-256 completo del fichero original; si
+falla, la migración no arranca. Con v5 aplicada no se genera otro
+backup por arranque. Se añaden pruebas offline de conservación de
+`daily_metrics` y verificación binaria del respaldo. Esto no
+sustituye la política de copias periódicas a largo plazo.
+
+**Cafeína → sueño.** ARES ahora agrupa las noches según el tiempo desde
+el **último café registrado** hasta el inicio de sueño WHOOP:
+<6 h, 6–10 h y 10–24 h. Presenta tamaños de muestra, medianas
+y percentiles 25–75, exigiendo al menos cinco mediciones por grupo
+para mostrar una referencia descriptiva; requiere 20 noches
+emparejadas y dos grupos para comparaciones exploratorias.
+**Sin café apuntado NO significa sin cafeína.** No se usan esas noches
+como «control». No se estima dosis acumulada, no se corrige aún por
+otros confundidores y no hay inferencia causal.
+
+**Validación iPhone pendiente.** El despliegue recomendado es
+Tailscale Serve con HTTPS privado, con acceso limitado por ACL,
+nunca Funnel público. Comando previsto, SOLO tras pruebas y
+aprobación del acceso remoto:
+
+```bash
+tailscale serve --bg 127.0.0.1:8443
+tailscale serve status
+```
+
+La dirección HTTPS `.ts.net` será la que muestre Tailscale realmente,
+no se debe inventar. Instalar en Safari mediante «Compartir» →
+«Añadir a pantalla de inicio», y abrir LAB. El Mac debe seguir
+encendido con `ares serve` activo. No se ha activado Serve.
+
+**Rendimiento:** objetivos de ingeniería, aún no contrastados:
+registro de un toque en interfaz precargada; escritura local
+p95 < 300 ms; pantalla LAB p95 < 1 s; sin mediciones de campo
+todavía, no etiquetar como «Hyperfast validado».
+
 ## Fases ejecutables
 
 - **Fase 1 — entrega v0.1:** migración 005, captura 1 clic, dosis/horas
