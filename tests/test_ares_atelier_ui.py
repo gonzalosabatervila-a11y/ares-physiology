@@ -24,10 +24,10 @@ def test_shell_delivers_premium_lab_scripts_and_feedback(client):
     assert 'id="tabs"' in html
     assert 'id="ares-toast"' in html
     assert 'aria-live="polite"' in html
-    assert '/static/lab_ui.js?v=ares-design-system-20261014' in html
-    assert '/static/app.js?v=ares-design-system-20261014' in html
-    assert '/static/app.css?v=ares-design-system-20261014' in html
-    assert '/static/atelier_views.css?v=ares-design-system-20261014' in html
+    assert '/static/lab_ui.js?v=ares-home-refined-20261014' in html
+    assert '/static/app.js?v=ares-home-refined-20261014' in html
+    assert '/static/app.css?v=ares-home-refined-20261014' in html
+    assert '/static/atelier_views.css?v=ares-home-refined-20261014' in html
 
 
 def test_one_tap_home_and_diary_tabs_are_present(client):
@@ -127,7 +127,7 @@ def test_fisiologia_scientific_atelier_typographic_design(client):
 def test_scientific_atelier_navigation_and_progressive_detail(client):
     js = client.get("/static/app.js").text
     css = client.get("/static/atelier_views.css").text
-    assert "atelier-intro home-intro" in js
+    assert "homeNightSnapshot(d.whoop)" in js
     assert 'class="atelier-extras"' in js
     assert "Explorar mediciones y fuentes" in js
     assert 'class="atelier-row-list workout-list"' in js
@@ -166,3 +166,29 @@ def test_plan_weekdays_use_native_accessible_details(client):
     assert 'function renderPlan(d)' in js
     assert ".plan-day-summary:focus-visible" in css
     assert ".plan-day[open] .plan-day-arrow" in css
+
+
+def test_home_shows_last_valid_whoop_night_not_a_promotional_hero(client):
+    js = client.get("/static/app.js").text
+    styles = client.get("/static/atelier_views.css").text
+    assert "function homeNightSnapshot(w)" in js
+    assert "n.score_state==='SCORED'" in js
+    assert "['high','fair'].includes(n.quality)" in js
+    assert "n.calibrating!==true" in js
+    assert "No hay una noche WHOOP importada" in js
+    assert "Última noche no válida para comparar" in js
+    assert "homeNightSnapshot(d.whoop)" in js
+    assert "homeQuickCapture(ROUTE_STATE.syncMode)" in js
+    assert ".home-night-data" in styles
+    assert ".home-night-empty" in styles
+    assert "Tu día, <em>en perspectiva.</em>" not in js
+
+
+def test_spa_navigation_focus_avoids_announcing_huge_updates(client):
+    index = client.get("/").text
+    js = client.get("/static/app.js").text
+    assert 'id="view" tabindex="-1"' in index
+    assert 'aria-label="Contenido principal de ARES"' in index
+    assert 'id="ares-toast"' in index and 'aria-live="polite"' in index
+    assert "if (!refresh && lastPath !== location.hash) view.focus({preventScroll:true})" in js
+    assert 'aria-live="polite"></main>' not in index
