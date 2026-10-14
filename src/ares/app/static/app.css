@@ -605,7 +605,7 @@ main{gap:18px}
 .phys-path{stroke:var(--sig);stroke-width:2.2;stroke-linecap:round;
   stroke-linejoin:round;fill:none;vector-effect:non-scaling-stroke}
 .phys-guide{stroke-width:1;stroke-dasharray:2 7}
-.phys-axis-label{fill:var(--mut);font-size:10px;letter-spacing:.025em}
+.phys-axis-label{fill:var(--mut);font-size:12px;letter-spacing:.02em}
 .phys-cursor-line{stroke:var(--sage);stroke-width:1;stroke-dasharray:3 4;opacity:.8}
 .phys-cursor-dot{fill:var(--sage);stroke:var(--s1);stroke-width:2.2}
 .phys-endpoint{fill:var(--sig);stroke:var(--s1);stroke-width:2}
