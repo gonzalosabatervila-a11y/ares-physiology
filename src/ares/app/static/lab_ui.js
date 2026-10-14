@@ -3,7 +3,7 @@
 'use strict';
 
 const LAB_NAMES = {coffee:'Café', dinner_end:'Cena terminada', bedtime:'Me acuesto'};
-const LAB_SYMBOL = {coffee:'☕', dinner_end:'◒', bedtime:'☾'};
+const LAB_SYMBOL = {coffee:'coffee', dinner_end:'dinner', bedtime:'moon'};
 let labPending = null;
 let labBusy = false;
 let labMessage = '';
@@ -62,7 +62,7 @@ function renderAresLab(d) {
     </div>`;
   }).join('');
   const recent = (d.events || []).slice(0,30).map(e => `<div class="lab-entry">
-    <div class="lab-entry-icon">${LAB_SYMBOL[e.event_type] || '•'}</div>
+    <div class="lab-entry-icon">${svg(LAB_SYMBOL[e.event_type] || 'info')}</div>
     <div class="lab-entry-main">
       <b>${labEventText(e)}</b>
       <small>${esc(labHumanTime(e.occurred_at))}${e.note ? ' · '+esc(e.note) : ''}</small>
@@ -105,13 +105,13 @@ function renderAresLab(d) {
         <span class="lab-live">Europe/Madrid · hora del dispositivo</span></div>
       <div class="lab-quick">
         <button type="button" class="lab-action" data-lab-quick="coffee"
-          ${enabled?'':'disabled'}><span>☕</span><b>Café</b>
+          ${enabled?'':'disabled'}><span>${svg('coffee')}</span><b>Café</b>
           <small>+100 mg estimados</small></button>
         <button type="button" class="lab-action" data-lab-quick="dinner_end"
-          ${enabled?'':'disabled'}><span>◒</span><b>Terminé de cenar</b>
+          ${enabled?'':'disabled'}><span>${svg('dinner')}</span><b>Terminé de cenar</b>
           <small>Ahora</small></button>
         <button type="button" class="lab-action" data-lab-quick="bedtime"
-          ${enabled?'':'disabled'}><span>☾</span><b>Me acuesto</b>
+          ${enabled?'':'disabled'}><span>${svg('moon')}</span><b>Me acuesto</b>
           <small>Ahora</small></button>
       </div>
       ${enabled ? `<div class="lab-custom-actions">
