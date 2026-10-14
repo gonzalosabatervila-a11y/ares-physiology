@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import math
 from datetime import date, timedelta
-from statistics import mean
+from statistics import mean, median
 from typing import Any
 
 import duckdb
@@ -110,6 +110,86 @@ def _metric(
         "n28": len(v28),
         "n_reference": len(vref),
         "series": series,
+    }
+
+
+# -------------------------------------------------------------- línea base personal
+
+def _quantile(values: list[float], p: float) -> float:
+    """Interpolación lineal sobre valores ordenados; p en [0, 1]."""
+    ordered = sorted(values)
+    x = (len(ordered) - 1) * p
+    left = int(x)
+    right = min(left + 1, len(ordered) - 1)
+    return ordered[left] + (ordered[right] - ordered[left]) * (x - left)
+
+
+def personal_baseline(
+    conn: duckdb.DuckDBPyConnection, device_id: str, *, window: int = 60
+) -> dict[str, Any]:
+    """Referencia personal WHOOP: últimas 60 noches *anteriores* a la actual.
+
+    La noche más reciente (incluso si está pendiente) se excluye para que
+    su comparación sea independiente. Solo cuentan noches puntuadas,
+    validadas y sin calibración. Median + P25/P75 describen dispersión,
+    no un rango clínico ni una instrucción para entrenar.
+    """
+    if not 21 <= window <= 90:
+        raise ValueError("La ventana de línea base debe estar entre 21 y 90 noches")
+    raw = conn.execute(
+        """SELECT local_sleep_date, sleep_min, rmssd_ms, rhr, resp_rate,
+                  score_state, calibrating, quality,
+                  coalesce(night_check, 'ok') AS night_check
+           FROM daily_metrics WHERE device_id = ?
+           ORDER BY local_sleep_date DESC LIMIT ?""",
+        [device_id, window + 1],
+    ).fetchall()
+    keys = ("date", "sleep_min", "rmssd_ms", "rhr", "resp_rate",
+            "score_state", "calibrating", "quality", "night_check")
+    rows = [dict(zip(keys, row)) for row in raw]
+    latest = rows[0] if rows else None
+    past = [r for r in rows[1:] if _usable(r)]
+    ready_nights = len(past)
+    maturity = ("establecida" if ready_nights >= 60
+                else "provisional" if ready_nights >= 21 else "insuficiente")
+    features = (
+        ("hrv", "VFC · rMSSD", "rmssd_ms", "ms", "median"),
+        ("rhr", "Pulso en reposo", "rhr", "lpm", "median"),
+        ("sleep", "Sueño efectivo", "sleep_min", "min", "median"),
+        ("resp", "Frecuencia respiratoria", "resp_rate", "rpm", "median"),
+    )
+    out = []
+    for key, label, col, unit, _ in features:
+        values = [v for r in past if (v := _number(r[col])) is not None]
+        # Cada señal necesita 21 observaciones; 60 noches puntuadas no
+        # implica que WHOOP haya entregado esa señal en las 60.
+        sufficient = len(values) >= 21
+        value = _number(latest[col]) if latest and _usable(latest) else None
+        typical = median(values) if sufficient else None
+        out.append({
+            "key": key, "label": label, "unit": unit,
+            "median": typical,
+            "p25": _quantile(values, .25) if sufficient else None,
+            "p75": _quantile(values, .75) if sufficient else None,
+            "latest": value,
+            "delta": value - typical if value is not None and typical is not None else None,
+            "n": len(values),
+        })
+    return {
+        "source": "WHOOP directo · ARES CALC",
+        "status": maturity,
+        "ready": maturity != "insuficiente",
+        "window": window,
+        "nights": ready_nights,
+        "anchor_date": latest["date"].isoformat() if latest else None,
+        "latest_usable": bool(latest and _usable(latest)),
+        "metrics": out,
+        "method": (
+            "Mediana y percentiles 25–75 de hasta 60 noches anteriores "
+            "válidas de WHOOP; se excluye la última noche. "
+            "Cada señal necesita al menos 21 mediciones. "
+            "Referencia descriptiva, no intervalo médico ni recomendación deportiva."
+        ),
     }
 
 
