@@ -765,7 +765,7 @@ function renderEntreno(d) {
   view.innerHTML = `<header class="dtop"><a class="back" href="#/entrenos"
       aria-label="Volver a Entrenos">${svg('back')}</a>
       <h1>${esc(d.title)}<small>${esc(d.sport)} · ${esc(shortDate(d.date))}</small></h1>
-      ${tagChip('MED','TREDICT')}</header>
+      ${tagChip('MED', d.source === 'whoop' ? 'WHOOP' : 'COROS vía Tredict')}</header>
     <section class="card">
       <div class="stats" style="grid-template-columns:repeat(3,1fr)">
         <div><small>Distancia</small><b>${d.distance_m === null ? '—' :
@@ -775,6 +775,9 @@ function renderEntreno(d) {
         <div><small>FC media</small><b>${d.avg_hr === null ? '—' : esc(d.avg_hr.toFixed(0))}</b></div>
         <div><small>FC máx.</small><b>${d.max_hr === null ? '—' : esc(d.max_hr.toFixed(0))}</b></div>
         <div><small>Potencia</small><b>${d.avg_power === null ? '—' : esc(d.avg_power.toFixed(0)) + ' W'}</b></div>
+        ${d.source === 'whoop' && d.score_strain !== null && d.score_strain !== undefined
+          ? `<div><small>Strain WHOOP</small><b>${esc(Number(d.score_strain).toFixed(1))}</b></div>`
+          : ''}
       </div>
       <p class="muted">${esc(d.attribution)}
         ${d.pace_calculated ? ' · Ritmo calculado desde tiempo y distancia' : ''}
