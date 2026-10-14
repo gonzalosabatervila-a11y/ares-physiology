@@ -142,24 +142,24 @@ def personal_baseline(
                   coalesce(night_check, 'ok') AS night_check
            FROM daily_metrics WHERE device_id = ?
            ORDER BY local_sleep_date DESC LIMIT ?""",
-        [device_id, window + 1],
+        [device_id, window + 31],
     ).fetchall()
     keys = ("date", "sleep_min", "rmssd_ms", "rhr", "resp_rate",
             "score_state", "calibrating", "quality", "night_check")
     rows = [dict(zip(keys, row)) for row in raw]
     latest = rows[0] if rows else None
-    past = [r for r in rows[1:] if _usable(r)]
+    past = [r for r in rows[1:] if _usable(r)][:window]
     ready_nights = len(past)
     maturity = ("establecida" if ready_nights >= 60
                 else "provisional" if ready_nights >= 21 else "insuficiente")
     features = (
-        ("hrv", "VFC · rMSSD", "rmssd_ms", "ms", "median"),
-        ("rhr", "Pulso en reposo", "rhr", "lpm", "median"),
-        ("sleep", "Sueño efectivo", "sleep_min", "min", "median"),
-        ("resp", "Frecuencia respiratoria", "resp_rate", "rpm", "median"),
+        ("hrv", "VFC · rMSSD", "rmssd_ms", "ms"),
+        ("rhr", "Pulso en reposo", "rhr", "lpm"),
+        ("sleep", "Sueño efectivo", "sleep_min", "min"),
+        ("resp", "Frecuencia respiratoria", "resp_rate", "rpm"),
     )
     out = []
-    for key, label, col, unit, _ in features:
+    for key, label, col, unit in features:
         values = [v for r in past if (v := _number(r[col])) is not None]
         # Cada señal necesita 21 observaciones; 60 noches puntuadas no
         # implica que WHOOP haya entregado esa señal en las 60.
