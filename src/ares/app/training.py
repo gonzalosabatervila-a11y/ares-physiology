@@ -63,6 +63,7 @@ def _summary(rec: dict[str, Any]) -> dict[str, Any]:
         "title": str(rec.get("title") or rec.get("sportType") or "Entrenamiento")[:160],
         "distance_m": d,
         "duration_s": duration,
+        "elapsed_s": num(s.get("durationTotal")),
         "pace_s_km": pace if pace is not None and pace > 0 else None,
         "pace_calculated": derived,
         "avg_hr": num(s.get("heartrate")),
@@ -136,7 +137,8 @@ def session(conn: duckdb.DuckDBPyConnection, activity_id: str) -> dict[str, Any]
     analysis = {
         "quality": training_analysis.series_quality(values, period, summary["duration_s"]),
         "drift": training_analysis.decoupling_proxy(
-            values, period, summary["duration_s"], sport=sport
+            values, period, summary["duration_s"], sport=sport,
+            elapsed_seconds=summary["elapsed_s"],
         ),
         "laps": training_analysis.lap_consistency(laps, sport=sport),
     }
