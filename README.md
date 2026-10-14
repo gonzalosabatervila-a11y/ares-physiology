@@ -80,6 +80,40 @@ y `node --check src/ares/app/static/app.js`. El branch y la PR no se
 fusionan ni se despliegan al HP hasta que estas pruebas y la importación
 de algunas sesiones reales estén verificadas.
 
+## ARES Plan · maratón y nutrición periodizada
+
+Nueva pestaña **Plan** (`#/plan`), con el entrenamiento prescrito de la
+semana y la nutrición diaria *Fueling ARES v1.0*.
+
+La copia `src/ares/app/plan_oct_dec_2026.json` se importó el 14/10/2026
+de `000 → ARES → 01 RUNNING → MARATÓN`, fichero **Excel maestro v9**
+(08/10/2026), fuera de la carpeta `Old`. Cubre nueve semanas: S32–S40,
+del 12 de octubre al 13 de diciembre de 2026. **NO** es una conexión
+automática a Drive; muestra enlaces y versión para comprobar vigencia.
+El plan se queda en modo lectura: jamás reescribe los entrenamientos del
+Excel ni compensa volumen perdido.
+
+La previsión nutricional utiliza `Fueling ARES — Sistema Maestro de
+Nutrición v1.0` (19/09/2026): bandas LOW/MEDIUM/HIGH/VERY HIGH por
+carga diaria y la sesión del día siguiente, con preferencia por pautas
+de geles específicas del Excel (por ejemplo, 45 g/h S32 y 50 g/h S33).
+El sistema muestra g/kg por defecto, sin publicar tu peso en Git.
+Para obtener gramos orientativos/día, escribe **solo en tu `.env` local**:
+
+```dotenv
+ARES_NUTRITION_WEIGHT_KG=70.5
+```
+
+**70,5 kg es exclusivamente el peso de referencia registrado en
+septiembre de 2026, no una medición actual**: sustituirlo por el peso
+real más reciente, si se conoce. No se modifican automáticamente las
+pautas por un único dato de WHOOP. El rango nutricional es orientativo,
+y debe ajustarse según tolerancia intestinal y registro real.
+
+En Plan aparece la actividad de Tredict cuando exista en el mismo día,
+pero **coincidencia en el calendario ≠ sesión prescrita cumplida**.
+Las series, zonas y bloques requieren validación adicional.
+
 ## Mac · desarrollo
 
 ```bash
