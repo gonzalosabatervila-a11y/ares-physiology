@@ -18,6 +18,7 @@ const P = { // trazos de 24x24
   moon: '<path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/>',
   pulse: '<path d="M3 12h4l2-6 4 12 2-6h6"/>',
   run: '<circle cx="14.5" cy="5" r="1.8"/><path d="M8 21l3-6 3 2 2 4M11 15l-1-4 4-2 3 3h3M6 12l2-3 3-1"/>',
+  calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M8 15h3M14 15h3"/>',
   chev: '<path d="M9 5l7 7-7 7"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
   back: '<path d="M15 5l-7 7 7 7"/>',
@@ -386,7 +387,8 @@ function renderInicio(d) {
     ? personalBaseline(d.personal_baseline)
     : hero(d.estado);
   view.innerHTML = pageTop(d.sources) + chips(d.sources) + syncNotice(ROUTE_STATE.syncMode) +
-    mainProfile + nativeWhoop(d.whoop) + pairedMetrics(d.fusion) +
+    mainProfile + renderPlanPreview(d.plan_preview) +
+    nativeWhoop(d.whoop) + pairedMetrics(d.fusion) +
     `<div class="gauges" role="group" aria-label="Indicadores principales">${d.dials.map(gauge).join('')}</div>
 <button class="howto" data-howto>${svg('info')}Cómo leer estos indicadores</button>` +
     (hasPersonalBaseline ? '' : baseline(d.estado)) +
@@ -477,6 +479,133 @@ function renderLab(d) {
 <section class="card"><div class="eyebrow" style="margin-bottom:4px">Últimas ejecuciones</div>${runs}</section>
 <section class="card"><div class="eyebrow" style="margin-bottom:8px">Versiones</div><p class="muted mono" style="margin:0;font-size:12px">esquema v${esc(d.versions.schema)} · reglas ${esc(d.versions.rules)} · algoritmo ${esc(d.versions.algo)} · código ${esc(d.versions.code)}</p></section>
 <section class="card"><div class="eyebrow" style="margin-bottom:8px">Leyenda</div>${LEGEND_KV}</section>`;
+}
+
+// ------------------------------------------------------- ARES Marathon Planner
+const WEEKDAYS = {lun:'Lunes',mar:'Martes',mie:'Miércoles',jue:'Jueves',vie:'Viernes',sab:'Sábado',dom:'Domingo'};
+const NUTR_LABEL = {LOW:'LOW · Recuperación',MEDIUM:'MEDIUM · Normal',
+  HIGH:'HIGH · Reposición', 'VERY HIGH':'VERY HIGH · Carga alta'};
+function planTime(m) {
+  return !m ? 'Descanso' : m >= 60 ? `${Math.floor(m/60)}h ${String(m%60).padStart(2,'0')}m` : `${m} min`;
+}
+function renderPlanPreview(p) {
+  if (!p?.available || !p.today_session) return '';
+  const s = p.today_session;
+  return `<a class="card plan-preview" href="#/plan" aria-label="Abrir plan y nutrición semanal">
+    <div class="row" style="display:flex;align-items:center;justify-content:space-between">
+      <span class="eyebrow">Tu entrenamiento · ${esc(p.week)}</span>
+      <span class="pill sig">PLANIFICADO</span>
+    </div>
+    <h3 style="margin:11px 0 5px">${esc(s.title)}</h3>
+    <p class="muted" style="margin:0">${esc(planTime(s.duration_min))}
+      ${s.strength_min ? ' · fuerza aparte '+s.strength_min+' min' : ''}
+      · ${esc(s.date)}</p>
+    <div style="margin-top:12px;color:var(--sig);font-size:12px;font-weight:650">
+      Ver calendario y nutrición de la semana ↗
+    </div>
+  </a>`;
+}
+function renderPlan(d) {
+  const header = pageTop(ROUTE_STATE.sources);
+  const weeks = (d.weeks||[]).map(w => `<option value="${esc(w.id)}"
+    ${w.id===d.week?'selected':''}>${esc(w.id)} · ${esc(shortDate(w.start))} – ${esc(shortDate(w.end))}</option>`).join('');
+  if (!d.available) {
+    view.innerHTML = header +
+      `<section class="card"><span class="eyebrow">ARES · plan de maratón</span>
+       <h3>Plan fuera del intervalo disponible</h3><p class="muted">${esc(d.reason)}</p>
+       <p class="muted">La copia importada solo cubre octubre–diciembre de 2026;
+       no se atribuyen sesiones de una semana a otra.</p>
+       <a style="color:var(--sig)" href="${esc(d.source_url)}" target="_blank"
+       rel="noopener noreferrer">Abrir Excel maestro ↗</a></section>
+       <section class="card"><label for="plan-week">Consultar otra semana</label>
+       <select id="plan-week" class="plan-select" data-week>${weeks}</select></section>`;
+    return;
+  }
+  const nutrient = (s) => {
+    const n=s.nutrition, during=n.during, r=during.g_per_hour;
+    const intra = r[0]===r[1] ? `${r[0]} g/h` : `${r[0]}–${r[1]} g/h`;
+    const total = `${Math.round(r[0]*s.duration_min/60)}–${Math.round(r[1]*s.duration_min/60)} g`;
+    const macros = n.carbs_g ?
+      `${n.carbs_g[0]}–${n.carbs_g[1]} g CH/día` :
+      `${n.carbs_g_kg[0]}–${n.carbs_g_kg[1]} g/kg/día`;
+    const meal = n.preload ? 'Precarga del entrenamiento de mañana' :
+      'Reposición según trabajo de hoy';
+    return `<div class="plan-fuel">
+        <div class="plan-nutr-type">${esc(NUTR_LABEL[n.category]||n.category)}</div>
+        <b>${esc(macros)}</b>
+        <div class="plan-fuel-detail">${esc(meal)}.
+          ${s.duration_min && (r[0]||r[1]) ? `Durante: ${esc(intra)}
+          (≈${esc(total)} en esta sesión)` : 'Durante: sin aporte obligatorio registrado.'}
+          ${during.basis === 'EXCEL_MAESTRO' ? ' · Fuente: Excel maestro' :
+            ' · Guía general Fueling ARES, no pauta individual validada'}
+          ${n.post_rice_cooked_g ? ` · Arroz cocido post: ${n.post_rice_cooked_g[0]}–${n.post_rice_cooked_g[1]} g.` : ''}
+        </div>
+    </div>`;
+  };
+  const days = d.days.map(s => {
+    const isToday = s.date === d.today;
+    const rest = s.type === 'DESCANSO';
+    return `<article class="card plan-day ${isToday?'plan-today':''}">
+      <div class="plan-day-top">
+        <div><span class="eyebrow">${esc(WEEKDAYS[s.weekday]||s.weekday)}
+          · ${esc(shortDate(s.date))}</span>
+          ${isToday?'<span class="pill sig">HOY</span>':''}
+        </div>
+        <span class="source-mark source-coros">${rest?'DESCANSO':esc(s.type)}</span>
+      </div>
+      <h3 style="margin:12px 0 7px">${esc(s.title)}</h3>
+      <div class="plan-day-meta">
+        <span>${esc(planTime(s.duration_min))}</span>
+        ${s.km_estimate !== null ? `<span>${esc(s.km_estimate)} km previstos</span>` : ''}
+        ${s.strength_min ? `<span>Fuerza ${s.strength_min} min · ${esc(d.training_rules.strength_local_start)}</span>` : ''}
+      </div>
+      ${s.detail && !rest ? `<p class="muted" style="margin:8px 0 0">${esc(s.detail)}</p>`:''}
+      ${nutrient(s)}
+      ${s.shoe ? `<p class="muted" style="font-size:11px;margin:10px 0 0">Calzado previsto: ${esc(s.shoe)}</p>` : ''}
+    </article>`;
+  }).join('');
+  const grams= d.weight_kg ? `Configurado: ${esc(d.weight_kg)} kg.
+     Proteína aproximada ${Math.round(d.weight_kg*1.8)} g/día.` :
+    'Para convertir g/kg en gramos diarios, configura ARES_NUTRITION_WEIGHT_KG en tu .env local.';
+  view.innerHTML = header +
+    `<section class="card plan-head">
+      <div class="eyebrow">ARES MARATHON LAB · VALENCIA 2027</div>
+      <h2>Tu entrenamiento y tu combustible</h2>
+      <div class="plan-total">
+       <div><b>${esc(d.week)}</b><small>${esc(shortDate(d.start))}–${esc(shortDate(d.end))}</small></div>
+       <div><b>${esc(d.run_minutes)}′</b><small>Tiempo de carrera</small></div>
+       <div><b>${d.run_km_approx===null?'—':esc(d.run_km_approx)+' km'}</b><small>Distancia prevista</small></div>
+      </div>
+      <label for="plan-week" class="eyebrow">Seleccionar semana</label>
+      <select id="plan-week" class="plan-select" data-week>${weeks}</select>
+      <p class="muted" style="margin:10px 0 0">Plan prescrito desde Excel maestro
+      ${esc(d.source_version)}, importación manual ${esc(d.snapshot_date)}.
+      <b>No se sincroniza en directo con Drive.</b></p>
+    </section>
+    <section class="card plan-nutrition-summary">
+      <div class="eyebrow">Fueling ARES v1.0 · previsión semanal</div>
+      <h3>Come hoy para entrenar mañana</h3>
+      <p class="muted">${esc(grams)}</p>
+      <p class="muted">Carbohidratos periodizados por carga y precarga del día
+        siguiente. Proteína orientativa 1,8 g/kg; grasas 60–75 g/día.
+        Comida principal como ventana de carga; última ingesta ligera a las 18:00.</p>
+      <p class="muted">Combustible durante los entrenos:
+        ${esc(d.intra_training_carbs_g_week[0])}–${esc(d.intra_training_carbs_g_week[1])}
+        g aproximados en toda la semana (incluye pautas y rangos generales).
+        En largos, partir de la tolerancia entrenada; no subir de golpe.
+        Sodio inicial 300–600 mg/h según sudoración y calor.</p>
+      <p class="muted">Fuentes:
+      <a href="${esc(d.source_url)}" target="_blank" rel="noopener noreferrer">Excel v9 ↗</a>
+      · <a href="${esc(d.fueling_source_url)}" target="_blank" rel="noopener noreferrer">
+      Fueling ARES v1.0 ↗</a></p>
+    </section>
+    ${days}
+    <section class="card"><span class="eyebrow">Reglas del programa</span>
+      <p class="muted">${esc(d.caveat)}
+       La frecuencia cardíaca manda sobre el ritmo y las sesiones perdidas
+       no se compensan con volumen añadido.</p>
+      <a style="color:var(--sig)" href="#/progreso">Ver evolución y carga ↗</a>
+    </section>`;
 }
 
 // ------------------------------------------------------ laboratorio fisiológico
@@ -853,7 +982,7 @@ function renderEntreno(d) {
 }
 
 // ------------------------------------------------------------------- router
-const TABS = [['inicio', 'Inicio', 'home'], ['entrenos', 'Entrenos', 'run'], ['fisiologia', 'Fisiología', 'pulse'], ['progreso', 'Progreso', 'chart'], ['lab', 'Lab', 'flask']];
+const TABS = [['inicio', 'Inicio', 'home'], ['entrenos', 'Entrenos', 'run'], ['plan', 'Plan', 'calendar'], ['fisiologia', 'Fisiología', 'pulse'], ['progreso', 'Progreso', 'chart']];
 function setTabs(active) {
   tabsEl.innerHTML = TABS.map(([k, l, i]) => `<a href="#/${k}"${k === active ? ' aria-current="page"' : ''}>${svg(i)}<span>${l}</span></a>`).join('');
 }
@@ -875,7 +1004,7 @@ let lastPath = null;
 async function route(refresh = false) {
   const {path, params} = currentHash();
   const parts = path.split('/');
-  const tab = parts[0] === 'senal' ? 'inicio' : parts[0] === 'entreno' ? 'entrenos' : (['inicio', 'entrenos', 'progreso', 'fisiologia', 'lab'].includes(parts[0]) ? parts[0] : 'inicio');
+  const tab = parts[0] === 'senal' ? 'inicio' : parts[0] === 'entreno' ? 'entrenos' : parts[0] === 'lab' ? 'inicio' : (['inicio', 'entrenos', 'progreso', 'fisiologia', 'plan'].includes(parts[0]) ? parts[0] : 'inicio');
   setTabs(tab);
   let url, fn;
   if (parts[0] === 'senal' && parts[1]) {
@@ -887,6 +1016,12 @@ async function route(refresh = false) {
   } else if (tab === 'entrenos') {
     const category = params.get('tipo') === 'otros' ? 'other' : 'running';
     url = `/api/entrenos?category=${category}`; fn = renderEntrenos;
+  }
+  else if (tab === 'plan') {
+    const week = /^S(3[2-9]|40)$/.test(params.get('semana') || '') ?
+      params.get('semana') : null;
+    url = `/api/plan${week ? '?week='+encodeURIComponent(week) : ''}`;
+    fn = renderPlan;
   }
   else if (tab === 'progreso') { url = '/api/progreso'; fn = renderProgreso; }
   else if (tab === 'fisiologia') {
@@ -910,6 +1045,10 @@ async function route(refresh = false) {
   }
   lastPath = location.hash;
 }
+document.addEventListener('change', (e) => {
+  const selector = e.target.closest('[data-week]');
+  if (selector) location.hash = `#/plan?semana=${encodeURIComponent(selector.value)}`;
+});
 window.addEventListener('hashchange', () => route());
 // La sincronización real pertenece al planificador de ares serve.
 // Refrescar la vista local cada 5 minutos solo si está visible y el
