@@ -171,7 +171,10 @@ def create_app(
         """
         if not auto_sync:
             raise HTTPException(403, "ARES app está en modo lectura; usa ares serve")
-        host_header = request.headers.get("host", "").split(":")[0].lower()
+        # Comparar también PUERTO: distinto puerto en el mismo hostname
+        # sigue siendo otro origen web. La URL de Tailscale HTTPS es aparte.
+        forwarded = urlsplit("//" + request.headers.get("host", ""))
+        host_header = (forwarded.hostname or "").lower()
         if host_header not in {"localhost", "127.0.0.1"} and not host_header.endswith(".ts.net"):
             raise HTTPException(403, "Host no permitido para guardar datos privados")
         origin = request.headers.get("origin")
@@ -181,6 +184,11 @@ def create_app(
         if parsed.scheme not in {"http", "https"}:
             raise HTTPException(403, "Origin no coincide con la aplicación ARES")
         direct = parsed.hostname == host_header
+        if direct:
+            origin_port = parsed.port or (443 if parsed.scheme == "https" else 80)
+            host_port = forwarded.port or (443 if parsed.scheme == "https" else 80)
+            if origin_port != host_port:
+                raise HTTPException(403, "Puerto del Origin distinto del servidor ARES")
         # Algunos reverse proxies locales reescriben Host a 127.0.0.1.
         # Solo admitir esto en HTTPS tailnet y con proxy en loopback.
         client_ip = request.client.host if request.client else None
