@@ -658,25 +658,29 @@ function renderPlan(d) {
   const days = d.days.map(s => {
     const isToday = s.date === d.today;
     const rest = s.type === 'DESCANSO';
-    return `<article class="plan-day ${isToday?'plan-today':''}">
-      <div class="plan-day-top">
-        <div><span class="eyebrow">${esc(WEEKDAYS[s.weekday]||s.weekday)}
-          · ${esc(shortDate(s.date))}</span>
-          ${isToday?'<span class="pill sig">HOY</span>':''}
+    return `<details class="plan-day ${isToday?'plan-today':''}" ${isToday?'open':''}>
+      <summary class="plan-day-summary">
+        <div class="plan-day-top">
+          <div><span class="eyebrow">${esc(WEEKDAYS[s.weekday]||s.weekday)}
+            · ${esc(shortDate(s.date))}</span>
+            ${isToday?'<span class="pill sig">HOY</span>':''}
+          </div>
+          <span class="source-mark source-coros">${rest?'DESCANSO':esc(s.type)}</span>
         </div>
-        <span class="source-mark source-coros">${rest?'DESCANSO':esc(s.type)}</span>
+        <h3>${esc(s.title)} <span class="plan-day-arrow" aria-hidden="true">↗</span></h3>
+        <div class="plan-day-meta">
+          <span>${esc(planTime(s.duration_min))}</span>
+          ${s.km_estimate !== null ? `<span>${esc(s.km_estimate)} km previstos</span>` : ''}
+          ${s.strength_min ? `<span>Fuerza ${s.strength_min} min · ${esc(d.training_rules.strength_local_start)}</span>` : ''}
+        </div>
+      </summary>
+      <div class="plan-day-detail">
+        ${s.detail && !rest ? `<p class="muted">${esc(s.detail)}</p>`:''}
+        ${renderPlanExecution(d.execution?.days?.[s.date],s)}
+        ${nutrient(s)}
+        ${s.shoe ? `<p class="muted plan-shoe">Calzado previsto: ${esc(s.shoe)}</p>` : ''}
       </div>
-      <h3 style="margin:12px 0 7px">${esc(s.title)}</h3>
-      <div class="plan-day-meta">
-        <span>${esc(planTime(s.duration_min))}</span>
-        ${s.km_estimate !== null ? `<span>${esc(s.km_estimate)} km previstos</span>` : ''}
-        ${s.strength_min ? `<span>Fuerza ${s.strength_min} min · ${esc(d.training_rules.strength_local_start)}</span>` : ''}
-      </div>
-      ${s.detail && !rest ? `<p class="muted" style="margin:8px 0 0">${esc(s.detail)}</p>`:''}
-      ${renderPlanExecution(d.execution?.days?.[s.date],s)}
-      ${nutrient(s)}
-      ${s.shoe ? `<p class="muted" style="font-size:11px;margin:10px 0 0">Calzado previsto: ${esc(s.shoe)}</p>` : ''}
-    </article>`;
+    </details>`;
   }).join('');
   const grams= d.weight_kg ? `Configurado: ${esc(d.weight_kg)} kg.
      Proteína aproximada ${Math.round(d.weight_kg*1.8)} g/día.` :
