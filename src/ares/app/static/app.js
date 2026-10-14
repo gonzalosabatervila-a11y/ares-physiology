@@ -749,7 +749,7 @@ function physChart(points, title, unit) {
       ? [{date:p.date,v,t}] : [];
   });
   if (valid.length < 2) return '<p class="phys-empty">Todavía no hay suficientes lecturas válidas para mostrar la evolución.</p>';
-  const W=540,H=192,L=14,R=14,T=16,B=30,base=H-B,usableW=W-L-R;
+  const W=360,H=182,L=14,R=14,T=16,B=30,base=H-B,usableW=W-L-R;
   const timestamps=points.map(p=>Date.parse(p.date)).filter(Number.isFinite);
   const t0=Math.min(...timestamps),t1=Math.max(...timestamps);
   const span=t1-t0||86400000;
@@ -829,7 +829,7 @@ document.addEventListener('pointermove',e=>{
   if(!graph)return;
   const rect=svg.getBoundingClientRect();
   if(!rect.width)return;
-  const px=(e.clientX-rect.left)/rect.width*540;
+  const px=(e.clientX-rect.left)/rect.width*360;
   let index=0,best=Infinity;
   graph.points.forEach((p,i)=>{const distance=Math.abs(p.x-px);if(distance<best){best=distance;index=i;}});
   physCursor(svg,index);
