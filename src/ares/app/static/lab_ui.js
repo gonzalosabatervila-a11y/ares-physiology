@@ -7,6 +7,17 @@ const LAB_SYMBOL = {coffee:'☕', dinner_end:'◒', bedtime:'☾'};
 let labPending = null;
 let labBusy = false;
 let labMessage = '';
+let labToastTimer;
+function labToast(message, kind = 'success') {
+  const toast = document.getElementById('ares-toast');
+  if (!toast) return;
+  window.clearTimeout(labToastTimer);
+  toast.textContent = message;
+  toast.dataset.kind = kind;
+  toast.hidden = false;
+  labToastTimer = window.setTimeout(() => { toast.hidden = true; }, 4400);
+}
+
 
 function labLocalInput(iso) {
   const d = new Date(iso);
@@ -34,6 +45,9 @@ function labSignal(v, unit) {
 function renderAresLab(d) {
   ROUTE_STATE.lab = d;
   const enabled = Boolean(d.write_enabled);
+  const mode = currentHash().params.get('ver') === 'analisis' ? 'analysis' : 'diary';
+  view.classList.toggle('lab-view-analysis', mode === 'analysis');
+  view.classList.toggle('lab-view-diary', mode === 'diary');
   const bands = d.dinner_sleep.bands || [];
   const groups = bands.map(b => {
     const enough = b.status === 'exploratory';
@@ -79,8 +93,14 @@ function renderAresLab(d) {
       <p>Registra una acción. ARES se encargará de relacionarla con tu fisiología,
         sin inventar explicaciones.</p>
     </div>
+    <nav class="lab-section-tabs" aria-label="Vistas del laboratorio">
+      <a href="#/laboratorio" ${mode === 'diary' ? 'aria-current="page"' : ''}>
+        <span>01</span> Diario</a>
+      <a href="#/laboratorio?ver=analisis" ${mode === 'analysis' ? 'aria-current="page"' : ''}>
+        <span>02</span> Análisis</a>
+    </nav>
     ${labMessage ? `<div class="lab-message" role="status">${esc(labMessage)}</div>`:''}
-    <section class="lab-capture" aria-label="Registro de acontecimientos en un toque">
+    <section class="lab-capture lab-diary-panel" aria-label="Registro de acontecimientos en un toque">
       <div class="lab-section-head"><span class="eyebrow">CAPTURA INSTANTÁNEA</span>
         <span class="lab-live">Europe/Madrid · hora del dispositivo</span></div>
       <div class="lab-quick">
@@ -101,7 +121,7 @@ function renderAresLab(d) {
       <p class="lab-footnote">El café predeterminado es una estimación de 100 mg.
       Puedes corregir cantidad y hora. No se envía ningún dato a servicios de IA.</p>
     </section>
-    <section class="card lab-now">
+    <section class="card lab-now lab-diary-panel">
       <span class="eyebrow">TU DÍA · REGISTROS MANUALES</span>
       <div class="lab-now-stats">
         <div><small>Cafeína registrada hoy</small>
@@ -116,7 +136,7 @@ function renderAresLab(d) {
         toda la cafeína consumida. Cena→cama utiliza tu pulsación «Me acuesto»;
         el siguiente análisis utiliza el inicio de sueño estimado por WHOOP.</p>
     </section>
-    <section class="card lab-insight">
+    <section class="card lab-insight lab-analysis-panel">
       <div class="eyebrow">CENA → SUEÑO WHOOP · OBSERVACIÓN</div>
       <div class="lab-stat-line">
         <div><b>${d.dinner_sleep.paired_nights}</b>
@@ -133,7 +153,7 @@ function renderAresLab(d) {
         <p>${esc(d.dinner_sleep.method)}</p>
       </details>
     </section>
-    <section class="card lab-insight" aria-label="Cafeína y sueño WHOOP">
+    <section class="card lab-insight lab-analysis-panel" aria-label="Cafeína y sueño WHOOP">
       <div class="eyebrow">CAFÉ → SUEÑO WHOOP · OBSERVACIÓN</div>
       <div class="lab-stat-line">
         <div><b>${esc(d.caffeine_sleep?.paired_nights ?? 0)}</b>
@@ -165,13 +185,13 @@ function renderAresLab(d) {
         <p>${esc(d.caffeine_sleep?.method || '')}</p>
       </details>
     </section>
-    <section class="card lab-history">
+    <section class="card lab-history lab-diary-panel">
       <div class="lab-section-head"><div><span class="eyebrow">REGISTRO PERSONAL</span>
         <h3>Tus acontecimientos</h3></div>
         <span class="pill">${d.count_30d} recientes</span></div>
       ${recent || '<p class="muted">Todavía no has registrado acontecimientos. Empieza con el siguiente café o cena.</p>'}
     </section>
-    <section class="card lab-history">
+    <section class="card lab-history lab-diary-panel">
       <div class="lab-section-head"><div><span class="eyebrow">CRONOLOGÍA</span>
         <h3>Tu línea temporal</h3></div><span class="pill">7 días</span></div>
       <p class="muted">Acontecimientos manuales y comienzos de sueño WHOOP.
@@ -212,9 +232,11 @@ async function labQuick(kind) {
   try {
     await labApi('POST','/api/lab/events',labPending);
     labPending=null;labMessage='Registrado correctamente. Puedes corregirlo en el historial.';
+    labToast('✓ Registrado en ARES. Puedes corregirlo en LAB.');
     await route(true);
   } catch(e) {
     labMessage=`No se ha confirmado el guardado: ${e.message}. Reintenta cuando haya conexión.`;
+    labToast(labMessage, 'error');
     const notice=document.querySelector('.lab-message');
     if(notice) {notice.textContent=labMessage;}
   } finally {
@@ -288,6 +310,7 @@ async function labSaveForm(form) {
     await labApi(origId?'PATCH':'POST',origId?
       `/api/lab/events/${encodeURIComponent(origId)}`:'/api/lab/events',data);
     closeSheet();labMessage='Registro guardado.';
+    labToast('✓ Acontecimiento guardado.');
     await route(true);
   } catch(e) {
     document.querySelector('#lab-form-error').textContent=e.message;
@@ -308,7 +331,9 @@ document.addEventListener('click',(e)=>{
     void (async()=>{
       try {
         await labApi('DELETE',`/api/lab/events/${encodeURIComponent(del.dataset.labDelete)}`);
-        closeSheet();labMessage='Registro anulado.';await route(true);
+        closeSheet();labMessage='Registro anulado.';
+        labToast('Registro anulado. Ya no participa en los análisis.');
+        await route(true);
       } catch(error){document.querySelector('#lab-form-error').textContent=error.message;}
     })();
   }
