@@ -577,6 +577,48 @@ function renderEntrenos(d) {
        <code>uv run ares tredict-details --days 30 --limit 5</code>.
        Reinicia con <code>uv run ares app</code>.</p></section>`);
 }
+function renderTrainingIntelligence(a) {
+  if (!a) return '';
+  const q = a.quality || {}, drift = a.drift || {}, laps = a.laps || {};
+  const pct = (x) => x === null || x === undefined ? '—' :
+    Number(x).toLocaleString('es-ES', {maximumFractionDigits:1})+' %';
+  const row = (title, value, note) =>
+    `<div style="padding:10px 0;border-top:1px solid var(--line)">
+      <div class="row" style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <b style="font-size:14px">${esc(title)}</b><b class="mono">${esc(value)}</b>
+      </div><p class="muted" style="font-size:12px;margin:6px 0 0">${esc(note)}</p>
+    </div>`;
+  const driftDesc = drift.available
+    ? `FC media ${drift.first.hr} → ${drift.second.hr} lpm; velocidad
+       ${drift.first.speed_m_s} → ${drift.second.speed_m_s} m/s.
+       ${drift.caution}`
+    : `No calculable: ${drift.reason || 'sin datos suficientes'}. No inferimos deriva con series,
+       pausas, terrenos variables o sensores incompletos.`;
+  const lapDesc = laps.available
+    ? `${laps.count} vueltas de longitud comparable; ritmo medio
+       ${runPace(laps.mean_pace_s_km)}. ${laps.caution}`
+    : `No calculable: ${laps.reason || 'faltan vueltas comparables'}.`;
+  return `<section class="card" aria-label="ARES Training Intelligence">
+    <div class="row" style="display:flex;justify-content:space-between;align-items:center">
+      <span class="eyebrow">ARES · Training Intelligence</span>${tagChip('EXP','ARES')}
+    </div>
+    <h3 style="margin:12px 0 6px">Cómo respondió tu cuerpo</h3>
+    <p class="muted" style="margin:0 0 14px">Análisis exploratorio basado en series reales.
+      No es una evaluación médica ni sustituye una prueba de esfuerzo.</p>
+    <div class="stats" style="grid-template-columns:repeat(3,minmax(0,1fr));margin:10px 0 16px">
+      <div><small>FC válida</small><b>${esc(pct(q.hr_coverage_pct))}</b></div>
+      <div><small>Velocidad válida</small><b>${esc(pct(q.speed_coverage_pct))}</b></div>
+      <div><small>Pares FC/ritmo</small><b>${esc(pct(q.paired_coverage_pct))}</b></div>
+    </div>
+    ${row('Deriva FC / velocidad', drift.available ?
+      (drift.value_pct > 0 ? '+' : '') + pct(drift.value_pct) : 'No evaluable', driftDesc)}
+    ${row('Consistencia de vueltas', laps.available ? 'CV '+pct(laps.pace_cv_pct) :
+      'No evaluable', lapDesc)}
+    <p class="muted" style="font-size:12px;margin:12px 0 0">Las métricas solo
+      aparecen cuando cumplen los criterios de calidad definidos.
+      El signo de la deriva, por sí solo, no determina mejora ni fatiga.</p>
+  </section>`;
+}
 function renderEntreno(d) {
   const laps = (d.laps || []).map((l) => `<tr><td>${l.number}</td>
     <td>${l.distance_m === null ? '—' : esc((l.distance_m/1000).toFixed(2)) + ' km'}</td>
@@ -608,7 +650,7 @@ function renderEntreno(d) {
       </div>
       <p class="muted">${esc(d.attribution)}
         ${d.pace_calculated ? ' · Ritmo calculado desde tiempo y distancia' : ''}
-      </p></section>` + sensors +
+      </p></section>` + renderTrainingIntelligence(d.analysis) + sensors +
     `<section class="card"><h3>Vueltas y segmentos</h3>
       ${laps ? '<div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Dist.</th><th>Ritmo</th><th>FC</th><th>W</th></tr></thead><tbody>'+
         laps+'</tbody></table></div>' : '<p class="muted">El sensor no proporcionó vueltas.</p>'}
