@@ -199,11 +199,11 @@ document.addEventListener('click', (e) => {
 });
 
 // ------------------------------------------------------------------- vistas
-const ROUTE_STATE = {sources: [], days: 28, progDays: 28, data: null};
+const ROUTE_STATE = {sources: [], days: 28, progDays: 28, data: null, syncMode: 'read_only'};
 function pageTop(sources) {
   const date = new Date().toLocaleDateString('es-ES', {weekday: 'long', day: 'numeric', month: 'long'});
   return `<header class="top"><div class="brand">${MARK}<div><h1>ARES</h1><div class="date">${esc(cap(date))}</div></div></div>
-<button class="sync" data-sync aria-label="Actualizar datos">${svg('sync')}<span class="dot ${syncDot(sources)}"></span></button></header>`;
+<button class="sync" data-sync aria-label="Recargar pantalla, no sincroniza las fuentes" title="Recargar datos locales, no sincroniza con los dispositivos">${svg('sync')}<span class="dot ${syncDot(sources)}"></span></button></header>`;
 }
 function chips(sources) {
   const rank = {none: 0, ok: 1, warn: 2, bad: 3};
@@ -328,10 +328,11 @@ function pairedMetrics(f) {
 
 function renderInicio(d) {
   ROUTE_STATE.sources = d.sources;
+  ROUTE_STATE.syncMode = d.sync_mode || ROUTE_STATE.syncMode;
   const steps = d.steps === null
     ? '<span class="muted">Sin pasos todavía.</span>'
     : `<div><div class="eyebrow">Pasos · ${esc(shortDate(d.steps_day || d.last_day))}</div><div class="big">${d.steps.toLocaleString('es-ES')}</div></div><span class="muted">${esc(d.steps_source || 'intervals.icu')}</span>`;
-  view.innerHTML = pageTop(d.sources) + chips(d.sources) + hero(d.estado) + nativeWhoop(d.whoop) + pairedMetrics(d.fusion) +
+  view.innerHTML = pageTop(d.sources) + chips(d.sources) + syncNotice(ROUTE_STATE.syncMode) + hero(d.estado) + nativeWhoop(d.whoop) + pairedMetrics(d.fusion) +
     `<div class="gauges" role="group" aria-label="Indicadores principales">${d.dials.map(gauge).join('')}</div>
 <button class="howto" data-howto>${svg('info')}Cómo leer estos indicadores</button>` + baseline(d.estado) +
     `<div class="h2"><span class="eyebrow">Señales principales</span></div>${d.signals.map(sigRow).join('')}
@@ -543,7 +544,25 @@ function runSeries(points, title, color) {
     <text x="${W-right}" y="${H-3}" text-anchor="end" fill="#8C979B" font-size="10">${Math.round(maxT/60)} min</text>
   </svg>`;
 }
+function syncNotice(mode) {
+  return mode === 'automatic'
+    ? `<div class="sync-note"><b>Sincronización automática activa.</b>
+      ARES consulta las fuentes al arrancar y en sus ventanas programadas.
+      El botón circular recarga la pantalla, no fuerza una descarga.</div>`
+    : `<div class="sync-note"><b>Vista local · datos sin sincronización automática.</b>
+      Para obtener nuevos datos, detén <code>ares app</code> y arranca
+      <code>uv run ares serve</code>. El botón circular solo recarga la pantalla.</div>`;
+}
 function renderEntrenos(d) {
+  ROUTE_STATE.syncMode = d.sync_mode || ROUTE_STATE.syncMode;
+  const category = d.category === 'other' ? 'other' : 'running';
+  const counts = d.counts || {running:0, other:0};
+  const tabs = `<nav class="training-tabs" aria-label="Tipos de entrenamiento">
+    <a href="#/entrenos?tipo=correr" ${category === 'running' ? 'aria-current="page"' : ''}>
+      Correr <small>${counts.running}</small></a>
+    <a href="#/entrenos?tipo=otros" ${category === 'other' ? 'aria-current="page"' : ''}>
+      Otros <small>${counts.other}</small></a>
+  </nav>`;
   const comparisons = (d.comparisons || []).map((p) => {
     const sign = p.speed_change_pct > 0 ? '+' : '';
     return `<div style="padding:12px 0;border-top:1px solid var(--line)">
@@ -562,47 +581,62 @@ function renderEntrenos(d) {
       </div>
     </div>`;
   }).join('');
-  const comparisonPanel = comparisons ? `<section class="card">
+  const comparisonPanel = comparisons && category === 'running' ? `<section class="card">
     <div class="row" style="display:flex;align-items:center;justify-content:space-between">
       <span class="eyebrow">Comparador de sesiones</span>${tagChip('EXP','ARES')}
     </div><h3 style="margin:10px 0 6px">¿Mejora tu ritmo a pulso similar?</h3>
     <p class="muted" style="margin:0 0 12px">Parejas con distancia ±10 % y FC media ±5 lpm.
-      El porcentaje refleja cambio de velocidad; terreno, temperatura y pausas
-      pueden explicar parte de la diferencia. No se atribuye causalidad.</p>
-    ${comparisons}</section>` : '';
+      Diferencias descriptivas, no causales.</p>${comparisons}</section>` : '';
+  const dates = d.last_record_dates || {};
+  const maxDate = (keys) => keys.map(k => dates[k]).filter(Boolean).sort().at(-1);
+  const lastTraining = category === 'running'
+    ? maxDate(['tredict/activity_detail', 'tredict/activity'])
+    : maxDate(['whoop/workout', 'tredict/activity_detail', 'tredict/activity']);
   const cards = d.sessions.map((a) => {
+    const isWhoop = a.source === 'whoop';
     const distance = a.distance_m === null ? '—' :
       (a.distance_m / 1000).toLocaleString('es-ES', {maximumFractionDigits:2})+' km';
-    return `<a href="#/entreno/${encodeURIComponent(a.id)}" class="card"
-      style="display:block" aria-label="Abrir entrenamiento ${esc(a.title)}">
-      <div class="row" style="display:flex;justify-content:space-between;gap:12px">
+    return `<a href="#/entreno/${encodeURIComponent(a.id)}" class="card workout-tile"
+      aria-label="Abrir entrenamiento ${esc(a.title)}">
+      <div class="row" style="display:flex;justify-content:space-between;gap:12px;align-items:center">
         <span class="eyebrow">${esc(a.sport)} · ${esc(shortDate(a.date))}</span>
-        ${tagChip('MED','TREDICT')}
+        <span class="source-mark ${isWhoop ? 'source-whoop' : 'source-coros'}">
+          ${isWhoop ? 'WHOOP' : 'COROS · Tredict'}</span>
       </div>
       <h3 style="margin:11px 0">${esc(a.title)}</h3>
       <div class="stats" style="grid-template-columns:repeat(3,1fr)">
         <div><small>Distancia</small><b>${esc(distance)}</b></div>
         <div><small>Tiempo</small><b>${esc(runTime(a.duration_s))}</b></div>
-        <div><small>Ritmo</small><b>${esc(runPace(a.pace_s_km))}</b></div>
+        <div><small>${category === 'running' ? 'Ritmo' : 'FC media'}</small>
+          <b>${category === 'running' ? esc(runPace(a.pace_s_km))
+          : (a.avg_hr === null ? '—' : esc(a.avg_hr.toFixed(0)) + ' lpm')}</b></div>
       </div>
-      <p class="muted" style="margin:10px 0 0">${a.laps_count} vueltas ·
-        ${a.avg_hr === null ? 'Sin FC media' : Math.round(a.avg_hr) + ' lpm'} ·
-        ${a.has_series ? 'Series disponibles' : 'Sin series del sensor'}</p>
+      <p class="muted" style="margin:10px 0 0">
+        ${a.has_series ? 'Series y detalles disponibles' :
+          (isWhoop ? 'Resumen de WHOOP · sin series de ritmo' :
+          'Resumen disponible · importa detalle de Tredict para ver curvas')}
+      </p>
     </a>`;
   }).join('');
   view.innerHTML = pageTop(ROUTE_STATE.sources) +
     '<div class="h2"><h2 style="margin:0;font-size:26px;font-weight:700">Entrenamientos</h2></div>' +
-    `<section class="card"><span class="eyebrow">Analítica de sesiones</span>
-       <h3>Del reloj al laboratorio</h3><p class="muted">
-       Ritmo, pulso, potencia y vueltas cuando la actividad lo permite.
-       Los datos faltantes se muestran vacíos: no se calculan umbrales ni
-       eficacia con una lista incompleta. Procedencia: Tredict.</p></section>` +
-    comparisonPanel + (cards || `<section class="card"><h3>Sin entrenamientos completos</h3>
-       <p class="muted">Ya tenemos tu listado, pero falta importar series y vueltas.
-       Cierra la app con Ctrl+C; después, en la Terminal, ejecuta
-       <code>uv run ares tredict-details --days 30 --limit 5</code>.
-       Reinicia con <code>uv run ares app</code>.</p></section>`);
+    tabs +
+    `<section class="card workout-intro">
+      <span class="eyebrow">${category === 'running' ? 'COROS · vía Tredict' : 'WHOOP · actividades de vida'}</span>
+      <h3>${category === 'running' ? 'Cada kilómetro cuenta' : 'Movimiento más allá de correr'}</h3>
+      <p class="muted" style="margin:0">${category === 'running'
+        ? 'Carreras y series de tu reloj, vueltas y evolución del rendimiento.'
+        : 'Caminatas, senderismo, rucking explícito y otras actividades. WHOOP es la fuente prioritaria; se omiten coincidencias próximas de Tredict.'}</p>
+      <p class="muted" style="margin:10px 0 0;font-size:12px">
+        Último registro de entrenamiento en la base: ${lastTraining ? esc(shortDate(lastTraining)) : 'sin registros'}.
+        ${esc(d.source_caveat || '')}</p>
+    </section>` +
+    syncNotice(ROUTE_STATE.syncMode) + comparisonPanel +
+    (cards || `<section class="card"><h3>No hay actividades de este tipo todavía</h3>
+       <p class="muted">Comprueba la sincronización de fuentes. En carreras, las
+       series y vueltas requieren importar también los detalles de Tredict.</p></section>`);
 }
+
 function renderTrainingIntelligence(a) {
   if (!a) return '';
   const q = a.quality || {}, drift = a.drift || {}, laps = a.laps || {};
@@ -788,7 +822,10 @@ async function route(refresh = false) {
     fn = renderSenal;
   } else if (parts[0] === 'entreno' && parts[1]) {
     url = `/api/entreno/${encodeURIComponent(parts[1])}`; fn = renderEntreno;
-  } else if (tab === 'entrenos') { url = '/api/entrenos'; fn = renderEntrenos; }
+  } else if (tab === 'entrenos') {
+    const category = params.get('tipo') === 'otros' ? 'other' : 'running';
+    url = `/api/entrenos?category=${category}`; fn = renderEntrenos;
+  }
   else if (tab === 'progreso') { url = '/api/progreso'; fn = renderProgreso; }
   else if (tab === 'fisiologia') {
     const days = [28, 90, 365].includes(+params.get('d')) ? +params.get('d') : 90;
