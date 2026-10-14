@@ -292,3 +292,27 @@ def test_valida_tailscale_y_rechaza_http_externo(conn,settings):
     assert insecure.post("/api/lab/events",json=event(),headers={
         "Origin":"http://macbook-ejemplo.tailnet.ts.net","X-ARES-LAB":"1",
     }).status_code==403
+
+
+def test_cinco_cenas_sin_cinco_hrv_no_se_convierte_en_media(conn, settings):
+    base=seed_nights(conn,settings.device_id,count=7)
+    for i in range(7):
+        date_local=(base-timedelta(days=i)).astimezone(
+            ZoneInfo("Europe/Madrid")
+        ).date()
+        if i >= 2:
+            conn.execute(
+                "UPDATE daily_metrics SET rmssd_ms=NULL "
+                "WHERE device_id=? AND local_sleep_date=?",
+                [settings.device_id,date_local],
+            )
+        lab_events.create(conn,settings.device_id,settings.tz,
+            lab_events.NewEvent(**event("dinner_end",
+                at=base-timedelta(days=i,hours=2,minutes=30))))
+    d=lab_events.dinner_sleep_analysis(conn,settings.device_id,settings.tz)
+    cohort=next(b for b in d["bands"] if b["label"]=="2–3 h")
+    assert cohort["n"]==7
+    assert cohort["n_hrv"]==2
+    assert cohort["hrv_mean_ms"] is None
+    assert cohort["rhr_mean"] is not None
+    assert not d["ready_for_comparison"]
