@@ -24,9 +24,10 @@ def test_shell_delivers_premium_lab_scripts_and_feedback(client):
     assert 'id="tabs"' in html
     assert 'id="ares-toast"' in html
     assert 'aria-live="polite"' in html
-    assert '/static/lab_ui.js?v=scientific-atelier-20261014' in html
-    assert '/static/app.js?v=scientific-atelier-20261014' in html
-    assert '/static/app.css?v=scientific-atelier-20261014' in html
+    assert '/static/lab_ui.js?v=ares-design-system-20261014' in html
+    assert '/static/app.js?v=ares-design-system-20261014' in html
+    assert '/static/app.css?v=ares-design-system-20261014' in html
+    assert '/static/atelier_views.css?v=ares-design-system-20261014' in html
 
 
 def test_one_tap_home_and_diary_tabs_are_present(client):
@@ -64,6 +65,7 @@ def test_lightweight_frontend_assets_remain_within_budget(client):
         "/static/app.js": 105_000,
         "/static/lab_ui.js": 25_000,
         "/static/app.css": 45_000,
+        "/static/atelier_views.css": 17_000,
     }
     for path, max_bytes in bounds.items():
         r = client.get(path)
@@ -120,3 +122,35 @@ def test_fisiologia_scientific_atelier_typographic_design(client):
     assert ".phys-overview{padding:" in css
     assert "ARES Fisiología / Scientific Atelier" in css
     assert "Fisiología · estudio longitudinal" not in css
+
+
+def test_scientific_atelier_navigation_and_progressive_detail(client):
+    js = client.get("/static/app.js").text
+    css = client.get("/static/atelier_views.css").text
+    assert "atelier-intro home-intro" in js
+    assert 'class="atelier-extras"' in js
+    assert "Explorar mediciones y fuentes" in js
+    assert 'class="atelier-row-list workout-list"' in js
+    assert "Entrenar. <em>Recuperar.</em>" in js
+    assert "plan-day" in js and "plan-today" in js
+    assert ".atelier-extras>summary" in css
+    assert ".workout-list .workout-tile" in css
+    assert ".plan-today::before" in css
+    assert ".lab-cohort" in css and ".lab-capture" in css
+
+
+def test_scientific_atelier_remains_data_neutral_and_mobile_accessible(client):
+    js = client.get("/static/app.js").text
+    css = client.get("/static/atelier_views.css").text
+    shell = client.get("/").text
+    assert "#/laboratorio" in js and "#/fisiologia" in js
+    assert "renderPlanExecution(d.execution?.days?.[s.date],s)" in js
+    assert "renderPlanPreview(d.plan_preview)" in js
+    assert "nativeWhoop(d.whoop)" in js
+    assert "pairedMetrics(d.fusion)" in js
+    assert "lab-ui" not in shell  # no shadow/duplicate bundle
+    assert "@media(max-width:370px)" in css
+    assert "@media(prefers-reduced-motion:reduce)" in css
+    assert ".lab-action:last-child" in css
+    assert ".plan-exec-stats" in css
+    assert "fetch(" not in css
