@@ -80,6 +80,47 @@ y `node --check src/ares/app/static/app.js`. El branch y la PR no se
 fusionan ni se despliegan al HP hasta que estas pruebas y la importación
 de algunas sesiones reales estén verificadas.
 
+## ARES LAB · café, cena y sueño desde iPhone (MVP 0.1)
+
+**Nueva pestaña LAB:** `http://127.0.0.1:8443/#/laboratorio` en
+el Mac, o dirección **HTTPS privada** Tailscale Serve cuando esté
+configurada y autorizada en iPhone. La web app instalada mediante
+«Añadir a pantalla de inicio» abrirá directamente ARES LAB.
+
+Acciones ultrarrápidas: **☕ Café (+100 mg estimados)**,
+**◒ Terminé de cenar** y **☾ Me acuesto**.
+Un toque crea una anotación con fecha y hora local; los datos quedan
+en `~/ares-data/ares.duckdb`, no en Google Drive ni en una IA remota.
+El historial permite corregir dosis/hora y anular entradas. Las
+correcciones tienen una tabla de auditoría local con valores anteriores
+y posteriores; cada guardado es una transacción.
+
+ARES muestra al instante el tiempo **última cena → me acuesto**
+(manual) y la cafeína **registrada** hoy (no consumo total).
+Con más días anotados estudiará la diferencia entre fin de cena e
+**inicio de sueño WHOOP** y agrupará las noches válidas por 0–2, 2–3,
+3–4 y 4–12 horas. Sin mediciones suficientes no presentará medias.
+
+**Antes de arrancar la versión v5 por primera vez:**
+
+1. Detener `ares serve` con Ctrl+C. No ejecutar `ares app` a la vez.
+2. Crear y verificar copia de seguridad de DuckDB con el servicio parado.
+3. Ejecutar pruebas sintéticas. Solo después ejecutar `uv run ares serve`,
+   que aplica la migración ADITIVA `005_lab_events.sql`.
+4. Comprobar que en LAB se guardan, corrigen y anulan dos entradas
+   de prueba antes del uso habitual.
+5. Mantener el Mac encendido y la conexión privada para uso en iPhone.
+   **No hay modo sin conexión ni notificaciones en la versión 0.1.**
+
+En `ares app` el diario es **solo lectura** y no permite guardar.
+Los POST/PATCH/DELETE requieren misma procedencia y acceso privado,
+no se aceptan desde sitios externos. No usar Tailscale Funnel
+ni exponer ARES a internet abierto. El diagnóstico técnico
+`#/lab` y las vistas anteriores siguen disponibles.
+
+Método, privacidad, pruebas y fases posteriores:
+[Arquitectura ARES LAB](docs/ARES_LAB_ARCHITECTURE.md).
+
 ## ARES Execution Intelligence · prescrito → registrado → fisiología
 
 En `#/plan` verás cada sesión con:
