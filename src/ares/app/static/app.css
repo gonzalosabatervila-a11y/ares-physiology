@@ -548,3 +548,10 @@ main{gap:18px}
   #tabs a svg{width:20px;height:20px;flex:none}
   .ares-toast{bottom:26px}
 }
+
+
+/* One icon system for home, diary and bottom navigation */
+.home-capture-icon,.lab-action>span{display:inline-flex;align-items:center;justify-content:center}
+.home-capture-icon svg{width:27px;height:27px;stroke-width:1.65}
+.lab-action>span svg{width:31px;height:31px;stroke-width:1.65}
+.lab-entry-icon svg{width:19px;height:19px}
