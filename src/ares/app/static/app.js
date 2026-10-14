@@ -415,17 +415,35 @@ function renderInicio(d) {
   const mainProfile = hasPersonalBaseline
     ? personalBaseline(d.personal_baseline)
     : hero(d.estado);
-  view.innerHTML = pageTop(d.sources) + syncNotice(ROUTE_STATE.syncMode) +
+  view.innerHTML = pageTop(d.sources) +
+    `<header class="atelier-intro home-intro">
+      <div class="eyebrow">ARES / HOY</div>
+      <h2>Tu día, <em>en perspectiva.</em></h2>
+      <p>Datos reales, hábitos y decisiones. Todo en un mismo lugar.</p>
+    </header>` + syncNotice(ROUTE_STATE.syncMode) +
     homeQuickCapture(ROUTE_STATE.syncMode) + mainProfile + renderPlanPreview(d.plan_preview) +
-    nativeWhoop(d.whoop) + pairedMetrics(d.fusion) +
-    `<div class="gauges" role="group" aria-label="Indicadores principales">${d.dials.map(gauge).join('')}</div>
-<button class="howto" data-howto>${svg('info')}Cómo leer estos indicadores</button>` +
-    (hasPersonalBaseline ? '' : baseline(d.estado)) +
-    `<div class="h2"><span class="eyebrow">Señales principales</span></div>${d.signals.map(sigRow).join('')}
-<div class="h2"><span class="eyebrow">Actividad</span></div><section class="card tile">${steps}</section>` +
-    `<section class="home-sources"><div class="home-section-heading">
-       <span class="eyebrow">FUENTES · ESTADO</span>
-       <a href="#/lab">Diagnóstico ↗</a></div>${chips(d.sources)}</section>`;
+    `<section class="atelier-section">
+       <header class="atelier-section-head"><span class="eyebrow">01 / TENDENCIAS</span>
+         <a href="#/fisiologia">Ver fisiología ↗</a></header>
+       <div class="atelier-row-list">${d.signals.map(sigRow).join('')}</div>
+     </section>
+     <section class="atelier-section">
+       <header class="atelier-section-head"><span class="eyebrow">02 / MOVIMIENTO</span></header>
+       <div class="home-steps">${steps}</div>
+     </section>
+     <details class="atelier-extras">
+       <summary>Explorar mediciones y fuentes ${svg('chev','phys-chevron')}</summary>
+       <div class="atelier-extras-content">
+         ${nativeWhoop(d.whoop)}
+         ${pairedMetrics(d.fusion)}
+         <div class="gauges" role="group" aria-label="Indicadores principales">${d.dials.map(gauge).join('')}</div>
+         <button class="howto" data-howto>${svg('info')}Cómo leer estos indicadores</button>
+         ${hasPersonalBaseline ? '' : baseline(d.estado)}
+         <section class="home-sources"><div class="home-section-heading">
+           <span class="eyebrow">FUENTES / ESTADO</span>
+           <a href="#/lab">Diagnóstico ↗</a></div>${chips(d.sources)}</section>
+       </div>
+     </details>`;
   animateGauges();
 }
 
@@ -640,7 +658,7 @@ function renderPlan(d) {
   const days = d.days.map(s => {
     const isToday = s.date === d.today;
     const rest = s.type === 'DESCANSO';
-    return `<article class="card plan-day ${isToday?'plan-today':''}">
+    return `<article class="plan-day ${isToday?'plan-today':''}">
       <div class="plan-day-top">
         <div><span class="eyebrow">${esc(WEEKDAYS[s.weekday]||s.weekday)}
           · ${esc(shortDate(s.date))}</span>
@@ -664,9 +682,9 @@ function renderPlan(d) {
      Proteína aproximada ${Math.round(d.weight_kg*1.8)} g/día.` :
     'Para convertir g/kg en gramos diarios, configura ARES_NUTRITION_WEIGHT_KG en tu .env local.';
   view.innerHTML = header +
-    `<section class="card plan-head">
-      <div class="eyebrow">ARES MARATHON LAB · VALENCIA 2027</div>
-      <h2>Tu entrenamiento y tu combustible</h2>
+    `<section class="plan-head">
+      <div class="eyebrow">ARES / MARATHON LAB · VALENCIA 2027</div>
+      <h2>Entrenar. <em>Recuperar.</em></h2>
       <div class="plan-total">
        <div><b>${esc(d.week)}</b><small>${esc(shortDate(d.start))}–${esc(shortDate(d.end))}</small></div>
        <div><b>${esc(d.run_minutes)}′</b><small>Tiempo de carrera</small></div>
@@ -682,7 +700,7 @@ function renderPlan(d) {
       ${d.snapshot_warning ? `<p class="plan-warning" role="alert">
         ${esc(d.snapshot_warning)}</p>` : ''}
     </section>
-    <section class="card plan-exec-summary">
+    <section class="plan-exec-summary">
       <div class="eyebrow">ARES · PRESCRITO / REGISTRADO / RESPUESTA</div>
       <h3>Dos fuentes, una historia de entrenamiento</h3>
       <div class="plan-exec-stats">
@@ -701,7 +719,7 @@ function renderPlan(d) {
           'sin registro de sincronización correcta'}</span>.
         Este momento no demuestra que el entrenamiento de hoy ya esté disponible.</p>
     </section>
-    <section class="card plan-nutrition-summary">
+    <section class="plan-nutrition-summary">
       <div class="eyebrow">Fueling ARES v1.0 · previsión semanal</div>
       <h3>Come hoy para entrenar mañana</h3>
       <p class="muted">${esc(grams)}</p>
@@ -719,7 +737,7 @@ function renderPlan(d) {
       Fueling ARES v1.0 ↗</a></p>
     </section>
     ${days}
-    <section class="card"><span class="eyebrow">Reglas del programa</span>
+    <section class="atelier-method"><span class="eyebrow">REGLAS DEL PROGRAMA</span>
       <p class="muted">${esc(d.caveat)}
        La frecuencia cardíaca manda sobre el ritmo y las sesiones perdidas
        no se compensan con volumen añadido.</p>
@@ -1032,7 +1050,7 @@ function renderEntrenos(d) {
       </div>
     </div>`;
   }).join('');
-  const comparisonPanel = comparisons && category === 'running' ? `<section class="card">
+  const comparisonPanel = comparisons && category === 'running' ? `<section class="card training-comparison">
     <div class="row" style="display:flex;align-items:center;justify-content:space-between">
       <span class="eyebrow">Comparador de sesiones</span>${tagChip('EXP','ARES')}
     </div><h3 style="margin:10px 0 6px">¿Mejora tu ritmo a pulso similar?</h3>
@@ -1045,7 +1063,7 @@ function renderEntrenos(d) {
     const isWhoop = a.source === 'whoop';
     const distance = a.distance_m === null ? '—' :
       (a.distance_m / 1000).toLocaleString('es-ES', {maximumFractionDigits:2})+' km';
-    return `<a href="#/entreno/${encodeURIComponent(a.id)}" class="card workout-tile"
+    return `<a href="#/entreno/${encodeURIComponent(a.id)}" class="workout-tile"
       aria-label="Abrir entrenamiento ${esc(a.title)}">
       <div class="row" style="display:flex;justify-content:space-between;gap:12px;align-items:center">
         <span class="eyebrow">${esc(a.sport)} · ${esc(shortDate(a.date))}</span>
@@ -1068,22 +1086,23 @@ function renderEntrenos(d) {
     </a>`;
   }).join('');
   view.innerHTML = pageTop(ROUTE_STATE.sources) +
-    '<div class="h2"><h2 style="margin:0;font-size:26px;font-weight:700">Entrenamientos</h2></div>' +
-    tabs +
-    `<section class="card workout-intro">
-      <span class="eyebrow">${category === 'running' ? 'COROS · vía Tredict' : 'WHOOP · actividades de vida'}</span>
-      <h3>${category === 'running' ? 'Cada kilómetro cuenta' : 'Movimiento más allá de correr'}</h3>
-      <p class="muted" style="margin:0">${category === 'running'
-        ? 'Carreras y series de tu reloj, vueltas y evolución del rendimiento.'
-        : 'Caminatas, senderismo, rucking explícito y otras actividades. WHOOP es la fuente prioritaria; se omiten coincidencias próximas de Tredict.'}</p>
-      <p class="muted" style="margin:10px 0 0;font-size:12px">
-        Último registro de entrenamiento en la base: ${lastTraining ? esc(shortDate(lastTraining)) : 'sin registros'}.
-        ${esc(d.source_caveat || '')}</p>
-    </section>` +
-    syncNotice(ROUTE_STATE.syncMode) + comparisonPanel +
-    (cards || `<section class="card"><h3>No hay actividades de este tipo todavía</h3>
-       <p class="muted">Comprueba la sincronización de fuentes. En carreras, las
-       series y vueltas requieren importar también los detalles de Tredict.</p></section>`);
+    `<header class="atelier-intro training-intro">
+      <div class="eyebrow">ARES / ARCHIVO DE ACTIVIDAD</div>
+      <h2>Movimiento, <em>medido.</em></h2>
+      <p>${category === 'running'
+        ? 'Carreras y series registradas por COROS a través de Tredict.'
+        : 'Caminatas y demás actividades registradas por WHOOP.'}</p>
+    </header>` + tabs + syncNotice(ROUTE_STATE.syncMode) +
+    `<div class="training-record-count">
+      <span class="eyebrow">${category === 'running' ? 'CARRERAS' : 'OTRAS ACTIVIDADES'} / ${esc(category === 'running' ? counts.running : counts.other)}</span>
+      <span>Último registro: ${lastTraining ? esc(shortDate(lastTraining)) : 'sin registros'}</span>
+    </div>` + comparisonPanel +
+    `<div class="atelier-row-list workout-list">
+      ${cards || `<section class="atelier-empty"><h3>No hay actividades de este tipo todavía</h3>
+         <p class="muted">Comprueba la sincronización de fuentes. Las series y vueltas
+           requieren importar también los detalles de Tredict.</p></section>`}
+     </div>
+     <p class="training-caveat">${esc(d.source_caveat || '')}</p>`;
 }
 
 function renderTrainingIntelligence(a) {
