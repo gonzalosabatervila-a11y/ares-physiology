@@ -1019,7 +1019,7 @@ let lastPath = null;
 async function route(refresh = false) {
   const {path, params} = currentHash();
   const parts = path.split('/');
-  const tab = parts[0] === 'senal' ? 'inicio' : parts[0] === 'entreno' ? 'entrenos' : parts[0] === 'lab' ? 'inicio' : (['inicio', 'entrenos', 'progreso', 'fisiologia', 'plan'].includes(parts[0]) ? parts[0] : 'inicio');
+  const tab = parts[0] === 'senal' ? 'inicio' : parts[0] === 'entreno' ? 'entrenos' : (['inicio', 'entrenos', 'progreso', 'fisiologia', 'plan', 'lab'].includes(parts[0]) ? parts[0] : 'inicio');
   setTabs(tab);
   let url, fn;
   if (parts[0] === 'senal' && parts[1]) {
