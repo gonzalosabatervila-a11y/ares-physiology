@@ -27,7 +27,7 @@ const P = { // trazos de 24x24
 };
 const svg = (k, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[k]}</svg>`;
 const MARK = `<svg width="38" height="38" viewBox="0 0 22 22" aria-hidden="true">
-<path d="M4.5 14.7A7.48 7.48 0 1 1 17.5 14.7" fill="none" stroke="#3A4548" stroke-width="4.2" stroke-linecap="round"/>
+<path d="M4.5 14.7A7.48 7.48 0 1 1 17.5 14.7" fill="none" stroke="#50564C" stroke-width="4.2" stroke-linecap="round"/>
 <path d="M4.5 14.7A7.48 7.48 0 0 1 14.6 4.4" fill="none" stroke="#D5B27A" stroke-width="4.2" stroke-linecap="round"/>
 <circle cx="14.6" cy="4.4" r="2.5" fill="#D5B27A"/></svg>`;
 const GLYPH = {
@@ -195,6 +195,7 @@ document.addEventListener('click', (e) => {
   const c = e.target.closest('[data-chip]');
   if (c) return sourceSheet(c.dataset.chip, ROUTE_STATE.sources || []);
   if (e.target.closest('[data-sync]')) return route(true);
+  if (e.target.closest('[data-route-retry]')) return route(true);
   const seg = e.target.closest('[data-days]');
   if (seg) return setDays(+seg.dataset.days);
 });
@@ -1117,7 +1118,9 @@ function currentHash() {
   return {path, params: new URLSearchParams(qs || '')};
 }
 let lastPath = null;
+let routeSeq = 0;
 async function route(refresh = false) {
+  const seq = ++routeSeq;
   const {path, params} = currentHash();
   const parts = path.split('/');
   const tab = parts[0] === 'senal' ? 'inicio' : parts[0] === 'entreno' ? 'entrenos' : (['inicio', 'entrenos', 'progreso', 'fisiologia', 'plan', 'lab', 'laboratorio'].includes(parts[0]) ? parts[0] : 'inicio');
@@ -1153,12 +1156,21 @@ async function route(refresh = false) {
     const r = await fetch(url, {cache: 'no-store'});
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const data = await r.json();
+    // Si se navega muy rápido, una respuesta antigua no debe pintar otra vista.
+    if (seq !== routeSeq) return;
     const y = window.scrollY;
     fn(data);
     view.classList.remove('view-in'); void view.offsetWidth; view.classList.add('view-in');
     window.scrollTo(0, refresh || lastPath === location.hash ? y : 0);
   } catch (err) {
-    view.innerHTML = `<div class="errbox" style="margin-top:24px"><b>Sin conexión con ARES.</b><br>No se han podido cargar los datos (${esc(err.message)}). Comprueba que <span class="mono">ares app</span> sigue en marcha.</div>`;
+    if (seq !== routeSeq) return;
+    view.innerHTML = `<div class="errbox" style="margin-top:24px" role="alert">
+      <b>No se han podido cargar estos datos.</b>
+      <p>El servidor ARES puede estar detenido o temporalmente ocupado.
+        ${esc(err.message)}</p>
+      <button type="button" class="lab-primary" data-route-retry>Reintentar carga</button>
+      <a href="#/inicio" class="lab-link">Volver a Inicio ↗</a>
+    </div>`;
   }
   lastPath = location.hash;
 }
