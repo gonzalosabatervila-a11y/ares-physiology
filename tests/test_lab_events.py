@@ -68,7 +68,7 @@ def test_hora_y_dosis_se_corrigen_sin_perder_traza_y_sin_duplicar(conn, settings
     assert len(changes)==2
     assert {r[0] for r in changes}=={"create","edit"}
     import json
-    old_value=json.loads(next(r[1] for r in changes if r[0]=="edit"))
+    old_value=json.loads([r[1] for r in changes if r[0]=="edit"][0])
     assert old_value["caffeine_mg"]==100
     assert conn.execute("SELECT created_at,updated_at FROM lab_events").fetchone() is not None
     hist=api.get("/api/lab/events").json()["events"]
