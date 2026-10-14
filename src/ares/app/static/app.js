@@ -854,4 +854,12 @@ async function route(refresh = false) {
   lastPath = location.hash;
 }
 window.addEventListener('hashchange', () => route());
+// La sincronización real pertenece al planificador de ares serve.
+// Refrescar la vista local cada 5 minutos solo si está visible y el
+// servidor declaró explícitamente que sincroniza en segundo plano.
+window.setInterval(() => {
+  if (ROUTE_STATE.syncMode === 'automatic' && document.visibilityState === 'visible') {
+    route(true);
+  }
+}, 5 * 60 * 1000);
 route();
