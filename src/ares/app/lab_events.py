@@ -293,8 +293,10 @@ def dinner_sleep_analysis(conn: duckdb.DuckDBPyConnection, device_id: str, tz: s
         "total_valid_nights": len(nights),
         "paired_nights": len(paired),
         "bands": result,
-        "ready_for_comparison": sum(x["status"]=="exploratory" for x in result) >= 2
-          and len(paired) >= 20,
+        "ready_for_comparison": len(paired) >= 20 and any(
+            sum(b[field] >= 5 for b in result) >= 2
+            for field in ("n_hrv", "n_rhr", "n_sleep")
+        ),
         "method": (
             "Última cena registrada dentro de las 12 h previas al inicio del "
             "sueño WHOOP en cada noche puntuable. WHOOP aproxima inicio del "
