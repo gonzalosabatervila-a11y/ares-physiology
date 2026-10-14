@@ -505,7 +505,7 @@ function renderFisiologia(d) {
       <p>${esc(d.reference_method)}</p><p>${esc(d.caution)}</p>
       <p>La VFC, el pulso y las etapas de sueño son estimaciones ópticas del dispositivo;
       para recomendaciones deportivas deberemos contrastarlos con las sesiones de COROS,
-      Tredict y, cuando proceda, la banda Polar H10.</p></details>`;
+      Tredict y, cuando proceda, la banda pectoral H10.</p></details>`;
 }
 
 // ----------------------------------------------------- explorador de entrenos
@@ -744,7 +744,10 @@ function renderEntreno(d) {
       </div>
       <p class="muted">${esc(d.attribution)}
         ${d.pace_calculated ? ' · Ritmo calculado desde tiempo y distancia' : ''}
-      </p></section>` + renderTrainingIntelligence(d.analysis) + renderTrainingContext(d.night_context) +
+      </p>
+      <a href="https://www.tredict.com/app/training/activity/${encodeURIComponent(d.id)}"
+        target="_blank" rel="noopener noreferrer" style="color:var(--sig);font-size:13px">
+        Abrir actividad original en Tredict ↗</a></section>` + renderTrainingIntelligence(d.analysis) + renderTrainingContext(d.night_context) +
     renderHrZones(d.hr_zones) + sensors +
     `<section class="card"><h3>Vueltas y segmentos</h3>
       ${laps ? '<div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Dist.</th><th>Ritmo</th><th>FC</th><th>W</th></tr></thead><tbody>'+
