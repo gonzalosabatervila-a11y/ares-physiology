@@ -193,3 +193,41 @@ td{padding:9px 6px 9px 0;border-top:1px solid var(--line);vertical-align:top}
 }
 
 .hval .n small{font-size:18px;font-weight:500;color:var(--mut);margin-left:6px;letter-spacing:0}
+
+
+/* ARES Atelier · navegación por familias de entrenamiento */
+.training-tabs{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;
+  background:var(--s1);border:1px solid var(--line2);border-radius:18px;padding:6px;
+}
+.training-tabs a{
+  display:flex;align-items:center;justify-content:center;gap:8px;min-height:46px;
+  font-size:14px;font-weight:650;color:var(--mut);border-radius:13px;
+}
+.training-tabs a[aria-current=page]{
+  color:var(--txt);background:var(--s3);border:1px solid var(--sig-line);
+  box-shadow:inset 0 -2px 0 var(--sig);
+}
+.training-tabs small{font-size:11px;color:var(--sig);font-weight:600}
+.source-mark{
+  display:inline-flex;align-items:center;border:1px solid var(--line2);border-radius:99px;
+  padding:5px 8px;font-family:'Martian Mono',monospace;font-size:9px;white-space:nowrap;
+  letter-spacing:.02em;color:var(--mut)
+}
+.source-coros{border-color:var(--sig-line);color:var(--sig)}
+.source-whoop{border-color:rgba(166,189,163,.4);color:#A6BDA3}
+.workout-tile{display:block;transition:border-color .2s,transform .2s}
+.workout-tile:active{transform:scale(.992)}
+.workout-tile:hover{border-color:var(--sig-line)}
+.workout-intro h3{font-size:21px;margin:8px 0 10px;letter-spacing:-.02em}
+.sync-note{
+  padding:13px 15px;border:1px solid var(--line2);border-radius:15px;
+  color:var(--mut);background:rgba(213,178,122,.035);
+  font-size:12px;line-height:1.65
+}
+.sync-note b{color:var(--txt)}
+.sync-note code{color:var(--sig);overflow-wrap:anywhere}
+@media (min-width:760px){
+  #app{max-width:720px}
+  .training-tabs{max-width:440px}
+}
