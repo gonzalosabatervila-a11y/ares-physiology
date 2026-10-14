@@ -328,3 +328,87 @@ td{padding:9px 6px 9px 0;border-top:1px solid var(--line);vertical-align:top}
 .plan-night-grid b{color:var(--txt);font-variant-numeric:tabular-nums;font-weight:650}
 
 .plan-warning{padding:10px 12px;border:1px solid rgba(214,121,104,.65);border-radius:11px;color:#F2C3B7;background:rgba(214,121,104,.09);font-size:12px;line-height:1.5;margin-top:12px}
+
+/* ARES LAB · captura ultrarrápida y trazabilidad fisiológica */
+.lab-head{padding:10px 3px 4px}
+.lab-head h2{font-size:30px;font-weight:750;letter-spacing:-.045em;line-height:1.08;margin:11px 0}
+.lab-head p{font-size:13px;color:var(--mut);line-height:1.6;margin:0;max-width:42ch}
+.lab-capture{border:1px solid var(--sig-line);border-radius:20px;
+  padding:17px 14px 14px;background:
+  radial-gradient(110% 100% at 100% 0%,rgba(213,178,122,.13),transparent 70%),var(--s1)}
+.lab-section-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.lab-section-head h3{font-size:19px;margin:8px 0 0}
+.lab-live{font-size:10px;color:var(--mut2);white-space:nowrap}
+.lab-quick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:15px 0}
+.lab-action{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:6px;
+  text-align:center;border:1px solid var(--line2);border-radius:15px;
+  padding:12px 5px;min-height:122px;background:var(--s2);
+  transition:transform .13s ease,border-color .13s ease,background .13s ease}
+.lab-action:first-child{background:linear-gradient(155deg,rgba(213,178,122,.15),var(--s2));
+  border-color:var(--sig-line)}
+.lab-action span{font-size:29px;line-height:1.1;color:var(--sig)}
+.lab-action b{font-size:12.5px;font-weight:750;line-height:1.15}
+.lab-action small{font-size:10px;color:var(--mut);line-height:1.25}
+.lab-action:active{transform:scale(.95);background:var(--s3)}
+.lab-action:disabled{opacity:.5;cursor:not-allowed}
+.lab-footnote{font-size:10.5px;line-height:1.5;color:var(--mut);margin:10px 0 0}
+.lab-custom-actions{display:flex;justify-content:flex-end;border-top:1px solid var(--line);padding-top:12px}
+.lab-custom-actions button{font-size:12px;color:var(--sig);font-weight:650}
+.lab-readonly,.lab-message{border-radius:12px;padding:10px 12px;line-height:1.5;
+  font-size:12px;background:var(--sig-dim);border:1px solid var(--sig-line);color:var(--txt)}
+.lab-message{font-weight:650}
+.lab-readonly code{color:var(--sig)}
+.lab-stat-line{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:15px 0}
+.lab-stat-line div{background:rgba(0,0,0,.17);padding:12px 11px;border:1px solid var(--line2);border-radius:12px}
+.lab-stat-line b{display:block;font-size:26px;font-weight:800;font-variant-numeric:tabular-nums}
+.lab-stat-line small{display:block;font-size:10px;line-height:1.4;color:var(--mut);margin-top:6px}
+.lab-insight h3{font-size:17px;line-height:1.35;margin:19px 0 12px}
+.lab-cohorts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.lab-cohort{padding:12px 10px;border-radius:12px;border:1px solid var(--line2);background:var(--s1);min-width:0}
+.lab-cohort-top{display:flex;flex-direction:column;gap:3px}
+.lab-cohort-top b{font-size:13px;color:var(--sig)}
+.lab-cohort-top span{font-size:11px;color:var(--mut)}
+.lab-cohort-values{display:flex;flex-direction:column;gap:5px;margin-top:12px;color:var(--txt);font-size:11.5px;line-height:1.35}
+.lab-cohort-values span:first-child{font-weight:650}
+.lab-evidence{font-size:12px;line-height:1.55;margin:15px 0 0;color:var(--mut)}
+.lab-method{font-size:11.5px;color:var(--mut);margin-top:12px}
+.lab-method summary{cursor:pointer;color:var(--sig);font-weight:650}
+.lab-method p{line-height:1.6}
+.lab-history{padding:16px}
+.lab-entry{display:flex;align-items:center;gap:11px;padding:12px 0;border-top:1px solid var(--line)}
+.lab-entry:first-of-type{margin-top:12px}
+.lab-entry-icon{width:35px;height:35px;flex:0 0 35px;display:grid;place-items:center;
+  background:var(--s3);border-radius:11px;color:var(--sig);font-size:18px}
+.lab-entry-main{min-width:0;flex:1}
+.lab-entry-main b{display:block;font-size:13px;line-height:1.4}
+.lab-entry-main b small{font-weight:400;font-size:10px;color:var(--mut)}
+.lab-entry-main>small{display:block;color:var(--mut);font-size:11px;line-height:1.35;margin-top:4px}
+.lab-edit{color:var(--sig);font-size:11px;border:1px solid var(--sig-line);border-radius:9px;padding:8px}
+.lab-timeline{margin-top:18px}
+.lab-timeline-item{display:flex;align-items:stretch;gap:12px;position:relative;min-height:62px}
+.lab-timeline-line{width:2px;background:var(--line2);position:absolute;top:12px;bottom:-8px;left:5px}
+.lab-timeline-item:last-child .lab-timeline-line{display:none}
+.lab-timeline-dot{width:12px;height:12px;border:2px solid var(--sig);
+  border-radius:50%;background:var(--s1);flex:none;position:relative;z-index:1}
+.lab-timeline-dot.whoop{border-color:#A6BDA3;background:#A6BDA3}
+.lab-timeline-text{padding:0 0 17px}
+.lab-timeline-text span{display:block;font-size:10px;color:var(--mut)}
+.lab-timeline-text b{display:block;font-size:13px;margin-top:4px}
+.lab-timeline-text small{display:block;color:var(--mut);line-height:1.4;font-size:11px;margin-top:4px}
+.lab-link{display:block;margin-top:12px;font-size:12px;font-weight:650;color:var(--sig)}
+.lab-field{display:block;width:100%;border:1px solid var(--line2);
+  background:var(--s3);border-radius:11px;color:var(--txt);padding:13px;
+  font:inherit;font-size:15px;margin:6px 0 14px;min-height:44px}
+#lab-event-form label{font-size:12px;color:var(--mut);font-weight:650}
+#lab-event-form textarea{resize:vertical}
+.lab-primary{display:block;text-align:center;width:100%;background:var(--sig);color:var(--bg);
+  border-radius:12px;padding:13px;font-weight:750;margin-top:15px}
+.lab-primary:disabled{opacity:.6}
+.lab-delete{display:block;text-align:center;margin:12px auto;color:var(--alrt);padding:9px}
+.lab-error{color:var(--alrt);font-size:12px;line-height:1.5}
+@media(max-width:370px){
+  .lab-quick{gap:6px}
+  .lab-action{padding:10px 3px;min-height:115px}
+  .lab-action b{font-size:11px}
+  .lab-cohorts{gap:6px}
+}
