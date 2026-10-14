@@ -263,3 +263,12 @@ td{padding:9px 6px 9px 0;border-top:1px solid var(--line);vertical-align:top}
   .baseline-cell{padding:11px 9px}
   .baseline-number{font-size:23px}
 }
+
+/* Sincronización: contexto, nunca una tarjeta promocional por encima de fisiología */
+.sync-compact{display:flex;align-items:center;gap:8px;min-height:23px;
+  color:var(--mut);font-size:11px;line-height:1.35;padding:0 3px}
+.sync-compact .sync-indicator{height:7px;width:7px;flex:0 0 7px;
+  background:#A6BDA3;border-radius:50%}
+.sync-compact .sync-indicator.paused{background:var(--warn)}
+.sync-compact a{margin-left:auto;white-space:nowrap;color:var(--sig);
+  text-decoration:none;font-size:11px}
