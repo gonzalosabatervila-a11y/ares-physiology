@@ -133,6 +133,38 @@ function renderAresLab(d) {
         <p>${esc(d.dinner_sleep.method)}</p>
       </details>
     </section>
+    <section class="card lab-insight" aria-label="Cafeína y sueño WHOOP">
+      <div class="eyebrow">CAFÉ → SUEÑO WHOOP · OBSERVACIÓN</div>
+      <div class="lab-stat-line">
+        <div><b>${esc(d.caffeine_sleep?.paired_nights ?? 0)}</b>
+          <small>Noches con café registrado antes del sueño</small></div>
+        <div><b>${esc(d.caffeine_sleep?.total_valid_nights ?? 0)}</b>
+          <small>Noches WHOOP puntuables</small></div>
+      </div>
+      <h3>¿Cuántas horas pasan desde tu último café?</h3>
+      <div class="lab-cohorts">
+        ${(d.caffeine_sleep?.bands || []).map(b => {
+          const fmt = (v,unit) => v === null || v === undefined ?
+             '—' : esc(Number(v).toLocaleString('es-ES',{maximumFractionDigits:1}))+' '+unit;
+          const text = b.status !== 'exploratory'
+            ? '<span>Se requieren al menos 5 noches con esta condición</span>'
+            : `<span>VFC ${fmt(b.hrv.median,'ms')}
+                ${b.hrv.p25 === null ? '' : `<small> P25–P75 ${fmt(b.hrv.p25,'')}–${fmt(b.hrv.p75,'')}</small>`}</span>
+               <span>FC reposo ${fmt(b.rhr.median,'lpm')}</span>
+               <span>Sueño ${fmt(b.sleep.median,'min')}</span>`;
+          return `<div class="lab-cohort">
+             <div class="lab-cohort-top"><b>${esc(b.label)}</b><span>${b.n} noches</span></div>
+             <div class="lab-cohort-values">${text}</div>
+          </div>`;
+        }).join('')}
+      </div>
+      <p class="lab-evidence">${d.caffeine_sleep?.ready_for_comparison
+        ? 'Comparación exploratoria disponible; pendientes ajustes por carga y horarios.'
+        : 'Aún falta diversidad de noches registradas para comparar condiciones.'}</p>
+      <details class="lab-method"><summary>Qué significa esta comparación</summary>
+        <p>${esc(d.caffeine_sleep?.method || '')}</p>
+      </details>
+    </section>
     <section class="card lab-history">
       <div class="lab-section-head"><div><span class="eyebrow">REGISTRO PERSONAL</span>
         <h3>Tus acontecimientos</h3></div>
