@@ -138,8 +138,11 @@ def _tredict_sessions(
 
 
 def _activity_family(item: dict[str, Any]) -> str | None:
-    kind = f"{item.get('sport', '')} {item.get('sub_sport', '')}".lower()
-    if any(token in kind for token in ("strength", "weight", "functional", "gym")):
+    kind = (
+        f"{item.get('sport', '')} {item.get('sub_sport', '')} "
+        f"{item.get('title', '')}"
+    ).lower()
+    if any(token in kind for token in ("strength", "weight", "functional", "gym", "fuerza")):
         return "strength"
     if any(token in kind for token in ("walk", "hike", "hiking", "ruck")):
         return "walk"
