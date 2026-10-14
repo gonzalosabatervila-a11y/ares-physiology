@@ -42,6 +42,48 @@ fuentes, ausencia de datos, privacidad y coherencia de fechas. Esta rama
 es de desarrollo y **no** está fusionada con producción. Antes de
 entregarla, ejecutar pruebas Python y validación sintáctica JS en el Mac.
 
+## Fase 1.5 · Training Intelligence y respuesta fisiológica (en revisión)
+
+La rama de desarrollo implementa, sin modificar los registros originales:
+
+- **Calidad por sensor**: cobertura de pulso, velocidad y parejas simultáneas.
+  Nulos y valores implausibles no se convierten en ceros.
+- **Deriva FC/velocidad (EXP)**: cambio descriptivo del cociente FC/velocidad
+  entre mitades de un tramo de carrera. NO es la deriva aeróbica validada.
+  Solo aparece con ≥40 minutos, menos de 3 % de pausas,
+  cobertura de pares ≥80 %, velocidad CV ≤10 % en cada mitad y
+  velocidades medias semejantes (diferencia ≤5 %).
+  El método descarta los primeros 10 minutos y los últimos 5.
+  La altimetría, el clima y el error de sensor siguen siendo factores de confusión.
+- **Consistencia de vueltas (CALC)**: coeficiente de variación del ritmo
+  de al menos tres vueltas de distancia comparable (±5 %).
+  No confundir vueltas de calentamiento con intervalos por defecto.
+- **Comparador (EXP)**: parejas de carrera de 3 a 50 km cuya distancia
+  difiere ≤10 % y FC media ≤5 lpm, mostrando variación de velocidad;
+  no garantiza mismo recorrido ni estado ambiental.
+- **Zonas históricas**: distribución de segundos en las zonas de FC y
+  límites que Tredict adjunta a esa sesión; no aplicar zonas actuales
+  a un entrenamiento anterior.
+- **Fisiología alrededor del entreno**: última noche WHOOP que terminó
+  realmente ANTES del ejercicio y primera que empezó DESPUÉS del ejercicio,
+  por instantes UTC, con ventana de 72 horas. Muestra diferencias
+  descriptivas HRV/RHR/sueño/Recovery, sin atribución causal.
+
+Se ha contrastado la **estructura**, no copiado el contenido, de una
+actividad real de Tredict: `summary` contiene duración, distancia,
+ritmo, FC, potencia y cadencia; `laps` son vueltas cronológicas;
+`seriesSampled` tiene `sampleSize`, `endOffset` y `data` con
+los sensores; `currentZones` conserva umbrales históricos y
+`summary.zonesDistribution` los segundos clasificados.
+Cada actividad puede diferir: campos opcionales ausentes permanecen
+sin dato. No se han subido archivos, coordenadas ni valores privados.
+
+**Estado:** código + pruebas sintéticas en la rama experimental.
+Todavía hay que ejecutar todas las pruebas en el Mac, importar un pequeño
+lote de sesiones completas, comprobar sus unidades y la presentación
+móvil. No afirmar precisión, resultados individuales o validación de
+métodos antes de hacerlo.
+
 ## Fase 2 · Entreno de nivel analista
 
 - **Biblioteca de sesiones**: filtrar carrera, fuerza, ciclismo; comparar
