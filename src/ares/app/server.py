@@ -14,7 +14,6 @@ from urllib.parse import urlsplit
 
 import duckdb
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -179,7 +178,19 @@ def create_app(
         if not origin:
             raise HTTPException(403, "Origin obligatorio")
         parsed = urlsplit(origin)
-        if parsed.scheme not in {"http", "https"} or parsed.hostname != host_header:
+        if parsed.scheme not in {"http", "https"}:
+            raise HTTPException(403, "Origin no coincide con la aplicación ARES")
+        direct = parsed.hostname == host_header
+        # Algunos reverse proxies locales reescriben Host a 127.0.0.1.
+        # Solo admitir esto en HTTPS tailnet y con proxy en loopback.
+        client_ip = request.client.host if request.client else None
+        tailnet_proxy = (
+            parsed.scheme == "https"
+            and (parsed.hostname or "").endswith(".ts.net")
+            and host_header in {"localhost", "127.0.0.1"}
+            and client_ip in {"127.0.0.1", "::1"}
+        )
+        if not direct and not tailnet_proxy:
             raise HTTPException(403, "Origin no coincide con la aplicación ARES")
         if parsed.scheme == "http" and host_header not in {"localhost", "127.0.0.1"}:
             raise HTTPException(403, "ARES remoto exige HTTPS de Tailscale Serve")
