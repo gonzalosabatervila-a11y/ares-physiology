@@ -80,6 +80,63 @@ y `node --check src/ares/app/static/app.js`. El branch y la PR no se
 fusionan ni se despliegan al HP hasta que estas pruebas y la importación
 de algunas sesiones reales estén verificadas.
 
+## ARES Execution Intelligence · prescrito → registrado → fisiología
+
+En `#/plan` verás cada sesión con:
+- Entrenamiento **PRESCRITO** desde el Excel maestro vigente (snapshot
+  S32–S40), nunca modificado a partir de los datos del reloj.
+- Entrenamientos **REGISTRADOS** en COROS vía Tredict, identificados por
+  actividad y fecha local Europe/Madrid; el resumen y detalle de la
+  misma actividad no se cuentan dos veces.
+- Cuando existe **una sola carrera** ese día, contexto WHOOP de la
+  última noche válida acabada antes de empezar y la primera noche
+  posterior al fin de la sesión (ventana 72 h), sin correlación causal.
+- Estado honesto: futura / sin registro en datos importados / actividad
+  registrada sin verificar / actividad en día de descanso. **Ninguno
+  demuestra cumplimiento**, que exigirá validar vueltas, intervalos y zonas.
+
+La última sincronización de Tredict se muestra separada de las
+fechas de carrera: una fuente antigua no prueba que se haya faltado a
+una sesión. El endpoint sigue siendo solo lectura, sin GPS ni notas.
+
+### Actualización segura del plan maestro
+
+El equipo NO está conectado directamente a Drive. Para actualizar el
+Excel se descarga explícitamente el maestro **vigente** de la carpeta
+`000/ARES/01 RUNNING/MARATÓN`, **no de Old**, y se pasa la ruta
+local descargada al CLI de ARES:
+
+```bash
+cd ~/ares
+uv run ares plan-check ~/Downloads/Plan_Maraton_Gonzalo_MAESTRO_v9.xlsx
+```
+
+El CLI lee XLSX con herramientas de la biblioteca estándar (sin ejecutar
+macros), comprueba la integridad de **63 sesiones S32–S40**,
+detecta cambios de campo por fecha y muestra la huella SHA-256.
+**No modifica ningún archivo ni la base de datos.** Si y solo si los
+cambios son correctos y aprobados:
+
+```bash
+uv run ares plan-check ~/Downloads/Plan_Maraton_Gonzalo_MAESTRO_v9.xlsx --apply
+```
+
+ARES escribe atómicamente solo en
+`~/ares-data/training_plan.json`; si ya había una copia local,
+hace backup con fecha y hora en esa misma carpeta. La app recarga la
+nueva versión en la próxima consulta, sin detener ni reiniciar el
+servicio. Si el archivo queda inválido, se muestra un aviso y
+se utiliza la versión v9 de referencia, sin afectar WHOOP ni DuckDB.
+
+**El importador admite por seguridad solo S32–S40**, la parte confirmada
+del plan. No extiende automáticamente semanas posteriores aunque el
+Excel contenga más: añadir meses exige revisar nuevas fuentes y
+actualizar el validador de periodización.
+
+Verificar que el Excel descargado procede realmente del último archivo
+de Drive es responsabilidad del operador: el CLI no tiene acceso
+a Drive ni puede certificar la identidad remota del archivo.
+
 ## ARES Plan · maratón y nutrición periodizada
 
 Nueva pestaña **Plan** (`#/plan`), con el entrenamiento prescrito de la
