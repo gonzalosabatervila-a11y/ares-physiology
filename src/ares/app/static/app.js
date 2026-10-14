@@ -540,6 +540,15 @@ function renderPlan(d) {
             ' · Guía general Fueling ARES, no pauta individual validada'}
           ${n.post_rice_cooked_g ? ` · Arroz cocido post: ${n.post_rice_cooked_g[0]}–${n.post_rice_cooked_g[1]} g.` : ''}
         </div>
+        <details class="plan-extra"><summary>Hidratación y ajustes de comida</summary>
+          <p>${esc(n.hydration)}</p>
+          ${n.sodium_mg_h ? `<p>Sodio de partida: ${n.sodium_mg_h[0]}–${n.sodium_mg_h[1]} mg/h
+           en sesiones prolongadas, personalizar según sudoración y calor.</p>` : ''}
+          <p>${esc(n.main_meal)}</p>
+          ${n.post_strength ? `<p>${esc(n.post_strength)}</p>` : ''}
+          <p>Proteína diaria: ${n.protein_g === null ? '1,8 g/kg' :
+            n.protein_g + ' g orientativos'}. Grasas: 60–75 g/día.</p>
+        </details>
     </div>`;
   };
   const days = d.days.map(s => {
@@ -560,6 +569,12 @@ function renderPlan(d) {
         ${s.strength_min ? `<span>Fuerza ${s.strength_min} min · ${esc(d.training_rules.strength_local_start)}</span>` : ''}
       </div>
       ${s.detail && !rest ? `<p class="muted" style="margin:8px 0 0">${esc(s.detail)}</p>`:''}
+      ${d.observed_runs?.[s.date] ? `<div class="plan-observed">
+        <span class="eyebrow">Registrado en Tredict · NO verifica la sesión</span>
+        <div>${d.observed_runs[s.date].count} actividad(es) de carrera ·
+          ${esc(d.observed_runs[s.date].minutes)} min ·
+          ${esc(d.observed_runs[s.date].km)} km
+        </div></div>` : ''}
       ${nutrient(s)}
       ${s.shoe ? `<p class="muted" style="font-size:11px;margin:10px 0 0">Calzado previsto: ${esc(s.shoe)}</p>` : ''}
     </article>`;
