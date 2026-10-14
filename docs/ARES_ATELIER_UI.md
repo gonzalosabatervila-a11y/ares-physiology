@@ -74,6 +74,43 @@ táctiles, tamaños de letra con accesibilidad del sistema,
 latencia real o screenshots de 375/390/430/820/1440 px. No
 declarar UI «perfecta» ni plenamente accesible hasta completarlo.
 
+## Scientific Atelier · refinamiento editorial de Fisiología (14/10/2026)
+
+La revisión recibida de terceros examina la versión ARES v0.6 del
+30/09/2026: resulta valiosa como visión, pero NO describe todas las
+integraciones ni los colores de la rama actual. Conservamos la idea
+de *instrumento de laboratorio + editorial nocturno* y evitamos
+reintroducir cian o referencias a Loop/Polar como fuente principal.
+
+Refactor realizado **in situ** en el módulo final de `app.css`:
+se reemplazó el bloque previo de Fisiología, en vez de añadir otra capa
+de sobrescrituras. Sin dependencias nuevas ni descargas extra de fuentes.
+
+- **Titular editorial:** Archivo para numerales e interfaz, serif
+  sobria con fallback local solo para el énfasis narrativo.
+- **Cifras:** lectura y unidad separadas, Archivo variable con ancho
+  condensado (eje `wdth`). La medida normal es marfil; no usa
+  semáforos arbitrarios.
+- **Fuentes:** WHOOP directo en un pie discreto; Recovery sigue
+  siendo `MODELO · WHOOP`, nunca un cálculo atribuido a ARES.
+- **Superficies:** resumen con aire y una sola línea de separación;
+  VFC y FC dentro de un mismo panel con división mínima; señales
+  secundarias como filas desplegables, no más tarjetas repetidas.
+- **Curvas:** SVG original sin nueva dependencia, puntos trazados
+  en fechas reales; huecos explícitos, cursor accesible con ratón
+  y flechas; el color champán se reserva para los datos y la
+  salvia para la posición activa/calidad.
+- **Microtipografía:** Martian Mono queda para etiquetas técnicas,
+  fecha/procedencia, sin dominar titulares.
+- **Diseño móvil:** tamaños de numerales condensados y anchos máximos;
+  sin supuestos de datos nuevos ni tratamientos clínicos.
+
+**Verificaciones completadas:** JavaScript parsea, renderizado sintético
+de las métricas y estados, versión cache-busting de HTML, tests de
+regresión de UI ampliados. **No validado todavía** con `pytest` real
+en Mac, screenshot real, Safari iPhone, VoiceOver ni presupuesto
+de interacción táctil; no se declara terminado visualmente.
+
 ## Objetivos visuales y operativos
 
 - Paleta: grafito `#0C0E0D`, champagne `#D9B782`,
