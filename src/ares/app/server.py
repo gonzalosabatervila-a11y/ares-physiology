@@ -33,6 +33,25 @@ def create_app(
     def cursor() -> duckdb.DuckDBPyConnection:
         return get_conn().cursor()  # un cursor por petición: seguro entre hilos
 
+    def current_plan(week: str | None = None) -> dict:
+        options = dict(
+            week=week, tz=settings.tz, weight_kg=settings.nutrition_weight_kg,
+        )
+        override = settings.data_dir / "training_plan.json"
+        try:
+            return planning.plan(**options, source_file=override)
+        except (ValueError, OSError):
+            # Una copia local dañada no debe inutilizar WHOOP, Tredict
+            # ni la pantalla de inicio: volvemos a la versión incluida.
+            if not override.is_file():
+                raise
+            fallback = planning.plan(**options)
+            fallback["snapshot_warning"] = (
+                "El plan local actualizado no es válido. Se muestra la copia "
+                "de referencia incluida en ARES; revisa el Excel importado."
+            )
+            return fallback
+
     @app.get("/api/home")
     def api_home() -> dict:
         # La tarjeta nativa usa WHOOP directo; las señales heredadas de intervals.icu
@@ -42,8 +61,7 @@ def create_app(
             device=settings.intervals_wellness_device,
             device_id=settings.device_id,
         )
-        weekly = planning.plan(tz=settings.tz, weight_kg=settings.nutrition_weight_kg,
-                               source_file=settings.data_dir / "training_plan.json")
+        weekly = current_plan()
         return {
             **result,
             "sync_mode": "automatic" if auto_sync else "read_only",
@@ -64,9 +82,7 @@ def create_app(
     def api_plan(week: str | None = None) -> dict:
         if week is not None and week not in {f"S{i}" for i in range(32, 41)}:
             raise HTTPException(status_code=422, detail="Semana fuera del plan disponible")
-        result = planning.plan(week=week, tz=settings.tz,
-                               weight_kg=settings.nutrition_weight_kg,
-                               source_file=settings.data_dir / "training_plan.json")
+        result = current_plan(week)
         if not result["available"]:
             return result
         compared = plan_execution.execution(
@@ -83,7 +99,16 @@ def create_app(
             }
             for day, item in compared["days"].items() if item["count"] > 0
         }
-        return {**result, "observed_runs": observed, "execution": compared}
+        cur = cursor()
+        last_tredict = cur.execute(
+            """SELECT max(last_ok) FROM source_status
+               WHERE source='tredict' AND endpoint='activity'"""
+        ).fetchone()
+        checked_at = last_tredict[0].isoformat() if last_tredict and last_tredict[0] else None
+        return {
+            **result, "observed_runs": observed, "execution": compared,
+            "tredict_last_sync": checked_at,
+        }
 
     @app.get("/api/progreso")
     def api_progreso() -> dict:
