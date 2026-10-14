@@ -12,7 +12,6 @@ from __future__ import annotations
 import json
 import math
 from datetime import date, datetime
-from functools import lru_cache
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -28,9 +27,9 @@ ORDER = tuple(BANDS)
 FUELING_SOURCE = "Fueling ARES — Sistema Maestro de Nutrición v1.0 (19/09/2026)"
 
 
-@lru_cache(maxsize=1)
-def _snapshot() -> dict[str, Any]:
-    with FILE.open(encoding="utf-8") as f:
+def _snapshot(source_file: Path | None = None) -> dict[str, Any]:
+    file = source_file if source_file is not None and source_file.is_file() else FILE
+    with file.open(encoding="utf-8") as f:
         obj = json.load(f)
     if obj.get("format") != "ares-marathon-plan-v1":
         raise ValueError("Snapshot ARES desconocido")
@@ -178,9 +177,10 @@ def plan(
     today: date | None = None,
     tz: str = "Europe/Madrid",
     weight_kg: float | None = None,
+    source_file: Path | None = None,
 ) -> dict[str, Any]:
     """Semana vigente o seleccionada; la fuente es un snapshot trazable."""
-    p = _snapshot()
+    p = _snapshot(source_file)
     weeks = p["weeks"]
     all_sessions = [day for w in weeks for day in w["sessions"]]
     if weight_kg is not None and (
@@ -233,8 +233,12 @@ def plan(
         "source": p["source_name"],
         "source_version": p["source_version"],
         "source_url": p["source_url"],
+        "source_name": p["source_name"],
+        "source_sha256": p.get("source_sha256"),
         "snapshot_date": p["imported_at"],
-        "sync": "SNAPSHOT_MANUAL_NO_LIVE_DRIVE",
+        "sync": ("SNAPSHOT_LOCAL_VERIFIED_NO_LIVE_DRIVE"
+                 if source_file is not None and source_file.is_file()
+                 else "SNAPSHOT_MANUAL_NO_LIVE_DRIVE"),
         "fueling_source": FUELING_SOURCE,
         "fueling_source_url": p["fueling_source_url"],
         "weeks": [{"id": w["id"], "start": w["start"], "end": w["end"]} for w in weeks],
