@@ -50,7 +50,7 @@ def test_una_pasada_de_serve_deja_la_base_migrada_y_no_llama_a_la_red(tmp_path, 
     monkeypatch.setenv("ARES_DATA_DIR", str(tmp_path))
     assert serve.run(run_once=True) == 0
     c = db.connect(tmp_path / "ares.duckdb")
-    assert db.current_version(c) == 4
+    assert db.current_version(c) == 5
     c.close()
 
 
