@@ -737,79 +737,202 @@ function physFmt(value, unit) {
   }
   return num.toLocaleString('es-ES', {maximumFractionDigits: unit === '°C' || unit === 'rpm' ? 1 : 0}) + ' ' + unit;
 }
-function physChart(points, title) {
-  const valid = points.filter((p) => p.v !== null && Number.isFinite(Number(p.v)));
-  if (valid.length < 2) return '<p class="muted" style="margin:12px 0">No hay suficientes medidas válidas para la gráfica.</p>';
-  const W = 330, H = 110, top = 7, bottom = 22, left = 12, right = 8;
-  const lo = Math.min(...valid.map((p) => p.v));
-  const hi = Math.max(...valid.map((p) => p.v));
-  const pad = (hi - lo || 1) * .15, lower = lo - pad, upper = hi + pad;
-  const x = (i) => left + (W-left-right) * i / Math.max(points.length-1, 1);
-  const y = (v) => top + (H-top-bottom) * (1 - (v-lower)/(upper-lower));
-  // Un valor ausente interrumpe el trazo: no fingimos continuidad.
-  let path = '', active = false;
-  points.forEach((p, i) => {
-    if (p.v === null || !Number.isFinite(Number(p.v))) { active = false; return; }
-    path += `${active ? 'L' : 'M'}${x(i).toFixed(1)} ${y(p.v).toFixed(1)}`;
-    active = true;
-  });
-  const first = points[0]?.date || '', last = points[points.length-1]?.date || '';
-  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img"
-    aria-label="${esc(title)} · ${valid.length} registros válidos, ${esc(shortDate(first))} a ${esc(shortDate(last))}">
-    <path d="${path}" fill="none" stroke="#D5B27A" stroke-width="2.4"
-      stroke-linecap="round" stroke-linejoin="round"/>
-    <text x="${left}" y="${H-3}" fill="#ABA99E" font-size="11">${esc(shortDate(first))}</text>
-    <text x="${W-right}" y="${H-3}" fill="#ABA99E" text-anchor="end" font-size="11">${esc(shortDate(last))}</text>
-    </svg>`;
+const PHYS_SERIES = new Map();
+let physSeq = 0;
+function physReadable(value, unit) {
+  return physFmt(value, unit);
 }
-function physCard(m) {
-  const d = m.difference === null || m.relative_change_pct === null ? null : (m.difference > 0 ? '+' : '') + physFmt(m.difference, m.unit);
-  return `<section class="card" aria-label="${esc(m.label)}">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-      <span class="eyebrow">${esc(m.label)}</span>
-      ${tagChip(m.key === 'recovery' ? 'CALC' : 'MED', m.origin)}
+function physChart(points, title, unit) {
+  const valid = points.flatMap(p => {
+    const v = Number(p.v), t = Date.parse(p.date);
+    return p.v !== null && p.v !== undefined && Number.isFinite(v) && Number.isFinite(t)
+      ? [{date:p.date,v,t}] : [];
+  });
+  if (valid.length < 2) return '<p class="phys-empty">Todavía no hay suficientes lecturas válidas para mostrar la evolución.</p>';
+  const W=540,H=192,L=14,R=14,T=16,B=30,base=H-B,usableW=W-L-R;
+  const timestamps=points.map(p=>Date.parse(p.date)).filter(Number.isFinite);
+  const t0=Math.min(...timestamps),t1=Math.max(...timestamps);
+  const span=t1-t0||86400000;
+  const values=valid.map(p=>p.v),min=Math.min(...values),max=Math.max(...values);
+  const pad=(max-min||Math.max(Math.abs(max)*.03,.5))*0.20;
+  const lower=min-pad,upper=max+pad;
+  const x=t=>L+usableW*(t-t0)/span;
+  const y=v=>T+(base-T)*(1-(v-lower)/(upper-lower));
+  const fx=n=>n.toFixed(2);
+  const segments=[];
+  let previous=null, path='';
+  for(const p of points){
+    const v=Number(p.v),t=Date.parse(p.date);
+    if(p.v===null||p.v===undefined||!Number.isFinite(v)||!Number.isFinite(t)){
+      previous=null;continue;
+    }
+    const isolated=previous===null || t-previous>86400000*1.5;
+    if(isolated && path){segments.push(path);path='';}
+    path+=`${isolated?'M':'L'}${fx(x(t))} ${fx(y(v))}`;
+    previous=t;
+  }
+  if(path)segments.push(path);
+  const id=`phys-${++physSeq}`;
+  const coords=valid.map(p=>({ ...p, x:x(p.t), y:y(p.v) }));
+  PHYS_SERIES.set(id,{points:coords,title,unit});
+  const last=coords.at(-1);
+  const guide=[.25,.5,.75].map(frac=>`<line x1="${L}" x2="${W-R}" y1="${fx(T+(base-T)*frac)}"
+    y2="${fx(T+(base-T)*frac)}" stroke="currentColor" class="phys-guide"/>`).join('');
+  const labels=[points[0].date,points[Math.floor((points.length-1)/2)].date,
+    points.at(-1).date].map((d,i)=>`<text x="${i===0?L:i===2?W-R:W/2}"
+    y="${H-7}" text-anchor="${i===0?'start':i===2?'end':'middle'}"
+    class="phys-axis-label">${esc(shortDate(d))}</text>`).join('');
+  return `<div class="phys-chart-wrap">
+    <svg class="phys-chart" viewBox="0 0 ${W} ${H}" data-phys-id="${id}"
+      role="slider" tabindex="0" aria-label="${esc(title)}. Explora las lecturas con las flechas izquierda y derecha."
+      aria-valuemin="1" aria-valuemax="${coords.length}" aria-valuenow="${coords.length}"
+      aria-valuetext="${esc(last.date)}: ${esc(physReadable(last.v,unit))}">
+      ${guide}
+      ${segments.map(d=>`<path d="${d}" class="phys-path"/>`).join('')}
+      <circle cx="${fx(last.x)}" cy="${fx(last.y)}" r="4.8" class="phys-endpoint"/>
+      <g class="phys-cursor">
+        <line x1="${fx(last.x)}" x2="${fx(last.x)}" y1="${T}" y2="${base}"
+          class="phys-cursor-line"/>
+        <circle cx="${fx(last.x)}" cy="${fx(last.y)}" r="5.8" class="phys-cursor-dot"/>
+      </g>
+      ${labels}
+    </svg>
+    <div class="phys-readout" data-phys-readout="${id}" aria-live="off">
+      <span>${esc(last.date.split('-').reverse().join('/'))}</span>
+      <b>${esc(physReadable(last.v,unit))}</b>
+      <small>Desliza sobre el gráfico o usa las flechas ← →</small>
     </div>
-    <div class="big" style="margin:12px 0 2px">${esc(physFmt(m.latest, m.unit))}</div>
-    <p class="muted" style="margin:0 0 12px">Última noche registrada · ${m.n28} noches con medición en los últimos 28 días</p>
-    ${physChart(m.series, m.label)}
-    <div class="stats" style="grid-template-columns:repeat(3,1fr);margin-top:12px">
-      <div><small>Media 7 días</small><b>${esc(physFmt(m.mean7, m.unit))}</b></div>
-      <div><small>Media 28 días</small><b>${esc(physFmt(m.mean28, m.unit))}</b></div>
-      <div><small>Referencia previa</small><b>${esc(physFmt(m.reference, m.unit))}</b></div>
-    </div>
-    <p class="muted" style="margin:12px 0 0">
-      ${d === null ? 'Variación frente a referencia: datos insuficientes.' :
-        'Cambio en media de 7 días frente a 28 días anteriores: ' + esc(d) +
-        ' (' + (m.relative_change_pct > 0 ? '+' : '') +
-        esc(m.relative_change_pct.toFixed(1)) + '%).'}
-      ${m.n_reference} noches sustentan la referencia; interpretación estadística, no diagnóstica.
-    </p>
-  </section>`;
+  </div>`;
+}
+function physCursor(svg, index) {
+  const graph=PHYS_SERIES.get(svg.dataset.physId);
+  if(!graph||!graph.points.length)return;
+  const i=Math.max(0,Math.min(graph.points.length-1,index));
+  const p=graph.points[i],group=svg.querySelector('.phys-cursor');
+  group.querySelector('line').setAttribute('x1',p.x.toFixed(2));
+  group.querySelector('line').setAttribute('x2',p.x.toFixed(2));
+  const dot=group.querySelector('circle');
+  dot.setAttribute('cx',p.x.toFixed(2));
+  dot.setAttribute('cy',p.y.toFixed(2));
+  svg.setAttribute('aria-valuenow',String(i+1));
+  svg.setAttribute('aria-valuetext',`${p.date}: ${physReadable(p.v,graph.unit)}`);
+  const label=document.querySelector('[data-phys-readout="'+svg.dataset.physId+'"]');
+  if(label){
+    label.querySelector('span').textContent=p.date.split('-').reverse().join('/');
+    label.querySelector('b').textContent=physReadable(p.v,graph.unit);
+  }
+}
+document.addEventListener('pointermove',e=>{
+  const svg=e.target.closest?.('svg[data-phys-id]');
+  if(!svg)return;
+  const graph=PHYS_SERIES.get(svg.dataset.physId);
+  if(!graph)return;
+  const rect=svg.getBoundingClientRect();
+  if(!rect.width)return;
+  const px=(e.clientX-rect.left)/rect.width*540;
+  let index=0,best=Infinity;
+  graph.points.forEach((p,i)=>{const distance=Math.abs(p.x-px);if(distance<best){best=distance;index=i;}});
+  physCursor(svg,index);
+});
+document.addEventListener('keydown',e=>{
+  const svg=e.target.closest?.('svg[data-phys-id]');
+  if(!svg)return;
+  const graph=PHYS_SERIES.get(svg.dataset.physId);
+  if(!graph)return;
+  let at=Number(svg.getAttribute('aria-valuenow'))-1;
+  if(e.key==='ArrowLeft')at--;else if(e.key==='ArrowRight')at++;
+  else if(e.key==='Home')at=0;else if(e.key==='End')at=graph.points.length-1;
+  else return;
+  e.preventDefault();physCursor(svg,at);
+});
+function physCard(m, featured=false) {
+  const originLabel=m.key==='recovery'?'MODELO · WHOOP':'MED · WHOOP';
+  const difference=m.difference===null||m.relative_change_pct===null ? null :
+    (m.difference>0?'+':'')+physFmt(m.difference,m.unit);
+  const intro=`<div class="phys-metric-heading">
+    <span class="eyebrow">${esc(m.label)}</span>
+    <span class="tag ${m.key==='recovery'?'exp':''}">${originLabel}</span>
+  </div>`;
+  const value=`<div class="phys-current">
+    <strong>${esc(physFmt(m.latest,m.unit))}</strong>
+    <span>${m.latest===null?'Sin lectura válida la última noche':'Última noche del histórico'}</span>
+  </div>`;
+  const explanation=`<div class="phys-comparison">
+      <div class="phys-stat-grid">
+        <div><span>Últimos 7 días</span><b>${esc(physFmt(m.mean7,m.unit))}</b></div>
+        <div><span>Últimos 28 días</span><b>${esc(physFmt(m.mean28,m.unit))}</b></div>
+        <div><span>Referencia anterior</span><b>${esc(physFmt(m.reference,m.unit))}</b></div>
+      </div>
+      <p class="phys-difference">
+        ${difference===null?'Aún no hay muestras suficientes para calcular el cambio frente a tu referencia.' :
+        `Cambio de la media de 7 días: <strong>${esc(difference)}</strong>
+        (${m.relative_change_pct>0?'+':''}${esc(m.relative_change_pct.toFixed(1))} %) frente a los 28 días anteriores.`}
+        <span>Referencia basada en ${m.n_reference} noches válidas; no indica por sí sola mejora ni empeoramiento.</span>
+      </p>
+    </div>`;
+  const body=`${physChart(m.series,m.label,m.unit)}${explanation}`;
+  if(featured)return `<section class="card phys-metric phys-featured" aria-label="${esc(m.label)}">
+    ${intro}${value}${body}</section>`;
+  return `<details class="card phys-metric phys-secondary">
+    <summary aria-label="Ver evolución de ${esc(m.label)}">
+      <span class="phys-secondary-main">${intro}${value}</span>
+      ${svg('chev','phys-chevron')}
+    </summary>
+    <div class="phys-secondary-detail">${body}</div>
+  </details>`;
 }
 function renderFisiologia(d) {
-  ROUTE_STATE.physDays = d.days;
-  const controls = [28, 90, 365].map((n) =>
-    `<button data-days="${n}" aria-pressed="${n===d.days}">${n===365 ? '1 año' : n+' días'}</button>`).join('');
-  const quality = d.breakdown;
-  const headline = d.anchor_date
-    ? `${d.usable_nights} noches utilizables de ${d.nights} procesadas entre ${esc(shortDate(d.first_date))} y ${esc(shortDate(d.anchor_date))}.`
-    : 'Todavía no hay noches sincronizadas desde WHOOP.';
-  view.innerHTML = pageTop(ROUTE_STATE.sources) +
-    `<div class="h2"><h2 style="margin:0;font-size:26px;font-weight:700">Tu fisiología</h2></div>
-    <section class="card"><div class="eyebrow">Histórico de WHOOP</div>
-    <h3 style="margin:12px 0">Un mapa de cómo responde tu cuerpo</h3>
-    <p class="muted" style="margin:0">${headline}</p>
-    <div class="seg" style="margin-top:14px" aria-label="Periodo fisiológico">${controls}</div>
-    <p class="muted" style="margin:12px 0 0">Calidad de origen: ${quality.high} altas,
-      ${quality.fair} aceptables, ${quality.excluded} excluidas.
-      ${quality.night_flags ? quality.night_flags + ' noches con comprobaciones pendientes.' : ''}
-      No se interpolan fechas ni se sustituyen datos ausentes.</p></section>` +
-    d.metrics.map(physCard).join('') +
-    `<details class="card"><summary>Cómo calcula ARES tu referencia${svg('chev','chev')}</summary>
-      <p>${esc(d.reference_method)}</p><p>${esc(d.caution)}</p>
-      <p>La VFC, el pulso y las etapas de sueño son estimaciones ópticas del dispositivo;
-      para recomendaciones deportivas deberemos contrastarlos con las sesiones de COROS,
-      Tredict y, cuando proceda, la banda pectoral H10.</p></details>`;
+  ROUTE_STATE.physDays=d.days;
+  PHYS_SERIES.clear();
+  const controls=[28,90,365].map(n=>`<button data-days="${n}" aria-pressed="${n===d.days}">
+      ${n===365?'1 año':n+' días'}</button>`).join('');
+  const quality=d.breakdown;
+  const coverage=d.nights>0?Math.round(d.usable_nights/d.nights*100):0;
+  const metrics=d.metrics || [];
+  const highlighted=['hrv','rhr'].map(key=>metrics.find(m=>m.key===key)).filter(Boolean);
+  const other=metrics.filter(m=>!['hrv','rhr'].includes(m.key));
+  const title=d.anchor_date? `${esc(shortDate(d.first_date))}–${esc(shortDate(d.anchor_date))}` :
+    'Historial pendiente';
+  view.innerHTML=pageTop(ROUTE_STATE.sources)+
+    `<header class="phys-header">
+      <div class="eyebrow">ARES · TU LABORATORIO FISIOLÓGICO</div>
+      <h1>Entender tu cuerpo.</h1>
+      <p>Lecturas nocturnas de WHOOP, referencias personales y evolución real, sin puntuaciones inventadas.</p>
+    </header>
+    <section class="card phys-overview" aria-label="Calidad y cobertura de las mediciones">
+      <div class="phys-overview-heading">
+        <div><span class="eyebrow">TU HISTÓRICO</span><h2>${title}</h2></div>
+        <span class="phys-origin">WHOOP · DIRECTO</span>
+      </div>
+      <div class="phys-overview-stats">
+        <div><strong>${d.usable_nights}<span> / ${d.nights}</span></strong><small>Noches válidas / procesadas</small></div>
+        <div><strong>${coverage}<span> %</span></strong><small>Calidad utilizable*</small></div>
+      </div>
+      <div class="phys-quality-track" role="img" aria-label="${coverage}% de registros utilizables de los procesados">
+        <span style="width:${coverage}%"></span>
+      </div>
+      <div class="seg phys-period" role="group" aria-label="Seleccionar periodo fisiológico">${controls}</div>
+      <p class="phys-quality-note">*De las noches procesadas en este periodo: ${quality.high} alta calidad,
+        ${quality.fair} aceptables, ${quality.excluded} excluidas.
+        ${quality.night_flags?`${quality.night_flags} con revisión pendiente.`:''}
+        ${d.nights===0?'Conecta o sincroniza WHOOP para empezar.':'Se conservan los huecos del histórico.'}
+      </p>
+    </section>
+    <div class="phys-section-heading"><div><span class="eyebrow">LAS DOS REFERENCIAS CLAVE</span>
+      <h2>Corazón y recuperación</h2></div>
+      <span class="phys-section-meta">Mediciones nocturnas</span></div>
+    ${highlighted.map(m=>physCard(m,true)).join('')}
+    <div class="phys-section-heading"><div><span class="eyebrow">PROFUNDIZAR</span>
+      <h2>Otras señales</h2></div>
+      <span class="phys-section-meta">Abre para explorar</span></div>
+    <div class="phys-secondary-list">${other.map(m=>physCard(m)).join('')}</div>
+    <details class="card phys-method">
+      <summary>Cómo interpretamos las referencias ${svg('chev','phys-chevron')}</summary>
+      <p>${esc(d.reference_method)}</p>
+      <p>${esc(d.caution)}</p>
+      <p>La puntuación Recovery pertenece al modelo de WHOOP; ARES no la recalcula.
+      Las fechas sin medición válida aparecen como huecos, no como datos estimados.</p>
+    </details>`;
 }
 
 // ----------------------------------------------------- explorador de entrenos
