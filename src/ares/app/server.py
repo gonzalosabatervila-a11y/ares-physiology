@@ -1,4 +1,4 @@
-"""Servidor local de la app ARES (FastAPI). Solo lee; escucha en 127.0.0.1.
+"""Servidor local de ARES. Lecturas; ARES LAB escribe solo en ares serve.
 
 En producción vivirá dentro de `ares serve` (único propietario de DuckDB) y se
 publicará solo en la tailnet con Tailscale Serve. Aquí, para desarrollo, `ares app`
@@ -10,14 +10,16 @@ from __future__ import annotations
 import mimetypes
 from collections.abc import Callable
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import duckdb
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from ..config import Settings
-from . import data, physiology, training_catalog, planning, plan_execution
+from . import data, physiology, training_catalog, planning, plan_execution, lab_events
 
 STATIC = Path(__file__).parent / "static"
 mimetypes.add_type("application/manifest+json", ".webmanifest")  # según el sistema no viene
@@ -160,6 +162,62 @@ def create_app(
         if workout is None:
             raise HTTPException(status_code=404, detail="Entrenamiento no encontrado")
         return workout
+
+    def lab_write_guard(request: Request) -> None:
+        """Writes only in single-owner server, via same-origin from localhost/tailnet.
+
+        A web page on a foreign origin cannot silently POST to local ARES.
+        ARES must not be exposed on a public URL; tailnet access control
+        provides device/user authentication in remote mode.
+        """
+        if not auto_sync:
+            raise HTTPException(403, "ARES app está en modo lectura; usa ares serve")
+        host_header = request.headers.get("host", "").split(":")[0].lower()
+        if host_header not in {"localhost", "127.0.0.1"} and not host_header.endswith(".ts.net"):
+            raise HTTPException(403, "Host no permitido para guardar datos privados")
+        origin = request.headers.get("origin")
+        if not origin:
+            raise HTTPException(403, "Origin obligatorio")
+        parsed = urlsplit(origin)
+        if parsed.scheme not in {"http", "https"} or parsed.hostname != host_header:
+            raise HTTPException(403, "Origin no coincide con la aplicación ARES")
+        if parsed.scheme == "http" and host_header not in {"localhost", "127.0.0.1"}:
+            raise HTTPException(403, "ARES remoto exige HTTPS de Tailscale Serve")
+        if request.headers.get("x-ares-lab") != "1":
+            raise HTTPException(403, "Cabecera de protección ARES LAB ausente")
+
+    @app.get("/api/lab/events")
+    def api_lab_events() -> dict:
+        result = lab_events.overview(cursor(), settings.device_id, settings.tz)
+        return {**result, "write_enabled": auto_sync}
+
+    @app.post("/api/lab/events", status_code=201)
+    def api_lab_create(request: Request, payload: lab_events.NewEvent) -> dict:
+        lab_write_guard(request)
+        try:
+            return lab_events.create(cursor(), settings.device_id, settings.tz, payload)
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from exc
+
+    @app.patch("/api/lab/events/{event_id}")
+    def api_lab_edit(
+        event_id: str, request: Request, payload: lab_events.EditEvent,
+    ) -> dict:
+        lab_write_guard(request)
+        try:
+            return lab_events.edit(cursor(), settings.device_id, settings.tz, event_id, payload)
+        except LookupError as exc:
+            raise HTTPException(404, str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from exc
+
+    @app.delete("/api/lab/events/{event_id}")
+    def api_lab_delete(event_id: str, request: Request) -> dict:
+        lab_write_guard(request)
+        try:
+            return lab_events.remove(cursor(), settings.device_id, settings.tz, event_id)
+        except LookupError as exc:
+            raise HTTPException(404, str(exc)) from exc
 
     @app.get("/api/lab")
     def api_lab() -> dict:
