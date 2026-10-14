@@ -154,3 +154,15 @@ def test_scientific_atelier_remains_data_neutral_and_mobile_accessible(client):
     assert ".lab-action:last-child" in css
     assert ".plan-exec-stats" in css
     assert "fetch(" not in css
+
+
+def test_plan_weekdays_use_native_accessible_details(client):
+    js=client.get("/static/app.js").text
+    css=client.get("/static/atelier_views.css").text
+    assert '<details class="plan-day' in js
+    assert '<summary class="plan-day-summary">' in js
+    assert "isToday?'open':''" in js
+    assert 'renderPlanExecution(d.execution?.days?.[s.date],s)' in js
+    assert 'function renderPlan(d)' in js
+    assert ".plan-day-summary:focus-visible" in css
+    assert ".plan-day[open] .plan-day-arrow" in css
