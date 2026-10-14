@@ -8,7 +8,7 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
   ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 const dias = (n) => `${n} ${n === 1 ? 'día' : 'días'}`;
 const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
-const COLOR = {ok: '#45D4E5', warn: '#F0A33A', bad: '#E8573A', none: '#8C979B'};
+const COLOR = {ok: '#A6BDA3', warn: '#D7A56B', bad: '#D67968', none: '#ABA99E'};
 
 // ---------------------------------------------------------------- iconos
 const P = { // trazos de 24x24
@@ -27,11 +27,11 @@ const P = { // trazos de 24x24
 const svg = (k, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[k]}</svg>`;
 const MARK = `<svg width="38" height="38" viewBox="0 0 22 22" aria-hidden="true">
 <path d="M4.5 14.7A7.48 7.48 0 1 1 17.5 14.7" fill="none" stroke="#3A4548" stroke-width="4.2" stroke-linecap="round"/>
-<path d="M4.5 14.7A7.48 7.48 0 0 1 14.6 4.4" fill="none" stroke="#45D4E5" stroke-width="4.2" stroke-linecap="round"/>
-<circle cx="14.6" cy="4.4" r="2.5" fill="#45D4E5"/></svg>`;
+<path d="M4.5 14.7A7.48 7.48 0 0 1 14.6 4.4" fill="none" stroke="#D5B27A" stroke-width="4.2" stroke-linecap="round"/>
+<circle cx="14.6" cy="4.4" r="2.5" fill="#D5B27A"/></svg>`;
 const GLYPH = {
-  intervals: '<svg class="gl" viewBox="0 0 22 22"><rect x="3" y="11" width="4" height="8" rx="1.5" fill="#45D4E5"/><rect x="9" y="6" width="4" height="13" rx="1.5" fill="#45D4E5" opacity=".72"/><rect x="15" y="3" width="4" height="16" rx="1.5" fill="#45D4E5" opacity=".45"/></svg>',
-  tredict: '<svg class="gl" viewBox="0 0 22 22"><path d="M11 3l9 16H2z" fill="none" stroke="#45D4E5" stroke-width="2" stroke-linejoin="round"/></svg>',
+  intervals: '<svg class="gl" viewBox="0 0 22 22"><rect x="3" y="11" width="4" height="8" rx="1.5" fill="#D5B27A"/><rect x="9" y="6" width="4" height="13" rx="1.5" fill="#D5B27A" opacity=".72"/><rect x="15" y="3" width="4" height="16" rx="1.5" fill="#D5B27A" opacity=".45"/></svg>',
+  tredict: '<svg class="gl" viewBox="0 0 22 22"><path d="M11 3l9 16H2z" fill="none" stroke="#D5B27A" stroke-width="2" stroke-linejoin="round"/></svg>',
 };
 const SRC_NAME = {intervals: 'Intervals', tredict: 'Tredict', whoop: 'WHOOP'};
 
@@ -95,7 +95,7 @@ function gauge(d) {
   return `<a class="gauge" href="#/senal/${d.signal}" aria-label="${esc(label)}: ${esc(d.value)}, ${esc(stateTxt)}. Ver detalle">
 <svg viewBox="0 0 120 112" role="img" aria-hidden="true">${track}${band}${needle}
 <g transform="translate(50,30) scale(.83)" fill="none" stroke="#8C979B" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${P[icon]}</g>
-<text x="60" y="72" text-anchor="middle" font-family="Archivo,sans-serif" font-size="22" font-weight="700" fill="#EEF1F2">${valueSpans(d.key, d.value)}</text>
+<text x="60" y="72" text-anchor="middle" font-family="Archivo,sans-serif" font-size="22" font-weight="700" fill="#F0EEE7">${valueSpans(d.key, d.value)}</text>
 <text x="60" y="89" text-anchor="middle" font-family="Archivo,sans-serif" font-size="11.5" font-weight="600" fill="${col}">${esc(stateTxt)}</text></svg>
 <span class="lab">${esc(label)}</span><span class="trend">${esc(trend)}</span></a>`;
 }
@@ -117,7 +117,7 @@ function animateGauges() {
     requestAnimationFrame(step);
   });
 }
-function spark(vals, color = '#45D4E5') {
+function spark(vals, color = '#D5B27A') {
   if (!vals || vals.length < 3) return '';
   const lo = Math.min(...vals), hi = Math.max(...vals), span = hi - lo || 1, w = 92, h = 34;
   const pts = vals.map((v, i) => [2 + i * (w - 6) / (vals.length - 1), 4 + (h - 8) * (1 - (v - lo) / span)]);
@@ -172,8 +172,8 @@ const LEGEND_KV = `<div class="kv">
 <div class="r"><span>EXP</span><span>Experimental, sin validar</span></div></div>`;
 function howtoSheet() {
   openSheet(`<h3 id="sheet-title">Cómo leer estos indicadores</h3>
-<p>La <b style="color:#EEF1F2">aguja</b> marca tu valor más reciente y la <b style="color:#EEF1F2">franja resaltada</b> es tu rango habitual: la media de tus días disponibles más o menos media desviación típica.</p>
-<p><b style="color:#EEF1F2">Sistema nervioso</b> usa la media de los últimos 7 días; <b style="color:#EEF1F2">Noche</b>, la última noche; <b style="color:#EEF1F2">Carga</b> solo describe la dirección de tu forma y no la juzga. El texto de debajo compara con tu propia referencia y aparece cuando hay datos suficientes.</p>
+<p>La <b style="color:#F0EEE7">aguja</b> marca tu valor más reciente y la <b style="color:#F0EEE7">franja resaltada</b> es tu rango habitual: la media de tus días disponibles más o menos media desviación típica.</p>
+<p><b style="color:#F0EEE7">Sistema nervioso</b> usa la media de los últimos 7 días; <b style="color:#F0EEE7">Noche</b>, la última noche; <b style="color:#F0EEE7">Carga</b> solo describe la dirección de tu forma y no la juzga. El texto de debajo compara con tu propia referencia y aparece cuando hay datos suficientes.</p>
 <p>Cada dato lleva su naturaleza y su origen:</p>${LEGEND_KV}`);
 }
 function sourceSheet(name, sources) {
@@ -185,7 +185,7 @@ function sourceSheet(name, sources) {
   if (s.endpoint && s.endpoint !== '—') rows.push(['Datos', s.endpoint]);
   const extra = s.level === 'none'
     ? '<p>Esta fuente aún no ha sincronizado con este servicio. Cuando lo haga, aparecerá aquí con su hora.</p>'
-    : s.error ? `<p style="color:#E8573A">${esc(s.error)}</p>` : '';
+    : s.error ? `<p style="color:#D67968">${esc(s.error)}</p>` : '';
   openSheet(`<h3 id="sheet-title">${esc(SRC_NAME[name] || name)}</h3><div class="kv">${rows.map(([k, v]) => `<div class="r"><span>${esc(k)}</span><span>${esc(v)}</span></div>`).join('')}</div>${extra}`);
 }
 document.addEventListener('click', (e) => {
@@ -221,7 +221,7 @@ function chips(sources) {
     return `<button class="chip" data-chip="${esc(s.source)}" aria-label="${esc(SRC_NAME[s.source] || s.source)}: ${esc(st.text)}. Ver detalle">${GLYPH[s.source] || ''}<span class="${st.cls}"><b>${esc(SRC_NAME[s.source] || s.source)}</b><small><i class="dot-s"></i>${esc(st.text)}</small></span></button>`;
   }).join('')}</div>`;
 }
-const WAVE = `<svg class="wave" viewBox="0 0 200 110" fill="none" aria-hidden="true"><path d="M0 80C25 30 45 100 75 55S130 25 160 45 190 20 200 10" stroke="#45D4E5" stroke-opacity=".5" stroke-width="1.6"/><path d="M0 98C30 60 55 108 90 78S140 50 170 68 195 40 200 34" stroke="#45D4E5" stroke-opacity=".28" stroke-width="1.4"/></svg>`;
+const WAVE = `<svg class="wave" viewBox="0 0 200 110" fill="none" aria-hidden="true"><path d="M0 80C25 30 45 100 75 55S130 25 160 45 190 20 200 10" stroke="#D5B27A" stroke-opacity=".5" stroke-width="1.6"/><path d="M0 98C30 60 55 108 90 78S140 50 170 68 195 40 200 34" stroke="#D5B27A" stroke-opacity=".28" stroke-width="1.4"/></svg>`;
 const LEVEL_TXT = {sin_cambios: 'Mantener plan', vigilar: 'Vigilar', evitar_intensidad: 'Evitar intensidad', descanso: 'Descanso o revisar salud'};
 function hero(e) {
   if (e.mode === 'sombra') {
@@ -363,7 +363,7 @@ function renderSenal(d) {
   view.innerHTML = head + seg +
     `<section class="card"><div class="hval"><span class="n">${splitUnit(d.value)}</span><span class="state ${lvl === 'ok' ? 'ok' : lvl === 'warn' ? 'warn' : ''}">${esc(stateTxt)}</span></div>
 <p class="muted" style="margin:6px 0 var(--sp3)">Último valor (${esc(shortDate(d.date))})${d.mean_ref ? ` · media ${d.n_ref} d: ${esc(d.mean_ref)}` : ''}</p>
-${lineChart([{pts: d.series, color: '#45D4E5'}], {band: d.range ? [d.range.lo, d.range.hi] : null, label: `${d.label}, últimos ${d.days} días`})}
+${lineChart([{pts: d.series, color: '#D5B27A'}], {band: d.range ? [d.range.lo, d.range.hi] : null, label: `${d.label}, últimos ${d.days} días`})}
 ${d.partial ? `<p class="muted" style="margin:8px 0 0">Solo hay ${dias(d.available_days)} de datos en la base; el periodo de ${d.days === 365 ? '1 año' : d.days + ' días'} se completará con el tiempo.</p>` : ''}</section>
 <section class="card"><div class="stats"><div><small>Mín</small><b>${esc(s.min)}</b></div><div><small>Media</small><b>${esc(s.mean)}</b></div><div><small>Máx</small><b>${esc(s.max)}</b></div><div><small>Último</small><b>${esc(s.last)}</b></div></div></section>
 <section class="card callout ${lvl === 'warn' ? 'warn' : ''}"><h3>${esc(d.interpretation.title)}</h3><p>${esc(d.interpretation.text)}</p></section>
@@ -386,12 +386,12 @@ function renderProgreso(d) {
   const head = `<div class="h2"><h2 style="margin:0;font-size:26px;font-weight:700">Progreso</h2></div>`;
   const form = st ? `<section class="card"><div class="row" style="display:flex;justify-content:space-between;align-items:center"><span class="eyebrow">Forma y fatiga</span>${tagChip('CALC', 'INTERVALS')}</div>
 <div class="stats" style="grid-template-columns:repeat(3,1fr);margin:var(--sp3) 0"><div><small>Forma (CTL)</small><b style="font-size:24px">${st.ctl.toFixed(0)}</b></div><div><small>Fatiga (ATL)</small><b style="font-size:24px">${st.atl.toFixed(0)}</b></div><div><small>Balance</small><b style="font-size:24px">${sg(st.form)}</b></div></div>
-${lineChart([{pts: cut(d.ctl), color: '#45D4E5'}, {pts: cut(d.atl), color: '#F0A33A', dash: '4 4'}], {label: 'Forma y fatiga'})}
-<div class="muted" style="display:flex;gap:16px;margin-top:8px"><span><span class="dot-s ok" style="display:inline-block;margin-right:6px"></span>Forma (CTL)</span><span><span class="dot-s" style="display:inline-block;margin-right:6px;background:#F0A33A"></span>Fatiga (ATL)</span>${st.ramp !== null ? `<span style="margin-left:auto">Ritmo de subida ${sg(st.ramp)} / sem</span>` : ''}</div></section>
+${lineChart([{pts: cut(d.ctl), color: '#D5B27A'}, {pts: cut(d.atl), color: '#D7A56B', dash: '4 4'}], {label: 'Forma y fatiga'})}
+<div class="muted" style="display:flex;gap:16px;margin-top:8px"><span><span class="dot-s ok" style="display:inline-block;margin-right:6px"></span>Forma (CTL)</span><span><span class="dot-s" style="display:inline-block;margin-right:6px;background:#D7A56B"></span>Fatiga (ATL)</span>${st.ramp !== null ? `<span style="margin-left:auto">Ritmo de subida ${sg(st.ramp)} / sem</span>` : ''}</div></section>
 <details class="card"><summary>De dónde salen forma y fatiga${svg('chev', 'chev')}</summary>
-<p>Son dos promedios de la carga diaria de entrenamiento que calcula intervals.icu (un modelo de tipo Banister/Coggan): la <b style="color:#EEF1F2">forma</b> mira semanas (por defecto 42 días) y la <b style="color:#EEF1F2">fatiga</b>, días (por defecto 7). Sube la forma si entrenas de forma sostenida; sube la fatiga si concentras carga en pocos días.</p>
-<p><b style="color:#EEF1F2">Balance = forma − fatiga.</b> Negativo significa que la carga reciente supera a la habitual; positivo, que vienes de descansar.</p>
-<p>La carga de cada sesión es una <b style="color:#EEF1F2">estimación de intervals.icu</b> (con FC, potencia o ritmo, según lo que traiga cada actividad), no una medida fisiológica. ARES la muestra tal cual y no la reinterpreta. Hoy: forma ${st.ctl.toFixed(0)}, fatiga ${st.atl.toFixed(0)}, balance ${sg(st.form)}.</p></details>` : '<section class="card"><p class="muted" style="margin:0">Sin datos de forma y fatiga todavía.</p></section>';
+<p>Son dos promedios de la carga diaria de entrenamiento que calcula intervals.icu (un modelo de tipo Banister/Coggan): la <b style="color:#F0EEE7">forma</b> mira semanas (por defecto 42 días) y la <b style="color:#F0EEE7">fatiga</b>, días (por defecto 7). Sube la forma si entrenas de forma sostenida; sube la fatiga si concentras carga en pocos días.</p>
+<p><b style="color:#F0EEE7">Balance = forma − fatiga.</b> Negativo significa que la carga reciente supera a la habitual; positivo, que vienes de descansar.</p>
+<p>La carga de cada sesión es una <b style="color:#F0EEE7">estimación de intervals.icu</b> (con FC, potencia o ritmo, según lo que traiga cada actividad), no una medida fisiológica. ARES la muestra tal cual y no la reinterpreta. Hoy: forma ${st.ctl.toFixed(0)}, fatiga ${st.atl.toFixed(0)}, balance ${sg(st.form)}.</p></details>` : '<section class="card"><p class="muted" style="margin:0">Sin datos de forma y fatiga todavía.</p></section>';
   const w = d.weeks, mx = Math.max(3, ...w.map((x) => x.sessions)), totS = w.reduce((a, x) => a + x.sessions, 0), totR = w.reduce((a, x) => a + x.running, 0);
   const bars = `<section class="card"><div class="row" style="display:flex;justify-content:space-between;align-items:center"><span class="eyebrow">Sesiones por semana</span>${tagChip('MED', 'TREDICT')}</div>
 <div class="bars">${w.map((x) => `<div><b>${x.sessions || ''}</b><i class="${x.sessions ? '' : 'zero'}" style="height:${Math.max(3, 84 * x.sessions / mx)}px"></i><span>${shortDate(x.week)}</span></div>`).join('')}</div>
@@ -404,7 +404,7 @@ function renderLab(d) {
   ROUTE_STATE.sources = d.sources;
   const src = d.sources.map((s) => {
     const st = chipState(s);
-    return `<div class="r"><span class="dot-s ${st.cls === 'ok' ? 'ok' : ''}" style="${st.cls === 'warn' ? 'background:#F0A33A' : st.cls === 'bad' ? 'background:#E8573A' : ''}"></span><div><b>${esc(SRC_NAME[s.source] || s.source)}</b><small>${esc(s.endpoint)}${s.error ? ' · ' + esc(s.error) : ''}</small></div><span class="mono" style="font-size:11px;color:var(--mut)">${esc(st.text)}</span></div>`;
+    return `<div class="r"><span class="dot-s ${st.cls === 'ok' ? 'ok' : ''}" style="${st.cls === 'warn' ? 'background:#D7A56B' : st.cls === 'bad' ? 'background:#D67968' : ''}"></span><div><b>${esc(SRC_NAME[s.source] || s.source)}</b><small>${esc(s.endpoint)}${s.error ? ' · ' + esc(s.error) : ''}</small></div><span class="mono" style="font-size:11px;color:var(--mut)">${esc(st.text)}</span></div>`;
   }).join('');
   const raw = d.raw.length
     ? `<table><thead><tr><th>FUENTE</th><th>FILAS</th><th>DESDE</th><th>HASTA</th></tr></thead><tbody>${d.raw.map((r) => `<tr><td>${esc(r.source)}/${esc(r.endpoint)}</td><td>${r.rows}</td><td>${esc(shortDate(r.from))}</td><td>${esc(shortDate(r.to))}</td></tr>`).join('')}</tbody></table>`
@@ -452,7 +452,7 @@ function physChart(points, title) {
   const first = points[0]?.date || '', last = points[points.length-1]?.date || '';
   return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img"
     aria-label="${esc(title)} · ${valid.length} registros válidos, ${esc(shortDate(first))} a ${esc(shortDate(last))}">
-    <path d="${path}" fill="none" stroke="#45D4E5" stroke-width="2.4"
+    <path d="${path}" fill="none" stroke="#D5B27A" stroke-width="2.4"
       stroke-linecap="round" stroke-linejoin="round"/>
     <text x="${left}" y="${H-3}" fill="#8C979B" font-size="11">${esc(shortDate(first))}</text>
     <text x="${W-right}" y="${H-3}" fill="#8C979B" text-anchor="end" font-size="11">${esc(shortDate(last))}</text>
@@ -721,8 +721,8 @@ function renderEntreno(d) {
     <td>${l.power === null ? '—' : esc(l.power.toFixed(0))}</td></tr>`).join('');
   const s = d.series || {};
   const sensors = [
-    ['Frecuencia cardíaca · lpm', s.heartrate || [], '#45D4E5'],
-    ['Velocidad · m/s', s.speed || [], '#F0A33A'],
+    ['Frecuencia cardíaca · lpm', s.heartrate || [], '#D5B27A'],
+    ['Velocidad · m/s', s.speed || [], '#D7A56B'],
     ['Potencia · W', s.power || [], '#7ABBAA'],
     ['Cadencia', s.cadence || [], '#B9A5E3'],
   ].map(([title, pts, color]) =>
