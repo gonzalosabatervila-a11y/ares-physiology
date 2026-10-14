@@ -58,6 +58,7 @@ def _summary(rec: dict[str, Any]) -> dict[str, Any]:
     return {
         "id": str(rec.get("_id") or rec.get("id")),
         "date": str(rec.get("date", ""))[:10],
+        "start_utc": str(rec.get("date") or ""),
         "sport": str(rec.get("sportType") or "—"),
         "sub_sport": str(rec.get("subSportType") or ""),
         "title": str(rec.get("title") or rec.get("sportType") or "Entrenamiento")[:160],
