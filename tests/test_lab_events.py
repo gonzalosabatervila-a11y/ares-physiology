@@ -140,7 +140,8 @@ def test_cambio_de_dia_y_dst_conserva_offset_real(conn,settings):
         lab_events.NewEvent(**event("dinner_end",at=local)))
     assert data["local_date"]=="2025-10-26"
     assert data["local_time"]=="02:30"
-    assert datetime.fromisoformat(data["occurred_at"]).utcoffset()==timedelta(0)
+    assert datetime.fromisoformat(data["occurred_at"]).astimezone(UTC)==local.astimezone(UTC)
+    assert datetime.fromisoformat(data["occurred_at"]).astimezone(UTC).hour==1
 
 
 def test_id_ajeno_no_se_leak_ni_se_modifica(conn,settings):
