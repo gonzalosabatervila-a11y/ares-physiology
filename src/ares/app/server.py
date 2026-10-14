@@ -63,8 +63,32 @@ def create_app(
     def api_plan(week: str | None = None) -> dict:
         if week is not None and week not in {f"S{i}" for i in range(32, 41)}:
             raise HTTPException(status_code=422, detail="Semana fuera del plan disponible")
-        return planning.plan(week=week, tz=settings.tz,
-                             weight_kg=settings.nutrition_weight_kg)
+        result = planning.plan(week=week, tz=settings.tz,
+                               weight_kg=settings.nutrition_weight_kg)
+        if not result["available"]:
+            return result
+        # Registrar una actividad NO valida automáticamente que coincida
+        # con el entrenamiento prescrito. Solo exposición comparativa.
+        observed = {}
+        for item in training_catalog.catalog(
+            cursor(), settings.device_id, tz=settings.tz,
+            category="running", limit=50,
+        )["sessions"]:
+            day = item["date"]
+            if day not in {s["date"] for s in result["days"]}:
+                continue
+            b = observed.setdefault(day, {"count": 0, "minutes": 0.0,
+                                          "km": 0.0, "source": "Tredict",
+                                          "verified_match": False})
+            b["count"] += 1
+            if item.get("duration_s") is not None and 0 < item["duration_s"] < 86400:
+                b["minutes"] += item["duration_s"] / 60
+            if item.get("distance_m") is not None and 0 < item["distance_m"] < 200000:
+                b["km"] += item["distance_m"] / 1000
+        for day, item in observed.items():
+            item["minutes"] = round(item["minutes"])
+            item["km"] = round(item["km"], 2)
+        return {**result, "observed_runs": observed}
 
     @app.get("/api/progreso")
     def api_progreso() -> dict:
