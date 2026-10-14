@@ -1,6 +1,19 @@
 """ARES Atelier UI v2: regression checks for mobile journal shell, zero new dependencies."""
 from __future__ import annotations
 
+import pytest
+from fastapi.testclient import TestClient
+
+from ares.app.server import create_app
+
+
+@pytest.fixture
+def client(conn, settings):
+    """Cliente HTTP de prueba aislado: DuckDB temporal y llave real bloqueada."""
+    with TestClient(create_app(lambda: conn, settings)) as test_client:
+        yield test_client
+
+
 
 def test_shell_delivers_premium_lab_scripts_and_feedback(client):
     r = client.get("/")
