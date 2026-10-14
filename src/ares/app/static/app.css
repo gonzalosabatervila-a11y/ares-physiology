@@ -412,3 +412,11 @@ td{padding:9px 6px 9px 0;border-top:1px solid var(--line);vertical-align:top}
   .lab-action b{font-size:11px}
   .lab-cohorts{gap:6px}
 }
+
+.lab-now{border-color:rgba(166,189,163,.25)}
+.lab-now-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:15px 0}
+.lab-now-stats>div{padding:12px 10px;background:rgba(0,0,0,.17);border:1px solid var(--line2);border-radius:12px}
+.lab-now-stats small{display:block;color:var(--mut);font-size:10.5px;line-height:1.4;min-height:28px}
+.lab-now-stats b{display:block;font-size:26px;font-weight:760;letter-spacing:-.04em;margin:10px 0 7px;font-variant-numeric:tabular-nums}
+.lab-now-stats b em{font-style:normal;font-size:13px;color:var(--sig);font-weight:600;letter-spacing:0}
+.lab-now-stats span{display:block;color:var(--mut);font-size:10px;line-height:1.4}
