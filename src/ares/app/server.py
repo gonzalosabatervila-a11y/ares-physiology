@@ -42,7 +42,8 @@ def create_app(
             device=settings.intervals_wellness_device,
             device_id=settings.device_id,
         )
-        weekly = planning.plan(tz=settings.tz, weight_kg=settings.nutrition_weight_kg)
+        weekly = planning.plan(tz=settings.tz, weight_kg=settings.nutrition_weight_kg,
+                               source_file=settings.data_dir / "training_plan.json")
         return {
             **result,
             "sync_mode": "automatic" if auto_sync else "read_only",
@@ -64,7 +65,8 @@ def create_app(
         if week is not None and week not in {f"S{i}" for i in range(32, 41)}:
             raise HTTPException(status_code=422, detail="Semana fuera del plan disponible")
         result = planning.plan(week=week, tz=settings.tz,
-                               weight_kg=settings.nutrition_weight_kg)
+                               weight_kg=settings.nutrition_weight_kg,
+                               source_file=settings.data_dir / "training_plan.json")
         if not result["available"]:
             return result
         compared = plan_execution.execution(
