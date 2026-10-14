@@ -505,6 +505,60 @@ function renderPlanPreview(p) {
     </div>
   </a>`;
 }
+function renderPlanExecution(e, s) {
+  if (!e) return '';
+  const stats = {observed_unverified:'Actividad registrada · sin verificar',
+    rest_day_activity:'Carrera registrada en descanso previsto',
+    no_record_found:'Sin carrera en datos importados',
+    future:'Sesión futura'};
+  const headline=stats[e.status]||'Estado no determinado';
+  const activities=(e.activities||[]).map(a => `<a class="plan-run-item"
+     href="#/entreno/${encodeURIComponent(a.id)}">
+     <span>${esc(a.title)} · ${esc(Math.round((a.duration_s || 0)/60))} min
+      ${a.distance_m ? ' · '+esc((a.distance_m/1000).toFixed(2))+' km' : ''}</span>
+     <span>Detalle ↗</span></a>`).join('');
+  const context=e.night_context;
+  let nights='';
+  if (context) {
+    const pair=[
+      ['VFC', 'rmssd_ms', 'ms'],
+      ['Pulso en reposo', 'rhr', 'lpm'],
+      ['Sueño', 'sleep_min', 'min'],
+      ['Recovery WHOOP', 'recovery_whoop', '%'],
+    ];
+    const fmt=(value,unit)=>value===null||value===undefined?'—':
+      (unit==='min' ? planTime(Math.round(value)) :
+      Number(value).toLocaleString('es-ES',{maximumFractionDigits:1})+' '+unit);
+    nights=`<details class="plan-night">
+      <summary>Respuesta fisiológica · WHOOP (descriptiva)</summary>
+      <div class="plan-night-grid">
+      <span>Indicador</span><span>Antes</span><span>Después</span>
+      ${pair.map(([name,key,unit])=>`<span>${esc(name)}</span>
+         <b>${esc(fmt(context.before?.[key],unit))}</b>
+         <b>${esc(fmt(context.after?.[key],unit))}</b>`).join('')}
+      </div>
+      <p>${esc(context.method)}</p></details>`;
+  }
+  const hint=e.status==='future' ?
+    'Aún no corresponde evaluar esta sesión.' :
+    e.status==='no_record_found' ?
+    'No hay carrera importada para este día. No significa que se haya omitido el entrenamiento.' :
+    'La coincidencia de fecha no demuestra que los bloques, zonas o descansos fueran los previstos.';
+  return `<section class="plan-execution" aria-label="Ejecución y respuesta del día">
+    <div class="plan-exec-head"><span class="eyebrow">Ejecución · COROS/Tredict</span>
+      <span class="plan-exec-status">${esc(headline)}</span></div>
+    ${e.count>0 ? `<div class="plan-exec-data">
+       ${esc(e.count)} carrera(s) · ${esc(e.observed_minutes ?? '—')} min
+       · ${e.observed_km===null?'distancia no disponible':esc(e.observed_km)+' km'}
+      </div>`: ''}
+    ${e.duration_difference_min!==null
+      ? `<p>Duración observada vs prevista: ${e.duration_difference_min>0?'+':''}${esc(e.duration_difference_min)} min.
+           Sin verificación de intervalos ni zonas.</p>` : ''}
+    <p>${esc(hint)}</p>
+    ${activities}
+    ${nights}
+  </section>`;
+}
 function renderPlan(d) {
   const header = pageTop(ROUTE_STATE.sources);
   const weeks = (d.weeks||[]).map(w => `<option value="${esc(w.id)}"
@@ -569,12 +623,7 @@ function renderPlan(d) {
         ${s.strength_min ? `<span>Fuerza ${s.strength_min} min · ${esc(d.training_rules.strength_local_start)}</span>` : ''}
       </div>
       ${s.detail && !rest ? `<p class="muted" style="margin:8px 0 0">${esc(s.detail)}</p>`:''}
-      ${d.observed_runs?.[s.date] ? `<div class="plan-observed">
-        <span class="eyebrow">Registrado en Tredict · NO verifica la sesión</span>
-        <div>${d.observed_runs[s.date].count} actividad(es) de carrera ·
-          ${esc(d.observed_runs[s.date].minutes)} min ·
-          ${esc(d.observed_runs[s.date].km)} km
-        </div></div>` : ''}
+      ${renderPlanExecution(d.execution?.days?.[s.date],s)}
       ${nutrient(s)}
       ${s.shoe ? `<p class="muted" style="font-size:11px;margin:10px 0 0">Calzado previsto: ${esc(s.shoe)}</p>` : ''}
     </article>`;
@@ -591,11 +640,28 @@ function renderPlan(d) {
        <div><b>${esc(d.run_minutes)}′</b><small>Tiempo de carrera</small></div>
        <div><b>${d.run_km_approx===null?'—':esc(d.run_km_approx)+' km'}</b><small>Distancia prevista</small></div>
       </div>
+      <div class="plan-actions"><a href="#/plan">Semana actual ↗</a>
+       <a href="#/fisiologia">Fisiología ↗</a></div>
       <label for="plan-week" class="eyebrow">Seleccionar semana</label>
       <select id="plan-week" class="plan-select" data-week>${weeks}</select>
       <p class="muted" style="margin:10px 0 0">Plan prescrito desde Excel maestro
       ${esc(d.source_version)}, importación manual ${esc(d.snapshot_date)}.
       <b>No se sincroniza en directo con Drive.</b></p>
+    </section>
+    <section class="card plan-exec-summary">
+      <div class="eyebrow">ARES · PRESCRITO / REGISTRADO / RESPUESTA</div>
+      <h3>Dos fuentes, una historia de entrenamiento</h3>
+      <div class="plan-exec-stats">
+        <div><b>${esc(d.execution?.summary?.days_with_running_activity ?? 0)}</b>
+          <small>Días con carrera registrada</small></div>
+        <div><b>${esc(d.execution?.summary?.recorded_run_minutes ?? 0)}′</b>
+          <small>Minutos observados</small></div>
+        <div><b>${esc(d.execution?.summary?.days_with_night_context ?? 0)}</b>
+          <small>Días con respuesta WHOOP</small></div>
+      </div>
+      <p class="muted">No se muestra «cumplimiento» sin verificar duración, bloques y
+      zonas con registros de calidad. Una ausencia en Tredict no significa que no entrenases.
+      Los cambios nocturnos no demuestran que una sesión los causase.</p>
     </section>
     <section class="card plan-nutrition-summary">
       <div class="eyebrow">Fueling ARES v1.0 · previsión semanal</div>
