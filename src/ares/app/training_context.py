@@ -86,6 +86,6 @@ def training_night_context(
         "method": (
             "Última noche válida que terminó antes del inicio; primera noche "
             "que comienza después del final del entrenamiento (ventana ±72 h). "
-            "El cambio entre noches NO demuestra que el entrenamiento lo haya provocado."
+            "No demuestra causalidad: el cambio entre noches no acredita que lo haya provocado el entrenamiento."
         ),
     }
