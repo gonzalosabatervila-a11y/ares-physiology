@@ -8,6 +8,38 @@
 .atelier-intro h2 em,.plan-head h2 em{font-family:'Iowan Old Style','Baskerville',
   'Palatino Linotype',Georgia,serif;font-weight:400;letter-spacing:-.026em}
 .atelier-intro p{font-size:13px;line-height:1.7;color:var(--mut);margin:0;max-width:50ch}
+/* Portada instrumental: la última noche es el dato protagonista. */
+.home-night{padding:20px 2px 19px;border-bottom:1px solid var(--line2)}
+.home-night-head{display:flex;justify-content:space-between;align-items:baseline;
+  gap:12px;flex-wrap:wrap}
+.home-night-head .eyebrow{color:var(--sig);font-size:10px}
+.home-night-head a,.home-night-foot a,.home-night-link{color:var(--sig);
+  font-size:11.5px;font-weight:650}
+.home-night-date{font-size:11px;color:var(--mut);line-height:1.5}
+.home-night-data{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+  margin-top:23px;gap:0}
+.home-night-data>div{min-width:0;padding:0 8px 2px 0}
+.home-night-data>div:not(:first-child){border-left:1px solid var(--line2);padding-left:12px}
+.home-night-data>div>span{display:block;min-height:31px;font-size:11px;
+  line-height:1.45;color:var(--mut)}
+.home-night-data strong{display:flex;align-items:baseline;gap:4px;flex-wrap:nowrap;
+  margin-top:8px;font-size:clamp(28px,8vw,47px);font-family:'Archivo',sans-serif;
+  font-weight:690;font-variation-settings:'wdth' 70,'wght' 690;
+  letter-spacing:-.055em;line-height:1.05;white-space:nowrap}
+.home-night-data strong small{font-size:12px;color:var(--mut);
+  font-family:'Archivo',sans-serif;font-weight:480;letter-spacing:0}
+.home-night-foot{display:flex;justify-content:space-between;align-items:baseline;
+  gap:11px;flex-wrap:wrap;margin-top:18px}
+.home-night-foot>span{color:var(--mut2);font:400 9px/1.6 'Martian Mono',monospace}
+.home-night-empty p{font-size:12px;color:var(--mut);line-height:1.6;
+  margin:14px 0 0;max-width:52ch}
+.home-night-empty .home-night-link{display:inline-block;margin-top:10px}
+@media(max-width:370px){
+  .home-night-data>div{padding-right:4px}
+  .home-night-data>div:not(:first-child){padding-left:7px}
+  .home-night-data strong{font-size:clamp(25px,7.5vw,32px);gap:2px}
+  .home-night-data strong small{font-size:10px}
+}
 .atelier-section{padding-top:10px}
 .atelier-section-head{display:flex;align-items:center;justify-content:space-between;
   gap:14px;margin-bottom:8px}
