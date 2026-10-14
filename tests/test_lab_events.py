@@ -276,6 +276,18 @@ def test_resultado_inmediato_ultimo_cierre_de_cena_a_me_acuesto(conn,settings):
     assert "distinto del inicio de sueño" in out["method"]
 
 
+def test_otro_puerto_del_mismo_host_no_es_mismo_origen(conn, settings):
+    api = TestClient(
+        create_app(lambda: conn, settings, auto_sync=True),
+        base_url="http://127.0.0.1:8443",
+    )
+    attempt = api.post("/api/lab/events", json=event(), headers={
+        "Origin": "http://127.0.0.1:3000", "X-ARES-LAB": "1",
+    })
+    assert attempt.status_code == 403
+    assert conn.execute("SELECT count(*) FROM lab_events").fetchone()[0] == 0
+
+
 def test_valida_tailscale_y_rechaza_http_externo(conn,settings):
     api=TestClient(
         create_app(lambda:conn,settings,auto_sync=True),
