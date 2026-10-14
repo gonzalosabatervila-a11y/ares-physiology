@@ -678,6 +678,41 @@ function renderHrZones(z) {
   </section>`;
 }
 
+function renderTrainingContext(ctx) {
+  if (!ctx) return '';
+  const num = (v, unit, decimals=0) => v === null || v === undefined ? '—' :
+    Number(v).toLocaleString('es-ES', {maximumFractionDigits:decimals}) + unit;
+  const item = (night, heading) => night ? `<div style="flex:1;min-width:0">
+    <span class="eyebrow">${esc(heading)} · ${esc(shortDate(night.date))}</span>
+    <div style="margin-top:10px;font-size:15px"><b>VFC</b> ${esc(num(night.rmssd_ms,' ms'))}</div>
+    <div style="margin-top:7px;font-size:15px"><b>Reposo</b> ${esc(num(night.rhr,' lpm'))}</div>
+    <div style="margin-top:7px;font-size:15px"><b>Sueño</b> ${esc(runTime(night.sleep_min === null ? null : night.sleep_min*60))}</div>
+    <div style="margin-top:7px;font-size:15px"><b>Recovery</b> ${esc(num(night.recovery_whoop,' %'))}</div>
+  </div>` : `<div style="flex:1;min-width:0"><span class="eyebrow">${esc(heading)}</span>
+    <p class="muted">No hay noche válida dentro de la ventana de 72 h.</p></div>`;
+  const d = ctx.difference || {};
+  const delta = ctx.before && ctx.after ?
+    `<p class="muted" style="margin:12px 0 0">Cambio registrado:
+      VFC ${esc(num(d.rmssd_ms,' ms',1))},
+      pulso ${esc(num(d.rhr,' lpm',1))},
+      sueño ${esc(num(d.sleep_min,' min',0))}.
+      Son diferencias observadas entre dos noches, no efectos atribuibles al ejercicio.</p>` : '';
+  return `<section class="card" aria-label="Fisiología alrededor del entrenamiento">
+    <div class="row" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+      <span class="eyebrow">ARES · Relación entrenamiento y fisiología</span>
+      ${tagChip('CALC','ARES')}
+    </div>
+    <h3 style="margin:12px 0 8px">Antes y después del esfuerzo</h3>
+    <div style="display:flex;gap:14px;margin-top:16px">
+      ${item(ctx.before, 'Antes')}
+      <div style="width:1px;background:var(--line2)"></div>
+      ${item(ctx.after, 'Después')}
+    </div>
+    ${delta}
+    <p class="muted" style="font-size:12px;margin:14px 0 0">
+      ${esc(ctx.method || ctx.reason || 'No hay contexto suficiente todavía.')}</p>
+  </section>`;
+}
 function renderEntreno(d) {
   const laps = (d.laps || []).map((l) => `<tr><td>${l.number}</td>
     <td>${l.distance_m === null ? '—' : esc((l.distance_m/1000).toFixed(2)) + ' km'}</td>
@@ -709,7 +744,8 @@ function renderEntreno(d) {
       </div>
       <p class="muted">${esc(d.attribution)}
         ${d.pace_calculated ? ' · Ritmo calculado desde tiempo y distancia' : ''}
-      </p></section>` + renderTrainingIntelligence(d.analysis) + renderHrZones(d.hr_zones) + sensors +
+      </p></section>` + renderTrainingIntelligence(d.analysis) + renderTrainingContext(d.night_context) +
+    renderHrZones(d.hr_zones) + sensors +
     `<section class="card"><h3>Vueltas y segmentos</h3>
       ${laps ? '<div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Dist.</th><th>Ritmo</th><th>FC</th><th>W</th></tr></thead><tbody>'+
         laps+'</tbody></table></div>' : '<p class="muted">El sensor no proporcionó vueltas.</p>'}
