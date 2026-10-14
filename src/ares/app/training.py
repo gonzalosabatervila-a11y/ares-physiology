@@ -14,6 +14,7 @@ from typing import Any
 import duckdb
 
 from ..connectors.tredict import ACTIVITY_ID_RE
+from . import training_analysis
 
 
 def num(v: Any) -> float | None:
@@ -124,8 +125,17 @@ def session(conn: duckdb.DuckDBPyConnection, activity_id: str) -> dict[str, Any]
     if not isinstance(values, dict):
         values = {}
     summary = _summary(selected)
+    sport = summary["sport"]
+    analysis = {
+        "quality": training_analysis.series_quality(values, period, summary["duration_s"]),
+        "drift": training_analysis.decoupling_proxy(
+            values, period, summary["duration_s"], sport=sport
+        ),
+        "laps": training_analysis.lap_consistency(laps, sport=sport),
+    }
     return {
         **summary,
+        "analysis": analysis,
         "laps": laps,
         "sample_seconds": num(period),
         "series": {
