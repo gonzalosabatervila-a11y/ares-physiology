@@ -40,6 +40,8 @@ class Settings:
     whoop_redirect_uri: str = "http://localhost:8765/callback"
     whoop_history_days: int = 90  # carga histórica inicial: mínimo objetivo
     nutrition_weight_kg: float | None = None  # opcional, solo .env local; sin peso personal en Git
+    public_base_path: str = ""
+    proxy_auth_required: bool = False
 
     @property
     def db_path(self) -> Path:
@@ -100,6 +102,8 @@ def load_settings(env_file: Path | None = None) -> Settings:
         whoop_redirect_uri=_clean(env.get("WHOOP_REDIRECT_URI", "http://localhost:8765/callback")),
         whoop_history_days=_positive_int(env.get("WHOOP_HISTORY_DAYS", "90"), "WHOOP_HISTORY_DAYS"),
         nutrition_weight_kg=_optional_nutrition_weight(env.get("ARES_NUTRITION_WEIGHT_KG")),
+        public_base_path=_clean(env.get("ARES_PUBLIC_BASE_PATH", "")).rstrip("/"),
+        proxy_auth_required=_clean(env.get("ARES_PROXY_AUTH_REQUIRED", "0")) == "1",
     )
 
 
@@ -108,6 +112,13 @@ class KeyringUnavailable(RuntimeError):
 
 
 def get_secret(name: str) -> str | None:
+    if name not in KNOWN_SECRETS:
+        return None
+    secret_dir = Path(os.environ.get("ARES_SECRETS_DIR", "/run/secrets/ares"))
+    secret_file = secret_dir / name
+    if secret_file.is_file():
+        value = secret_file.read_text(encoding="utf-8").strip()
+        return value or None
     try:
         return keyring.get_password(KEYRING_SERVICE, name)
     except keyring.errors.NoKeyringError as exc:

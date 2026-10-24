@@ -18,7 +18,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from ..config import Settings
-from . import data, physiology, training_catalog, planning, plan_execution, lab_events
+from . import data, lab_events, physiology, plan_execution, planning, training_catalog
 
 STATIC = Path(__file__).parent / "static"
 mimetypes.add_type("application/manifest+json", ".webmanifest")  # según el sistema no viene
@@ -171,6 +171,18 @@ def create_app(
         """
         if not auto_sync:
             raise HTTPException(403, "ARES app está en modo lectura; usa ares serve")
+        if settings.proxy_auth_required:
+            if request.headers.get("x-ares-authorized") != "1":
+                raise HTTPException(403, "Autorización de GonzaloOS ausente")
+            expected = request.headers.get("x-ares-csrf", "")
+            supplied = request.headers.get("x-csrf-token", "")
+            if not expected or not supplied or expected != supplied:
+                raise HTTPException(403, "Token CSRF de GonzaloOS ausente o distinto")
+            host = urlsplit("//" + request.headers.get("host", ""))
+            origin = urlsplit(request.headers.get("origin", ""))
+            if origin.scheme != "https" or origin.hostname != host.hostname:
+                raise HTTPException(403, "ARES proxificado exige origen HTTPS coincidente")
+            return
         # Comparar también PUERTO: distinto puerto en el mismo hostname
         # sigue siendo otro origen web. La URL de Tailscale HTTPS es aparte.
         forwarded = urlsplit("//" + request.headers.get("host", ""))
@@ -241,6 +253,11 @@ def create_app(
     @app.get("/api/lab")
     def api_lab() -> dict:
         return data.lab(cursor(), settings)
+
+    @app.get("/api/healthz", include_in_schema=False)
+    def api_healthz() -> dict:
+        cursor().execute("SELECT 1").fetchone()
+        return {"ok": True}
 
     @app.get("/")
     def index() -> FileResponse:

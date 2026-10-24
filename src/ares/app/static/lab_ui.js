@@ -200,10 +200,21 @@ function renderAresLab(d) {
       <a href="#/fisiologia" class="lab-link">Ver fisiología longitudinal ↗</a>
     </section>`;
 }
+let labCsrf='';
+async function labCsrfToken() {
+  if (labCsrf) return labCsrf;
+  const status=await fetch('/api/auth/status',{cache:'no-store',credentials:'same-origin'});
+  if (!status.ok) return '';
+  const body=await status.json();
+  labCsrf=typeof body.csrf==='string'?body.csrf:'';
+  return labCsrf;
+}
 async function labApi(method, path, payload) {
+  const csrf=await labCsrfToken();
   const r = await fetch(path, {
     method, cache:'no-store', credentials:'same-origin',
-    headers:{'Content-Type':'application/json','X-ARES-LAB':'1'},
+    headers:{'Content-Type':'application/json','X-ARES-LAB':'1',
+      ...(csrf?{'X-CSRF-Token':csrf}:{})},
     body:payload ? JSON.stringify(payload) : undefined,
   });
   if (!r.ok) {
@@ -230,7 +241,7 @@ async function labQuick(kind) {
   buttons.forEach(el=>el.disabled=true);
   labMessage='Guardando en ARES…';
   try {
-    await labApi('POST','/api/lab/events',labPending);
+    await labApi('POST','api/lab/events',labPending);
     labPending=null;labMessage='Registrado correctamente. Puedes corregirlo en el historial.';
     labToast('✓ Registrado en ARES. Puedes corregirlo en LAB.');
     await route(true);
@@ -308,7 +319,7 @@ async function labSaveForm(form) {
   form.querySelector('[type=submit]').disabled=true;
   try {
     await labApi(origId?'PATCH':'POST',origId?
-      `/api/lab/events/${encodeURIComponent(origId)}`:'/api/lab/events',data);
+      `api/lab/events/${encodeURIComponent(origId)}`:'api/lab/events',data);
     closeSheet();labMessage='Registro guardado.';
     labToast('✓ Acontecimiento guardado.');
     await route(true);
@@ -330,7 +341,7 @@ document.addEventListener('click',(e)=>{
     if(!confirm('¿Anular este registro? Dejará de aparecer en los análisis.'))return;
     void (async()=>{
       try {
-        await labApi('DELETE',`/api/lab/events/${encodeURIComponent(del.dataset.labDelete)}`);
+        await labApi('DELETE',`api/lab/events/${encodeURIComponent(del.dataset.labDelete)}`);
         closeSheet();labMessage='Registro anulado.';
         labToast('Registro anulado. Ya no participa en los análisis.');
         await route(true);

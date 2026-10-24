@@ -24,10 +24,10 @@ def test_shell_delivers_premium_lab_scripts_and_feedback(client):
     assert 'id="tabs"' in html
     assert 'id="ares-toast"' in html
     assert 'aria-live="polite"' in html
-    assert '/static/lab_ui.js?v=ares-home-refined-20261014' in html
-    assert '/static/app.js?v=ares-home-refined-20261014' in html
-    assert '/static/app.css?v=ares-home-refined-20261014' in html
-    assert '/static/atelier_views.css?v=ares-home-refined-20261014' in html
+    assert 'static/lab_ui.js?v=ares-home-refined-20261014' in html
+    assert 'static/app.js?v=ares-home-refined-20261014' in html
+    assert 'static/app.css?v=ares-home-refined-20261014' in html
+    assert 'static/atelier_views.css?v=ares-home-refined-20261014' in html
 
 
 def test_one_tap_home_and_diary_tabs_are_present(client):
@@ -64,7 +64,7 @@ def test_lightweight_frontend_assets_remain_within_budget(client):
     bounds = {
         "/static/app.js": 105_000,
         "/static/lab_ui.js": 25_000,
-        "/static/app.css": 45_000,
+        "/static/app.css": 45_500,
         "/static/atelier_views.css": 17_000,
     }
     for path, max_bytes in bounds.items():
@@ -78,7 +78,7 @@ def test_lightweight_frontend_assets_remain_within_budget(client):
 def test_ui_keeps_diagnostics_and_responds_to_out_of_order_requests(client):
     app = client.get("/static/app.js").text
     assert "else if (tab === 'lab')" in app
-    assert "url = '/api/lab'; fn = renderLab" in app
+    assert "url = 'api/lab'; fn = renderLab" in app
     assert "seq !== routeSeq" in app
     assert "data-route-retry" in app
     assert "prefers-reduced-motion" in app

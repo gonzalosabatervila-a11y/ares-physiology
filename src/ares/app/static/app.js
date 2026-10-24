@@ -1361,14 +1361,14 @@ async function route(refresh = false) {
     url = `/api/plan${week ? '?week='+encodeURIComponent(week) : ''}`;
     fn = renderPlan;
   }
-  else if (tab === 'progreso') { url = '/api/progreso'; fn = renderProgreso; }
+  else if (tab === 'progreso') { url = 'api/progreso'; fn = renderProgreso; }
   else if (tab === 'fisiologia') {
     const days = [28, 90, 365].includes(+params.get('d')) ? +params.get('d') : 90;
     url = `/api/fisiologia?days=${days}`; fn = renderFisiologia;
   }
-  else if (tab === 'laboratorio') { url = '/api/lab/events'; fn = renderAresLab; }
-  else if (tab === 'lab') { url = '/api/lab'; fn = renderLab; }
-  else { url = '/api/home'; fn = renderInicio; }
+  else if (tab === 'laboratorio') { url = 'api/lab/events'; fn = renderAresLab; }
+  else if (tab === 'lab') { url = 'api/lab'; fn = renderLab; }
+  else { url = 'api/home'; fn = renderInicio; }
   const btn = document.querySelector('[data-sync]');
   if (btn) btn.classList.add('spin');
   try {
