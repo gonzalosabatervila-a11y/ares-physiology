@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -40,6 +41,8 @@ class Settings:
     whoop_redirect_uri: str = "http://localhost:8765/callback"
     whoop_history_days: int = 90  # carga histórica inicial: mínimo objetivo
     nutrition_weight_kg: float | None = None  # opcional, solo .env local; sin peso personal en Git
+    public_base_path: str = ""
+    proxy_auth_required: bool = False
 
     @property
     def db_path(self) -> Path:
@@ -100,6 +103,8 @@ def load_settings(env_file: Path | None = None) -> Settings:
         whoop_redirect_uri=_clean(env.get("WHOOP_REDIRECT_URI", "http://localhost:8765/callback")),
         whoop_history_days=_positive_int(env.get("WHOOP_HISTORY_DAYS", "90"), "WHOOP_HISTORY_DAYS"),
         nutrition_weight_kg=_optional_nutrition_weight(env.get("ARES_NUTRITION_WEIGHT_KG")),
+        public_base_path=_clean(env.get("ARES_PUBLIC_BASE_PATH", "")).rstrip("/"),
+        proxy_auth_required=_clean(env.get("ARES_PROXY_AUTH_REQUIRED", "0")) == "1",
     )
 
 
@@ -108,6 +113,21 @@ class KeyringUnavailable(RuntimeError):
 
 
 def get_secret(name: str) -> str | None:
+    if name not in KNOWN_SECRETS:
+        return None
+    state_raw = os.environ.get("ARES_SECRET_STATE_DIR", "").strip()
+    if state_raw:
+        state_file = Path(state_raw).expanduser() / name
+        if state_file.is_file():
+            value = state_file.read_text(encoding="utf-8").strip()
+            return value or None
+    secret_dir = Path(os.environ.get("ARES_SECRETS_DIR", "/run/secrets/ares"))
+    secret_file = secret_dir / name
+    if secret_file.is_file():
+        value = secret_file.read_text(encoding="utf-8").strip()
+        return value or None
+    if state_raw:
+        return None
     try:
         return keyring.get_password(KEYRING_SERVICE, name)
     except keyring.errors.NoKeyringError as exc:
@@ -120,6 +140,27 @@ def get_secret(name: str) -> str | None:
 def set_secret(name: str, value: str) -> None:
     if name not in KNOWN_SECRETS:
         raise ValueError(f"Secreto desconocido: {name}. Válidos: {', '.join(KNOWN_SECRETS)}")
+    state_raw = os.environ.get("ARES_SECRET_STATE_DIR", "").strip()
+    if state_raw:
+        state_dir = Path(state_raw).expanduser()
+        state_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+        os.chmod(state_dir, 0o700)
+        fd, temporary = tempfile.mkstemp(prefix=f".{name}-", suffix=".tmp", dir=state_dir)
+        try:
+            os.fchmod(fd, 0o600)
+            with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                handle.write(value)
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temporary, state_dir / name)
+        except BaseException:
+            try:
+                os.close(fd)
+            except OSError:
+                pass
+            Path(temporary).unlink(missing_ok=True)
+            raise
+        return
     keyring.set_password(KEYRING_SERVICE, name, value)
 
 

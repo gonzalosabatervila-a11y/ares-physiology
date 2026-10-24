@@ -1347,28 +1347,28 @@ async function route(refresh = false) {
   let url, fn;
   if (parts[0] === 'senal' && parts[1]) {
     const days = [7, 28, 90, 365].includes(+params.get('d')) ? +params.get('d') : 28;
-    url = `/api/senal/${encodeURIComponent(parts[1])}?days=${days}`;
+    url = `api/senal/${encodeURIComponent(parts[1])}?days=${days}`;
     fn = renderSenal;
   } else if (parts[0] === 'entreno' && parts[1]) {
-    url = `/api/entreno/${encodeURIComponent(parts[1])}`; fn = renderEntreno;
+    url = `api/entreno/${encodeURIComponent(parts[1])}`; fn = renderEntreno;
   } else if (tab === 'entrenos') {
     const category = params.get('tipo') === 'otros' ? 'other' : 'running';
-    url = `/api/entrenos?category=${category}`; fn = renderEntrenos;
+    url = `api/entrenos?category=${category}`; fn = renderEntrenos;
   }
   else if (tab === 'plan') {
     const week = /^S(3[2-9]|40)$/.test(params.get('semana') || '') ?
       params.get('semana') : null;
-    url = `/api/plan${week ? '?week='+encodeURIComponent(week) : ''}`;
+    url = `api/plan${week ? '?week='+encodeURIComponent(week) : ''}`;
     fn = renderPlan;
   }
-  else if (tab === 'progreso') { url = '/api/progreso'; fn = renderProgreso; }
+  else if (tab === 'progreso') { url = 'api/progreso'; fn = renderProgreso; }
   else if (tab === 'fisiologia') {
     const days = [28, 90, 365].includes(+params.get('d')) ? +params.get('d') : 90;
-    url = `/api/fisiologia?days=${days}`; fn = renderFisiologia;
+    url = `api/fisiologia?days=${days}`; fn = renderFisiologia;
   }
-  else if (tab === 'laboratorio') { url = '/api/lab/events'; fn = renderAresLab; }
-  else if (tab === 'lab') { url = '/api/lab'; fn = renderLab; }
-  else { url = '/api/home'; fn = renderInicio; }
+  else if (tab === 'laboratorio') { url = 'api/lab/events'; fn = renderAresLab; }
+  else if (tab === 'lab') { url = 'api/lab'; fn = renderLab; }
+  else { url = 'api/home'; fn = renderInicio; }
   const btn = document.querySelector('[data-sync]');
   if (btn) btn.classList.add('spin');
   try {
