@@ -27,7 +27,7 @@ def test_browser_assets_and_api_calls_are_prefix_relative(conn, settings):
     assert 'href="static/' in html
     assert 'src="static/' in html
     assert 'href="/"' in html and "Volver a GonzaloOS" in html
-    assert "'/api/" not in app_js and '"/api/' not in app_js
+    assert "'/api/" not in app_js and '"/api/' not in app_js and "`/api/" not in app_js
     prefixed_lab_js = lab_js.replace("'/api/auth/status'", "")
     assert "'/api/" not in prefixed_lab_js and '"/api/' not in prefixed_lab_js
     assert "`/api/" not in prefixed_lab_js
@@ -96,6 +96,28 @@ def test_container_reads_secret_files_without_logging_or_keyring(tmp_path, monke
     ))
     assert config.get_secret("tredict_token") == "synthetic-token"
     assert config.get_secret("unknown") is None
+
+
+def test_container_persists_rotating_tokens_atomically(tmp_path, monkeypatch):
+    static_dir = tmp_path / "static"
+    state_dir = tmp_path / "state"
+    static_dir.mkdir()
+    static_dir.joinpath("whoop_client_id").write_text("synthetic-client")
+    monkeypatch.setenv("ARES_SECRETS_DIR", str(static_dir))
+    monkeypatch.setenv("ARES_SECRET_STATE_DIR", str(state_dir))
+    monkeypatch.setattr(config.keyring, "get_password", lambda *_: (_ for _ in ()).throw(
+        AssertionError("container mode must not use keyring")
+    ))
+    monkeypatch.setattr(config.keyring, "set_password", lambda *_: (_ for _ in ()).throw(
+        AssertionError("container mode must not use keyring")
+    ))
+
+    assert config.get_secret("whoop_client_id") == "synthetic-client"
+    assert config.get_secret("whoop_access_token") is None
+    config.set_secret("whoop_access_token", "rotated-synthetic-token")
+    assert config.get_secret("whoop_access_token") == "rotated-synthetic-token"
+    assert state_dir.joinpath("whoop_access_token").stat().st_mode & 0o777 == 0o600
+    assert not list(state_dir.glob("*.tmp"))
 
 
 def test_container_contract_is_non_root_and_does_not_publish_ports():

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -114,11 +115,19 @@ class KeyringUnavailable(RuntimeError):
 def get_secret(name: str) -> str | None:
     if name not in KNOWN_SECRETS:
         return None
+    state_raw = os.environ.get("ARES_SECRET_STATE_DIR", "").strip()
+    if state_raw:
+        state_file = Path(state_raw).expanduser() / name
+        if state_file.is_file():
+            value = state_file.read_text(encoding="utf-8").strip()
+            return value or None
     secret_dir = Path(os.environ.get("ARES_SECRETS_DIR", "/run/secrets/ares"))
     secret_file = secret_dir / name
     if secret_file.is_file():
         value = secret_file.read_text(encoding="utf-8").strip()
         return value or None
+    if state_raw or "ARES_SECRETS_DIR" in os.environ:
+        return None
     try:
         return keyring.get_password(KEYRING_SERVICE, name)
     except keyring.errors.NoKeyringError as exc:
@@ -131,6 +140,27 @@ def get_secret(name: str) -> str | None:
 def set_secret(name: str, value: str) -> None:
     if name not in KNOWN_SECRETS:
         raise ValueError(f"Secreto desconocido: {name}. Válidos: {', '.join(KNOWN_SECRETS)}")
+    state_raw = os.environ.get("ARES_SECRET_STATE_DIR", "").strip()
+    if state_raw:
+        state_dir = Path(state_raw).expanduser()
+        state_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+        os.chmod(state_dir, 0o700)
+        fd, temporary = tempfile.mkstemp(prefix=f".{name}-", suffix=".tmp", dir=state_dir)
+        try:
+            os.fchmod(fd, 0o600)
+            with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                handle.write(value)
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temporary, state_dir / name)
+        except BaseException:
+            try:
+                os.close(fd)
+            except OSError:
+                pass
+            Path(temporary).unlink(missing_ok=True)
+            raise
+        return
     keyring.set_password(KEYRING_SERVICE, name, value)
 
 
