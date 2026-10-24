@@ -126,7 +126,7 @@ def get_secret(name: str) -> str | None:
     if secret_file.is_file():
         value = secret_file.read_text(encoding="utf-8").strip()
         return value or None
-    if state_raw or "ARES_SECRETS_DIR" in os.environ:
+    if state_raw:
         return None
     try:
         return keyring.get_password(KEYRING_SERVICE, name)

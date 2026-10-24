@@ -120,6 +120,16 @@ def test_container_persists_rotating_tokens_atomically(tmp_path, monkeypatch):
     assert not list(state_dir.glob("*.tmp"))
 
 
+def test_desktop_empty_secret_directory_still_falls_back_to_keyring(tmp_path, monkeypatch):
+    monkeypatch.setenv("ARES_SECRETS_DIR", str(tmp_path / "empty-static"))
+    monkeypatch.delenv("ARES_SECRET_STATE_DIR", raising=False)
+    monkeypatch.setattr(
+        config.keyring, "get_password",
+        lambda service, name: "desktop-keyring-token" if name == "tredict_token" else None,
+    )
+    assert config.get_secret("tredict_token") == "desktop-keyring-token"
+
+
 def test_container_contract_is_non_root_and_does_not_publish_ports():
     dockerfile = Path("Dockerfile").read_text()
     assert "USER ares" in dockerfile
