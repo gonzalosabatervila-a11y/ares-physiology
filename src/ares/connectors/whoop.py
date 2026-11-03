@@ -51,8 +51,8 @@ class SyncResult:
 
 
 def authorization_url(client_id: str, redirect_uri: str, state: str) -> str:
-    if len(state) < 8:
-        raise ValueError("El state OAuth debe tener al menos ocho caracteres.")
+    if len(state) != 8:
+        raise ValueError("WHOOP exige un state OAuth de ocho caracteres.")
     return AUTH_URL + "?" + urlencode({
         "response_type": "code", "client_id": client_id,
         "redirect_uri": redirect_uri, "scope": SCOPES, "state": state,
@@ -60,7 +60,7 @@ def authorization_url(client_id: str, redirect_uri: str, state: str) -> str:
 
 
 def new_state() -> str:
-    return secrets.token_urlsafe(24)
+    return secrets.token_hex(4)
 
 
 def _parse_tokens(body: dict[str, Any], fallback_refresh: str | None = None) -> TokenSet:
