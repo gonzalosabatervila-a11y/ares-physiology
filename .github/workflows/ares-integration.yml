@@ -5,6 +5,7 @@ on:
       - feature/ares-physiology-lab-20261013
   push:
     branches:
+      - feature/ares-physiology-lab-20261013
       - integration/gonzaloos-private-bridge-20261103
 jobs:
   tests:
