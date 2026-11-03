@@ -8,13 +8,15 @@ lo levanta aparte con la base abierta en solo lectura.
 from __future__ import annotations
 
 import mimetypes
+import hmac
+import os
 from collections.abc import Callable
 from pathlib import Path
 from urllib.parse import urlsplit
 
 import duckdb
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import Response, FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from ..config import Settings
@@ -30,6 +32,19 @@ def create_app(
     auto_sync: bool = False,
 ) -> FastAPI:
     app = FastAPI(title="ARES", docs_url=None, redoc_url=None, openapi_url=None)
+
+    @app.middleware("http")
+    async def require_private_bridge(request: Request, call_next):
+        """En OVH, nadie accede a ARES directamente, ni desde otra red Docker.
+        Gonzalo OS valida sesión/MFA/CSRF y añade el secreto únicamente al proxy privado.
+        En Mac sin secreto, se conserva el comportamiento local / Tailscale existente.
+        """
+        secret = os.getenv("ARES_BRIDGE_SECRET", "")
+        if secret and not hmac.compare_digest(
+            request.headers.get("x-ares-bridge-secret", ""), secret
+        ):
+            return Response(status_code=403)
+        return await call_next(request)
 
     def cursor() -> duckdb.DuckDBPyConnection:
         return get_conn().cursor()  # un cursor por petición: seguro entre hilos
@@ -171,6 +186,16 @@ def create_app(
         """
         if not auto_sync:
             raise HTTPException(403, "ARES app está en modo lectura; usa ares serve")
+        bridge_secret = os.getenv("ARES_BRIDGE_SECRET", "")
+        if bridge_secret and hmac.compare_digest(
+            request.headers.get("x-ares-bridge-secret", ""), bridge_secret
+        ):
+            # Solo el proxy autenticado de Gonzalo OS puede usar este modo.
+            # Escribe tras validar la sesión, MFA, Origin y X-CSRF-Token.
+            if request.headers.get("x-ares-lab") != "1":
+                raise HTTPException(403, "Cabecera de protección ARES LAB ausente")
+            return
+
         # Comparar también PUERTO: distinto puerto en el mismo hostname
         # sigue siendo otro origen web. La URL de Tailscale HTTPS es aparte.
         forwarded = urlsplit("//" + request.headers.get("host", ""))
