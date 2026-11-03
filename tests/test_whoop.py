@@ -19,6 +19,7 @@ def test_auth_url_requests_minimal_scopes_and_state():
     assert args["scope"] == [whoop.SCOPES]
     assert "offline" in args["scope"][0]
     assert "read:profile" not in args["scope"][0]
+    assert len(whoop.new_state()) == 8
     with pytest.raises(ValueError):
         whoop.authorization_url("c", "https://example.com/cb", "short")
 
