@@ -202,5 +202,7 @@ def set_secret(name: str, value: str) -> None:
 
 
 def keyring_backend_name() -> str:
+    if _secrets_file() is not None:
+        return "ares.encrypted_file.Fernet"
     backend = keyring.get_keyring()
     return f"{type(backend).__module__}.{type(backend).__name__}"
