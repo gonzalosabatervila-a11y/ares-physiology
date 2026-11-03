@@ -204,3 +204,20 @@ def test_sheet_dialog_traps_keyboard_and_restores_focus(client):
     assert "if (e.key !== 'Tab') return" in js
     assert "lastFocus?.isConnected" in js
     assert "view.focus({preventScroll:true})" in js
+
+
+def test_embedded_scientific_atelier_has_separate_light_desktop_design(client):
+    """Embedded Gonzalo OS navigation is explicit; standalone ARES stays independent."""
+    shell = client.get("/").text
+    app = client.get("/static/app.js").text
+    css = client.get("/static/embedded_atelier.css").text
+    assert "embedded_atelier.css?v=ares-embedded-20261103" in shell
+    assert "new URLSearchParams(window.location.search).get('embed') === '1'" in app
+    assert "document.body.insertBefore(tabsEl, document.getElementById('app'))" in app
+    assert "html.ares-embedded" in css
+    assert ".ares-embedded #tabs" in css
+    assert ".ares-embedded .home-night" in css
+    assert ".ares-embedded .phys-chart" in css
+    assert "provider_recovery" in app  # WHOOP original recovery model, no recalculation
+    assert "prefers-reduced-motion" in css
+    assert len(css.encode()) < 15_000
