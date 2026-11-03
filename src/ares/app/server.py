@@ -17,6 +17,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from ..config import Settings
+from .. import whoop_metrics
 from . import data
 
 STATIC = Path(__file__).parent / "static"
@@ -36,6 +37,12 @@ def create_app(
     @app.get("/api/home")
     def api_home() -> dict:
         return data.home(cursor(), source=settings.wellness_source)
+
+    @app.get("/api/whoop/summary")
+    def api_whoop_summary(days: int = 30) -> dict:
+        if not 1 <= days <= 90:
+            raise HTTPException(status_code=422, detail="days debe estar entre 1 y 90")
+        return whoop_metrics.summary(cursor(), days=days)
 
     @app.get("/api/progreso")
     def api_progreso() -> dict:
