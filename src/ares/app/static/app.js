@@ -1,4 +1,6 @@
 'use strict';
+// Misma interfaz en localhost y dentro de Gonzalo OS bajo /personal/ares/.
+const ARES_ROUTE_PREFIX = location.pathname.startsWith('/personal/ares/') ? '/personal/ares' : '';
 const view = document.getElementById('view');
 const tabsEl = document.getElementById('tabs');
 const sheetEl = document.getElementById('sheet');
@@ -1372,7 +1374,7 @@ async function route(refresh = false) {
   const btn = document.querySelector('[data-sync]');
   if (btn) btn.classList.add('spin');
   try {
-    const r = await fetch(url, {cache: 'no-store'});
+    const r = await fetch(ARES_ROUTE_PREFIX + url, {cache: 'no-store', credentials: 'same-origin'});
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const data = await r.json();
     // Si se navega muy rápido, una respuesta antigua no debe pintar otra vista.
