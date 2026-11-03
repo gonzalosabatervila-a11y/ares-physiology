@@ -107,13 +107,13 @@ def main() -> int:
     if settings.nutrition_weight_kg is not None:
         runtime["ARES_NUTRITION_WEIGHT_KG"] = str(settings.nutrition_weight_kg)
     if any(
-        "\\n" in value or "\\r" in value or "\\x00" in value or "#" in value
+        "\n" in value or "\r" in value or "\x00" in value or "#" in value
         for value in runtime.values()
     ):
         raise RuntimeError("Configuración ARES no transportable como entorno Docker")
     runtime_file = dest / "ares.runtime.env"
     runtime_file.write_text(
-        "".join(f"{name}={value}\\n" for name, value in runtime.items()),
+        "".join(f"{name}={value}\n" for name, value in runtime.items()),
         encoding="utf-8",
     )
     os.chmod(runtime_file, 0o600)
