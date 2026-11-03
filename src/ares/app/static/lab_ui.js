@@ -201,9 +201,20 @@ function renderAresLab(d) {
     </section>`;
 }
 async function labApi(method, path, payload) {
-  const r = await fetch(path, {
+  const nested = location.pathname.startsWith('/personal/ares/');
+  // Gonzalo OS protege cualquier escritura con CSRF; en ARES local se usa el guard antiguo.
+  let csrf = '';
+  if (nested) {
+    const auth = await fetch('/api/auth/status', {credentials:'same-origin', cache:'no-store'});
+    if (!auth.ok) throw Error('Sesión Gonzalo OS caducada');
+    const status = await auth.json();
+    csrf = status.csrf || '';
+    if (!status.authenticated || !csrf) throw Error('Inicia sesión en Gonzalo OS');
+  }
+  const r = await fetch((nested ? '/personal/ares' : '') + path, {
     method, cache:'no-store', credentials:'same-origin',
-    headers:{'Content-Type':'application/json','X-ARES-LAB':'1'},
+    headers:{'Content-Type':'application/json','X-ARES-LAB':'1',
+      ...(nested ? {'X-CSRF-Token':csrf} : {})},
     body:payload ? JSON.stringify(payload) : undefined,
   });
   if (!r.ok) {

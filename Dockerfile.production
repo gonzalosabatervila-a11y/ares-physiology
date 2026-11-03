@@ -1,0 +1,18 @@
+# ARES Scientific Atelier, isolated from Gonzalo OS and without host ports.
+FROM python:3.12-slim
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/opt/ares/src \
+    ARES_MIGRATIONS_DIR=/opt/ares/migrations \
+    ARES_DATA_DIR=/data
+WORKDIR /opt/ares
+COPY pyproject.toml ./
+COPY src ./src
+COPY migrations ./migrations
+RUN pip install --no-cache-dir . \
+    && useradd -r -u 10001 -m -s /usr/sbin/nologin ares \
+    && mkdir -p /data \
+    && chown -R ares:ares /data /opt/ares
+USER ares
+EXPOSE 8443
+CMD ["python", "-m", "ares.cli", "serve"]
