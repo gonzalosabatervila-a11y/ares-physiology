@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import os
+import json
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -107,7 +109,74 @@ class KeyringUnavailable(RuntimeError):
     """No hay Llavero/Credenciales de Windows disponible en este sistema."""
 
 
+def _secrets_file() -> Path | None:
+    """Encrypted Linux vault, opt-in; existing macOS Keychain remains the default."""
+    raw = os.environ.get("ARES_SECRETS_FILE", "").strip()
+    return Path(raw).expanduser() if raw else None
+
+
+def _fernet():
+    from cryptography.fernet import Fernet
+
+    raw = os.environ.get("ARES_SECRETS_KEY", "").strip()
+    key_file = os.environ.get("ARES_SECRETS_KEY_FILE", "").strip()
+    if raw and key_file:
+        raise KeyringUnavailable("Configura solo una fuente para la clave ARES.")
+    if key_file:
+        key = Path(key_file).read_bytes().strip()
+    elif raw:
+        key = raw.encode("ascii")
+    else:
+        raise KeyringUnavailable(
+            "Falta ARES_SECRETS_KEY_FILE: ARES no puede descifrar sus credenciales."
+        )
+    try:
+        return Fernet(key)
+    except (ValueError, TypeError) as exc:
+        raise KeyringUnavailable("Clave de cifrado ARES no válida.") from exc
+
+
+def _read_vault(path: Path) -> dict[str, str]:
+    from cryptography.fernet import InvalidToken
+
+    if not path.exists():
+        return {}
+    if path.stat().st_mode & 0o077:
+        raise KeyringUnavailable("El almacén ARES debe tener permisos 0600.")
+    try:
+        raw = _fernet().decrypt(path.read_bytes())
+        obj = json.loads(raw)
+        if not isinstance(obj, dict) or any(
+            not isinstance(k, str) or not isinstance(v, str)
+            for k, v in obj.items()
+        ):
+            raise ValueError("Formato de almacén incorrecto")
+        return obj
+    except (InvalidToken, ValueError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise KeyringUnavailable(
+            "No se puede descifrar el almacén ARES. Comprueba la clave y la copia."
+        ) from exc
+
+
+def _write_vault(path: Path, secrets: dict[str, str]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    blob = _fernet().encrypt(json.dumps(secrets, sort_keys=True).encode("utf-8"))
+    fd, tmp_name = tempfile.mkstemp(prefix=".ares-vault-", dir=path.parent)
+    try:
+        os.fchmod(fd, 0o600)
+        with os.fdopen(fd, "wb") as out:
+            out.write(blob)
+            out.flush()
+            os.fsync(out.fileno())
+        os.replace(tmp_name, path)
+    finally:
+        Path(tmp_name).unlink(missing_ok=True)
+
+
 def get_secret(name: str) -> str | None:
+    path = _secrets_file()
+    if path is not None:
+        return _read_vault(path).get(name)
     try:
         return keyring.get_password(KEYRING_SERVICE, name)
     except keyring.errors.NoKeyringError as exc:
@@ -120,6 +189,15 @@ def get_secret(name: str) -> str | None:
 def set_secret(name: str, value: str) -> None:
     if name not in KNOWN_SECRETS:
         raise ValueError(f"Secreto desconocido: {name}. Válidos: {', '.join(KNOWN_SECRETS)}")
+    path = _secrets_file()
+    if path is not None:
+        from .locks import file_lock
+
+        with file_lock(path.with_suffix(".lock")):
+            data = _read_vault(path)
+            data[name] = value
+            _write_vault(path, data)
+        return
     keyring.set_password(KEYRING_SERVICE, name, value)
 
 
