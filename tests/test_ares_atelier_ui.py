@@ -25,7 +25,7 @@ def test_shell_delivers_premium_lab_scripts_and_feedback(client):
     assert 'id="ares-toast"' in html
     assert 'aria-live="polite"' in html
     assert 'static/lab_ui.js?v=ares-home-refined-20261014' in html
-    assert 'static/app.js?v=ares-home-refined-20261014' in html
+    assert 'static/app.js?v=ares-embedded-20261103' in html
     assert 'static/app.css?v=ares-home-refined-20261014' in html
     assert 'static/atelier_views.css?v=ares-home-refined-20261014' in html
 
