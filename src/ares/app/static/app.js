@@ -3,6 +3,13 @@
 const ARES_ROUTE_PREFIX = location.pathname.startsWith('/personal/ares/') ? '/personal/ares' : '';
 const view = document.getElementById('view');
 const tabsEl = document.getElementById('tabs');
+/* Integrated mode: use a single horizontal navigation in Gonzalo OS.
+   The independent/mobile ARES experience is unchanged. */
+const ARES_EMBEDDED = new URLSearchParams(window.location.search).get('embed') === '1';
+if (ARES_EMBEDDED) {
+  document.documentElement.classList.add('ares-embedded');
+  document.body.insertBefore(tabsEl, document.getElementById('app'));
+}
 const sheetEl = document.getElementById('sheet');
 const sheetBody = document.getElementById('sheet-body');
 const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
