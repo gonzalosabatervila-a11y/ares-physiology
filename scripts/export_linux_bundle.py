@@ -79,6 +79,16 @@ def main() -> int:
     copied_db = dest / "ares.duckdb"
     shutil.copyfile(source_db, copied_db)
     os.chmod(copied_db, 0o600)
+    # The reviewed training plan is mutable user state, not embedded in DuckDB.
+    # Include the snapshot if present, with a strict type/size check. The VPS
+    # server will otherwise use its reference plan, silently losing overrides.
+    plan = settings.data_dir / "training_plan.json"
+    if plan.exists():
+        if not plan.is_file() or plan.is_symlink() or plan.stat().st_size > 2_000_000:
+            raise RuntimeError("training_plan.json no es un archivo regular de tamaño aceptable")
+        output_plan = dest / "training_plan.json"
+        shutil.copyfile(plan, output_plan)
+        os.chmod(output_plan, 0o600)
     digest = hashlib.sha256(copied_db.read_bytes()).hexdigest()
     print(f"ARES exportado: {count} filas brutas, {len(secrets)} credenciales cifradas.")
     print(f"Directorio privado: {dest}")
