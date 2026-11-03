@@ -227,3 +227,37 @@
 @media(prefers-reduced-motion:reduce){
   .workout-list .workout-tile{transition:none}
 }
+
+/* Pulsr-inspired recovery iris, reimplemented for the web with WHOOP's native
+   Recovery score. Pulsr (MIT), © 2026 Pulsr contributors — see docs/THIRD_PARTY.md.
+   The iris is only a visualization; ARES does NOT port Pulsr's Apple Health scoring. */
+.ares-recovery-feature{display:flex;align-items:center;gap:25px;padding:14px 0 23px}
+.ares-recovery-orb{--orb-light:#4ff4b5;--orb-mid:#0c9a79;
+  position:relative;flex:0 0 124px;width:124px;height:124px;display:grid;place-items:center;
+  border-radius:50%;isolation:isolate;
+  background:radial-gradient(circle at 28% 22%,rgba(255,255,255,.65),transparent 33%),
+    radial-gradient(ellipse at 61% 73%,var(--orb-mid) 0%,transparent 65%),
+    radial-gradient(circle,var(--orb-light) 0%,var(--orb-mid) 48%,#101f20 87%);
+  box-shadow:0 14px 35px -10px color-mix(in srgb,var(--orb-light) 45%,transparent),
+    inset 0 2px 9px rgba(255,255,255,.2),inset 0 -12px 32px rgba(0,0,0,.28);
+  animation:ares-iris-breathe 5s ease-in-out infinite}
+.ares-recovery-orb:before{content:"";position:absolute;inset:8px;border-radius:50%;
+  border:1px solid rgba(255,255,255,.2);background:radial-gradient(circle at 38% 31%,rgba(255,255,255,.22),transparent 65%);
+  transform:rotate(-18deg)}
+.ares-recovery-orb.amber{--orb-light:#f7c65c;--orb-mid:#a77313}
+.ares-recovery-orb.red{--orb-light:#fa827b;--orb-mid:#b32f54}
+.ares-orb-core{position:relative;display:grid;place-items:center;z-index:1;
+  width:85px;height:85px;background:radial-gradient(circle at 40% 35%,rgba(5,22,25,.85),rgba(5,17,18,.94));
+  border-radius:50%;box-shadow:inset 0 0 16px rgba(0,0,0,.45),0 0 18px rgba(10,15,18,.22)}
+.ares-orb-core strong{font-size:30px;font-weight:730;color:#f3faf6;letter-spacing:-.04em;
+  font-variant-numeric:tabular-nums}
+.ares-orb-core small{font-size:13px;font-weight:500;margin-left:1px}
+.ares-recovery-explainer{display:flex;flex-direction:column;gap:6px;min-width:0}
+.ares-recovery-explainer>strong{font-size:clamp(18px,2.8vw,29px);line-height:1.2;letter-spacing:-.025em}
+.ares-recovery-explainer>small{line-height:1.55;font-size:12px;opacity:.68}
+@keyframes ares-iris-breathe{0%,100%{transform:scale(1);filter:brightness(1)}
+  50%{transform:scale(1.022);filter:brightness(1.1)}}
+@media(max-width:490px){.ares-recovery-feature{gap:17px}.ares-recovery-orb{
+  flex-basis:100px;width:100px;height:100px}.ares-orb-core{width:70px;height:70px}
+  .ares-orb-core strong{font-size:25px}.ares-recovery-explainer>strong{font-size:19px}}
+@media(prefers-reduced-motion:reduce){.ares-recovery-orb{animation:none}}
