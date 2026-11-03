@@ -40,6 +40,8 @@ def create_app(
         En Mac sin secreto, se conserva el comportamiento local / Tailscale existente.
         """
         secret = os.getenv("ARES_BRIDGE_SECRET", "")
+        if os.getenv("ARES_PRODUCTION") == "1" and len(secret) < 32:
+            return Response(status_code=503)
         if secret and not hmac.compare_digest(
             request.headers.get("x-ares-bridge-secret", ""), secret
         ):
