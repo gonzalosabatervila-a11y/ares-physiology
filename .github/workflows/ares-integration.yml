@@ -1,0 +1,26 @@
+name: ARES integration regression checks
+on:
+  pull_request:
+    branches:
+      - feature/ares-physiology-lab-20261013
+  push:
+    branches:
+      - integration/gonzaloos-private-bridge-20261103
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - name: Install locked dependencies
+        run: uv sync --frozen
+      - name: Compile source
+        run: uv run --frozen python -m compileall -q src
+      - name: Check ARES browser scripts
+        run: |
+          node --check src/ares/app/static/app.js
+          node --check src/ares/app/static/lab_ui.js
+      - name: Run ARES regression tests
+        run: uv run --frozen pytest -q
