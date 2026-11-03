@@ -449,9 +449,24 @@ function homeNightSnapshot(w) {
     const min=Math.round(Number(n.sleep_min));
     return Number.isFinite(min)?`${Math.floor(min/60)}:${String(min%60).padStart(2,'0')}`:'—';
   })();
+  // Visual adaptation of the Pulsr recovery orb (MIT), not its SDNN-based scoring.
+  // WHOOP Recovery is displayed unchanged: ARES never recomputes it with incompatible HRV inputs.
+  const recovery = n.provider_recovery === null || n.provider_recovery === undefined
+    ? null : Number(n.provider_recovery);
+  const validRecovery = recovery !== null && Number.isFinite(recovery) && recovery >= 0 && recovery <= 100;
+  const recoveryZone = !validRecovery ? 'unknown' :
+    recovery >= 67 ? 'green' : recovery >= 34 ? 'amber' : 'red';
+  const orb = validRecovery ? `<div class="ares-recovery-feature" aria-label="Recovery WHOOP ${esc(f(recovery))} por ciento">
+      <div class="ares-recovery-orb ${recoveryZone}" aria-hidden="true"><div class="ares-orb-core">
+        <strong>${esc(f(recovery))}<small>%</small></strong></div></div>
+      <div class="ares-recovery-explainer"><span class="eyebrow">RECOVERY · WHOOP</span>
+        <strong>${recoveryZone==='green'?'Recuperación alta':recoveryZone==='amber'?'Recuperación media':'Recuperación baja'}</strong>
+        <small>Valor original de WHOOP · no es una prescripción de entrenamiento</small></div>
+    </div>` : '';
   return `<section class="home-night" aria-label="Lecturas de la última noche WHOOP">
     <div class="home-night-head"><span class="eyebrow">01 / ÚLTIMA NOCHE WHOOP</span>
       <span class="home-night-date">${date} · ${n.quality==='high'?'Calidad alta':'Calidad aceptable'}</span></div>
+    ${orb}
     <div class="home-night-data">
       <div><span>VFC / rMSSD</span><strong>${f(n.rmssd_ms)}<small>ms</small></strong></div>
       <div><span>FC en reposo</span><strong>${f(n.rhr)}<small>lpm</small></strong></div>
