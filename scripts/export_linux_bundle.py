@@ -48,8 +48,8 @@ def main() -> int:
         try:
             pending = db.verify(conn, db.discover(settings.migrations_dir))
             if pending:
-                print("ERROR: hay migraciones pendientes; verifica primero el esquema.")
-                return 1
+                print("Migraciones pendientes para OVH: " + ", ".join(str(m.version) for m in pending)
+                      + " (se aplicarán en OVH tras una copia de seguridad; Mac intacto).")
             count = conn.execute("SELECT count(*) FROM raw_payload").fetchone()[0]
         finally:
             conn.close()
@@ -117,8 +117,7 @@ def main() -> int:
         encoding="utf-8",
     )
     os.chmod(runtime_file, 0o600)
-    if settings.intervals_athlete_id == "0":
-        print("AVISO: INTERVALS_ATHLETE_ID=0; antes de arrancar OVH debe corregirse.")
+    # Intervals.icu API explicitly accepts athlete/0 for the authenticated athlete.
     digest = hashlib.sha256(copied_db.read_bytes()).hexdigest()
     print(f"ARES exportado: {count} filas brutas, {len(secrets)} credenciales cifradas.")
     print(f"Directorio privado: {dest}")
