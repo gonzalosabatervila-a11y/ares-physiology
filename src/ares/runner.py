@@ -16,7 +16,7 @@ import structlog
 
 from . import db, jobs
 from .config import Settings, get_secret
-from .connectors import polar_tokens
+from .connectors import polar_tokens, whoop
 from .connectors.base import HttpClient
 from .connectors.intervals import SyncResult as IntervalsResult
 from .connectors.intervals import sync_wellness
@@ -25,12 +25,12 @@ from .connectors.polar import sync_polar
 from .connectors.tredict import SyncResult as TredictResult
 from .connectors.tredict import sync_activities
 
-SyncOutcome = IntervalsResult | TredictResult | PolarResult
+SyncOutcome = IntervalsResult | TredictResult | PolarResult | whoop.SyncResult
 
 INCREMENTAL_DAYS = 3
 SOURCE_SECRETS = {"intervals": "intervals_api_key", "tredict": "tredict_token"}
-SOURCE_ENDPOINT = {"intervals": "wellness", "tredict": "activity", "polar": "sleeps"}
-SOURCES = ("intervals", "tredict", "polar")  # Polar se autentica con OAuth, no con una clave
+SOURCE_ENDPOINT = {"intervals": "wellness", "tredict": "activity", "polar": "sleeps", "whoop": "sleep"}
+SOURCES = ("intervals", "tredict", "polar", "whoop")  # OAuth en Polar y WHOOP
 
 
 class SyncSkipped(RuntimeError):
@@ -85,7 +85,12 @@ def run_source_sync(
     # así un monkeypatch de `get_secret` a nivel de módulo (tests, o un backend
     # de secretos distinto en el futuro) se respeta también en llamadas sin él.
     endpoint = SOURCE_ENDPOINT[source]
-    if source == "polar":
+    if source == "whoop":
+        try:
+            key = whoop.get_access_token()
+        except whoop.WhoopError as exc:
+            raise SyncSkipped(str(exc)) from exc
+    elif source == "polar":
         try:  # renueva el token si hace falta (el refresh token rota: solo un proceso a la vez)
             key = polar_tokens.get_access_token()
         except polar_tokens.TokenError as exc:
@@ -117,6 +122,8 @@ def run_source_sync(
         elif source == "polar":
             today = datetime.now(ZoneInfo(settings.tz)).date()  # el «día» de Polar es el local
             res = sync_polar(conn, http_client, key, used_days, today)
+        elif source == "whoop":
+            res = whoop.sync_whoop(conn, http_client, key, used_days, settings.tz)
         else:
             res = sync_activities(conn, http_client, key, used_days)
     except Exception as exc:
