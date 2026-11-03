@@ -34,7 +34,10 @@ def main() -> int:
     if os.getenv("ARES_SECRETS_FILE"):
         print("ERROR: exporta desde el Llavero de macOS, no desde el almacén Linux.")
         return 1
-    settings = load_settings()
+    # Read non-secret runtime settings from the original working installation,
+    # while running the tested exporter from the newer checkout.
+    origin_env = Path.home() / "ares" / ".env"
+    settings = load_settings(origin_env if origin_env.is_file() else None)
     if not settings.db_path.is_file():
         print("ERROR: no encuentro la base de ARES.")
         return 1
@@ -89,6 +92,33 @@ def main() -> int:
         output_plan = dest / "training_plan.json"
         shutil.copyfile(plan, output_plan)
         os.chmod(output_plan, 0o600)
+    # Preserve verified, non-secret source/device configuration: without this
+    # Intervals can silently fall back to athlete ID 0 on Linux.
+    runtime = {
+        "ARES_DEVICE_ID": settings.device_id,
+        "INTERVALS_ATHLETE_ID": settings.intervals_athlete_id,
+        "BACKFILL_MAX_DAYS": str(settings.backfill_max_days),
+        "ARES_RULES_VERSION": settings.rules_version,
+        "INTERVALS_WELLNESS_DEVICE": settings.intervals_wellness_device,
+        "ARES_ALGO_VERSION": settings.algo_version,
+        "WHOOP_HISTORY_DAYS": str(settings.whoop_history_days),
+        "PHYSIOLOGY_PROVIDER": settings.physiology_provider,
+    }
+    if settings.nutrition_weight_kg is not None:
+        runtime["ARES_NUTRITION_WEIGHT_KG"] = str(settings.nutrition_weight_kg)
+    if any(
+        "\\n" in value or "\\r" in value or "\\x00" in value or "#" in value
+        for value in runtime.values()
+    ):
+        raise RuntimeError("Configuración ARES no transportable como entorno Docker")
+    runtime_file = dest / "ares.runtime.env"
+    runtime_file.write_text(
+        "".join(f"{name}={value}\\n" for name, value in runtime.items()),
+        encoding="utf-8",
+    )
+    os.chmod(runtime_file, 0o600)
+    if settings.intervals_athlete_id == "0":
+        print("AVISO: INTERVALS_ATHLETE_ID=0; antes de arrancar OVH debe corregirse.")
     digest = hashlib.sha256(copied_db.read_bytes()).hexdigest()
     print(f"ARES exportado: {count} filas brutas, {len(secrets)} credenciales cifradas.")
     print(f"Directorio privado: {dest}")
