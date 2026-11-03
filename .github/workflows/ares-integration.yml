@@ -24,3 +24,8 @@ jobs:
           node --check src/ares/app/static/lab_ui.js
       - name: Run ARES regression tests
         run: uv run --frozen pytest -q
+      - name: Build production container without tokens
+        run: docker build -f Dockerfile.production -t ares-scientific:ci .
+      - name: Verify production image contains Scientific Atelier
+        run: |
+          docker run --rm --network none --entrypoint python ares-scientific:ci -c "from ares.app.server import STATIC; assert (STATIC/'index.html').is_file(); assert (STATIC/'lab_ui.js').is_file(); print('Scientific Atelier production image OK')"
