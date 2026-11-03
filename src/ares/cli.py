@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo
 
 from . import __version__, db, doctor, log, polar_night, runner, serve
 from .config import KNOWN_SECRETS, KeyringUnavailable, get_secret, load_settings, set_secret
-from .connectors import polar_oauth, polar_probe, polar_tokens
+from .connectors import polar_oauth, polar_probe, polar_tokens, whoop
 
 
 def cmd_init_db(args: argparse.Namespace) -> int:
@@ -43,7 +43,7 @@ def cmd_secret(args: argparse.Namespace) -> int:
     return 0
 
 
-SOURCE_LABELS = {"intervals": "intervals.icu", "tredict": "Tredict", "polar": "Polar"}
+SOURCE_LABELS = {"intervals": "intervals.icu", "tredict": "Tredict", "polar": "Polar", "whoop": "WHOOP"}
 
 
 def cmd_sync(args: argparse.Namespace) -> int:
@@ -138,6 +138,55 @@ def cmd_polar_auth(args: argparse.Namespace) -> int:
     return 0
 
 
+
+def cmd_whoop_auth(args: argparse.Namespace) -> int:
+    """OAuth: paste the final callback URL; nothing is written to command history."""
+    import webbrowser
+    from urllib.parse import parse_qs, urlparse
+
+    from .connectors import whoop
+
+    settings = load_settings()
+    client_id = get_secret("whoop_client_id")
+    client_secret = get_secret("whoop_client_secret")
+    if not client_id or not client_secret:
+        print("Registra ARES en developer.whoop.com y guarda los secretos:")
+        print("  ares secret set whoop_client_id")
+        print("  ares secret set whoop_client_secret")
+        print(f"Redirect URI exacta: {settings.whoop_redirect_uri}")
+        return 1
+    state = whoop.new_state()
+    auth_url = whoop.authorization_url(client_id, settings.whoop_redirect_uri, state)
+    print("Autorización WHOOP: se abrirá tu navegador.")
+    print("Al terminar, copia la dirección URL COMPLETA de la página de retorno.")
+    print("No pegues esa dirección en ningún chat ni repositorio.")
+    webbrowser.open(auth_url)
+    try:
+        callback = input("URL completa de retorno WHOOP: ").strip()
+        expected, received = urlparse(settings.whoop_redirect_uri), urlparse(callback)
+        if (expected.scheme, expected.netloc, expected.path) != (
+            received.scheme, received.netloc, received.path
+        ):
+            raise whoop.WhoopError("La URL de retorno no coincide con la registrada.")
+        query = parse_qs(received.query)
+        if query.get("state", [None])[0] != state:
+            raise whoop.WhoopError("La verificación state OAuth ha fallado.")
+        if query.get("error"):
+            raise whoop.WhoopError("WHOOP denegó la autorización.")
+        code = query.get("code", [None])[0]
+        if not code:
+            raise whoop.WhoopError("Falta el código de autorización en la URL.")
+        tokens = whoop.exchange_code(code, client_id, client_secret, settings.whoop_redirect_uri)
+        set_secret("whoop_access_token", tokens.access_token)
+        set_secret("whoop_refresh_token", tokens.refresh_token)
+        set_secret("whoop_token_expiry", tokens.expires_at.isoformat())
+    except (whoop.WhoopError, KeyringUnavailable, EOFError) as exc:
+        print(f"Error WHOOP: {exc}")
+        return 1
+    print("WHOOP autorizado. Ejecuta: ares sync whoop --days 30")
+    return 0
+
+
 def cmd_polar_probe(args: argparse.Namespace) -> int:
     s = load_settings()
     try:
@@ -205,7 +254,7 @@ def build_parser() -> argparse.ArgumentParser:
     ps.set_defaults(func=cmd_secret)
 
     py = sub.add_parser("sync", help="sincroniza una fuente (manual, fuera del planificador)")
-    py.add_argument("source", choices=["intervals", "tredict", "polar"])
+    py.add_argument("source", choices=["intervals", "tredict", "polar", "whoop"])
     py.add_argument(
         "--days",
         type=int,
@@ -231,6 +280,10 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser(
         "polar-auth", help="autorización OAuth inicial con Polar (una sola vez)"
     ).set_defaults(func=cmd_polar_auth)
+
+    sub.add_parser("whoop-auth", help="autoriza ARES en WHOOP mediante OAuth2").set_defaults(
+        func=cmd_whoop_auth
+    )
 
     pp = sub.add_parser(
         "polar-probe",
