@@ -18,7 +18,7 @@ from typing import Any
 import duckdb
 
 from .. import jobs
-from . import fusion
+from . import fusion, physiology
 
 NIGHTS_TARGET = 21  # noches válidas para salir del modo sombra
 MIN_DAYS_FOR_RANGE = 7  # días mínimos para calcular un rango personal
@@ -558,6 +558,7 @@ def home(
     return {
         "estado": estado(conn),
         "whoop": whoop_night_summary(conn, device_id) if device_id else None,
+        "personal_baseline": physiology.personal_baseline(conn, device_id) if device_id else None,
         "fusion": fused,
         "dials": dials,
         "signals": [_signal_row(k, days, device) for k in keys],

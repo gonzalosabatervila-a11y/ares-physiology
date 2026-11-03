@@ -27,6 +27,8 @@ jobs:
       - name: Install locked dependencies
         run: uv sync --frozen --python 3.12
       - name: Check browser JavaScript syntax
-        run: node --check src/ares/app/static/app.js
+        run: |
+          node --check src/ares/app/static/app.js
+          node --check src/ares/app/static/lab_ui.js
       - name: Run tests (offline; no personal data or credentials)
         run: uv run pytest -q

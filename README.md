@@ -49,6 +49,169 @@ La línea base estadística (21 noches) y la activación de recomendaciones son
 dos hitos distintos: una línea base completa **no** valida aún el motor de
 decisiones deportivas.
 
+## ARES Intelligence · primera extensión del laboratorio (rama experimental)
+
+El plan integral de fisiología, entrenamiento y recomendaciones validadas está en
+[docs/ARES_INTELLIGENCE_ROADMAP.md](docs/ARES_INTELLIGENCE_ROADMAP.md).
+
+Esta rama incorpora una pestaña **Fisiología** con 28/90/365 días de WHOOP,
+media de 7/28 días y referencia histórica sin solapamiento. También introduce
+**Entrenos**, un explorador de sesiones completas (resumen, laps, ritmo, FC,
+potencia y curvas disponibles).
+
+El catálogo de Tredict existente contiene principalmente el listado de
+actividades, por lo que es necesario importar detalles para activar
+el explorador. Con la aplicación y el servicio de ARES detenidos:
+
+```bash
+uv run ares tredict-details --days 30 --limit 5
+uv run ares app
+```
+
+Esta importación hace como máximo cinco consultas de detalles
+(y guarda respuesta bruta únicamente en la base local). No modifica
+WHOOP, no publica GPS ni notas de atleta, no sincroniza en segundo plano
+y no inventa sensores inexistentes. La autorización Tredict requiere
+`activityRead`; los tokens de Personal API pueden requerir uso
+periódico de la propia aplicación Tredict para permanecer activos.
+
+**Desarrollo:** antes de actualizar el Mac ejecuta `uv run --frozen pytest -q`
+y `node --check src/ares/app/static/app.js`. El branch y la PR no se
+fusionan ni se despliegan al HP hasta que estas pruebas y la importación
+de algunas sesiones reales estén verificadas.
+
+## ARES LAB · café, cena y sueño desde iPhone (MVP 0.1)
+
+**Nueva pestaña LAB:** `http://127.0.0.1:8443/#/laboratorio` en
+el Mac, o dirección **HTTPS privada** Tailscale Serve cuando esté
+configurada y autorizada en iPhone. La web app instalada mediante
+«Añadir a pantalla de inicio» abrirá directamente ARES LAB.
+
+Acciones ultrarrápidas: **☕ Café (+100 mg estimados)**,
+**◒ Terminé de cenar** y **☾ Me acuesto**.
+Un toque crea una anotación con fecha y hora local; los datos quedan
+en `~/ares-data/ares.duckdb`, no en Google Drive ni en una IA remota.
+El historial permite corregir dosis/hora y anular entradas. Las
+correcciones tienen una tabla de auditoría local con valores anteriores
+y posteriores; cada guardado es una transacción.
+
+ARES muestra al instante el tiempo **última cena → me acuesto**
+(manual) y la cafeína **registrada** hoy (no consumo total).
+Con más días anotados estudiará la diferencia entre fin de cena e
+**inicio de sueño WHOOP** y agrupará las noches válidas por 0–2, 2–3,
+3–4 y 4–12 horas. Sin mediciones suficientes no presentará medias.
+
+**Antes de arrancar la versión v5 por primera vez:**
+
+1. Detener `ares serve` con Ctrl+C. No ejecutar `ares app` a la vez.
+2. Crear y verificar copia de seguridad de DuckDB con el servicio parado.
+3. Ejecutar pruebas sintéticas. Solo después ejecutar `uv run ares serve`,
+   que aplica la migración ADITIVA `005_lab_events.sql`.
+4. Comprobar que en LAB se guardan, corrigen y anulan dos entradas
+   de prueba antes del uso habitual.
+5. Mantener el Mac encendido y la conexión privada para uso en iPhone.
+   **No hay modo sin conexión ni notificaciones en la versión 0.1.**
+
+En `ares app` el diario es **solo lectura** y no permite guardar.
+Los POST/PATCH/DELETE requieren misma procedencia y acceso privado,
+no se aceptan desde sitios externos. No usar Tailscale Funnel
+ni exponer ARES a internet abierto. El diagnóstico técnico
+`#/lab` y las vistas anteriores siguen disponibles.
+
+Método, privacidad, pruebas y fases posteriores:
+[Arquitectura ARES LAB](docs/ARES_LAB_ARCHITECTURE.md).
+
+## ARES Execution Intelligence · prescrito → registrado → fisiología
+
+En `#/plan` verás cada sesión con:
+- Entrenamiento **PRESCRITO** desde el Excel maestro vigente (snapshot
+  S32–S40), nunca modificado a partir de los datos del reloj.
+- Entrenamientos **REGISTRADOS** en COROS vía Tredict, identificados por
+  actividad y fecha local Europe/Madrid; el resumen y detalle de la
+  misma actividad no se cuentan dos veces.
+- Cuando existe **una sola carrera** ese día, contexto WHOOP de la
+  última noche válida acabada antes de empezar y la primera noche
+  posterior al fin de la sesión (ventana 72 h), sin correlación causal.
+- Estado honesto: futura / sin registro en datos importados / actividad
+  registrada sin verificar / actividad en día de descanso. **Ninguno
+  demuestra cumplimiento**, que exigirá validar vueltas, intervalos y zonas.
+
+La última sincronización de Tredict se muestra separada de las
+fechas de carrera: una fuente antigua no prueba que se haya faltado a
+una sesión. El endpoint sigue siendo solo lectura, sin GPS ni notas.
+
+### Actualización segura del plan maestro
+
+El equipo NO está conectado directamente a Drive. Para actualizar el
+Excel se descarga explícitamente el maestro **vigente** de la carpeta
+`000/ARES/01 RUNNING/MARATÓN`, **no de Old**, y se pasa la ruta
+local descargada al CLI de ARES:
+
+```bash
+cd ~/ares
+uv run ares plan-check ~/Downloads/Plan_Maraton_Gonzalo_MAESTRO_v9.xlsx
+```
+
+El CLI lee XLSX con herramientas de la biblioteca estándar (sin ejecutar
+macros), comprueba la integridad de **63 sesiones S32–S40**,
+detecta cambios de campo por fecha y muestra la huella SHA-256.
+**No modifica ningún archivo ni la base de datos.** Si y solo si los
+cambios son correctos y aprobados:
+
+```bash
+uv run ares plan-check ~/Downloads/Plan_Maraton_Gonzalo_MAESTRO_v9.xlsx --apply
+```
+
+ARES escribe atómicamente solo en
+`~/ares-data/training_plan.json`; si ya había una copia local,
+hace backup con fecha y hora en esa misma carpeta. La app recarga la
+nueva versión en la próxima consulta, sin detener ni reiniciar el
+servicio. Si el archivo queda inválido, se muestra un aviso y
+se utiliza la versión v9 de referencia, sin afectar WHOOP ni DuckDB.
+
+**El importador admite por seguridad solo S32–S40**, la parte confirmada
+del plan. No extiende automáticamente semanas posteriores aunque el
+Excel contenga más: añadir meses exige revisar nuevas fuentes y
+actualizar el validador de periodización.
+
+Verificar que el Excel descargado procede realmente del último archivo
+de Drive es responsabilidad del operador: el CLI no tiene acceso
+a Drive ni puede certificar la identidad remota del archivo.
+
+## ARES Plan · maratón y nutrición periodizada
+
+Nueva pestaña **Plan** (`#/plan`), con el entrenamiento prescrito de la
+semana y la nutrición diaria *Fueling ARES v1.0*.
+
+La copia `src/ares/app/plan_oct_dec_2026.json` se importó el 14/10/2026
+de `000 → ARES → 01 RUNNING → MARATÓN`, fichero **Excel maestro v9**
+(08/10/2026), fuera de la carpeta `Old`. Cubre nueve semanas: S32–S40,
+del 12 de octubre al 13 de diciembre de 2026. **NO** es una conexión
+automática a Drive; muestra enlaces y versión para comprobar vigencia.
+El plan se queda en modo lectura: jamás reescribe los entrenamientos del
+Excel ni compensa volumen perdido.
+
+La previsión nutricional utiliza `Fueling ARES — Sistema Maestro de
+Nutrición v1.0` (19/09/2026): bandas LOW/MEDIUM/HIGH/VERY HIGH por
+carga diaria y la sesión del día siguiente, con preferencia por pautas
+de geles específicas del Excel (por ejemplo, 45 g/h S32 y 50 g/h S33).
+El sistema muestra g/kg por defecto, sin publicar tu peso en Git.
+Para obtener gramos orientativos/día, escribe **solo en tu `.env` local**:
+
+```dotenv
+ARES_NUTRITION_WEIGHT_KG=70.5
+```
+
+**70,5 kg es exclusivamente el peso de referencia registrado en
+septiembre de 2026, no una medición actual**: sustituirlo por el peso
+real más reciente, si se conoce. No se modifican automáticamente las
+pautas por un único dato de WHOOP. El rango nutricional es orientativo,
+y debe ajustarse según tolerancia intestinal y registro real.
+
+En Plan aparece la actividad de Tredict cuando exista en el mismo día,
+pero **coincidencia en el calendario ≠ sesión prescrita cumplida**.
+Las series, zonas y bloques requieren validación adicional.
+
 ## Mac · desarrollo
 
 ```bash

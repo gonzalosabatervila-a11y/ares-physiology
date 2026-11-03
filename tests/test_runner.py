@@ -96,3 +96,69 @@ def test_run_all_una_fuente_fallida_no_bloquea_la_otra(conn, settings, monkeypat
 
     rows = conn.execute("SELECT job, status FROM job_runs ORDER BY job").fetchall()
     assert set(rows) == {("sync_intervals", "ok"), ("sync_tredict", "error")}
+
+
+def test_intervalos_503_activa_enfriamiento_temporal_sin_cambiar_brutos(conn):
+    from ares.connectors.base import mark_status
+
+    original = conn.execute("SELECT count(*) FROM raw_payload").fetchone()[0]
+    mark_status(
+        conn, source="intervals", endpoint="wellness", ok=False,
+        error="HTTP 503 en https://intervals.icu/api/v1/athlete/0/wellness",
+    )
+    row = conn.execute(
+        "SELECT last_error FROM source_status WHERE source='intervals'"
+    ).fetchone()
+    assert row and row[0] is not None
+    failure = row[0]
+    remaining = runner.intervals_503_cooldown(
+        conn, now=failure + timedelta(minutes=2)
+    )
+    assert remaining == timedelta(minutes=28)
+    assert runner.intervals_503_cooldown(
+        conn, now=failure + timedelta(minutes=31)
+    ) is None
+    assert conn.execute("SELECT count(*) FROM raw_payload").fetchone()[0] == original
+
+
+def test_cuando_intervalos_devuelve_503_se_siguen_las_otras_fuentes(conn, settings, monkeypatch):
+    from ares.connectors.base import mark_status
+
+    mark_status(
+        conn, source="intervals", endpoint="wellness", ok=False,
+        error="HTTP 503 en https://intervals.icu/api/v1/athlete/0/wellness",
+    )
+    attempted = []
+    events = []
+
+    def fake_sync(conn_, source, settings_, **kwargs):
+        attempted.append(source)
+        return runner.RunResult(source, 0, 0, 3, False)
+
+    class Logger:
+        def warning(self, name, **fields):
+            events.append((name, fields))
+
+    monkeypatch.setattr(runner, "run_source_sync", fake_sync)
+    result = runner.run_all(conn, settings, Logger())
+    assert attempted == ["tredict", "whoop"]
+    assert isinstance(result[0], runner.SyncSkipped)
+    assert [r.source for r in result[1:]] == ["tredict", "whoop"]
+    assert events[0][0] == "sync_deferred"
+    assert events[0][1]["reason"] == "HTTP 503 temporal"
+    assert conn.execute("SELECT count(*) FROM job_runs").fetchone()[0] == 0
+
+
+def test_solo_503_reciente_y_no_resuelto_bloquea_reintento(conn):
+    from ares.connectors.base import mark_status
+
+    # Los fallos de autenticación no causan apagados artificiales.
+    mark_status(conn, source="intervals", endpoint="wellness", ok=False,
+                error="HTTP 401 en https://intervals.icu/api/v1/athlete/0/wellness")
+    assert runner.intervals_503_cooldown(conn) is None
+
+    mark_status(conn, source="intervals", endpoint="wellness", ok=False,
+                error="HTTP 503 en https://intervals.icu/api/v1/athlete/0/wellness")
+    assert runner.intervals_503_cooldown(conn) is not None
+    mark_status(conn, source="intervals", endpoint="wellness", ok=True)
+    assert runner.intervals_503_cooldown(conn) is None

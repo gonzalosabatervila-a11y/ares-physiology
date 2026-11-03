@@ -1,0 +1,294 @@
+/* ARES Scientific Atelier — embedded workstation.
+   Original responsive design, informed by Pulsr's light/dark contrast,
+   recovery focus and restrained translucent surfaces (MIT reference
+   documented in docs/THIRD_PARTY.md). No score or data transformations.
+   Activated ONLY by ?embed=1. Standalone ARES stays unchanged. */
+
+html.ares-embedded {
+  --bg:#f4f6f4;
+  --s1:#ffffff;
+  --s2:#f8faf8;
+  --s3:#e9eeeb;
+  --line:rgba(31,52,55,.075);
+  --line2:rgba(31,52,55,.13);
+  --txt:#1b3039;
+  --mut:#60737b;
+  --mut2:#829198;
+  --sig:#946b39;
+  --sig-dim:rgba(160,116,63,.095);
+  --sig-line:rgba(160,116,63,.30);
+  --sage:#467e67;
+  --warn:#a57132;
+  --warn-dim:rgba(165,113,50,.10);
+  --alrt:#b44d53;
+  --alrt-dim:rgba(180,77,83,.1);
+}
+html.ares-embedded, html.ares-embedded body {
+  background:#f4f6f4;
+  color:var(--txt);
+}
+.ares-embedded body {
+  background:radial-gradient(85% 65% at 42% -18%,rgba(213,225,219,.56),transparent 70%),#f4f6f4;
+  -webkit-font-smoothing:antialiased;
+}
+.ares-embedded #app {
+  max-width:1080px;
+  margin:0 auto;
+  padding:0 25px 90px;
+}
+.ares-embedded main {padding:0;gap:25px}
+.ares-embedded .top {
+  padding:27px 0 16px;
+  margin:0 0 2px;
+  border-bottom:1px solid var(--line2);
+}
+.ares-embedded .brand h1 {
+  color:#1d343f;
+  font-size:17px;
+  letter-spacing:.17em;
+  font-weight:760;
+}
+.ares-embedded .brand .date{font-size:12px;color:var(--mut)}
+.ares-embedded .brand > svg {width:30px;height:30px;filter:drop-shadow(0 4px 8px rgba(24,48,40,.09))}
+.ares-embedded .sync {
+  background:rgba(255,255,255,.82);
+  border:1px solid var(--line2);
+  box-shadow:0 4px 18px rgba(36,62,59,.045);
+}
+.ares-embedded .sync .dot{border-color:#fff}
+.ares-embedded .sync:hover{background:#fff}
+
+/* Desktop: one slim segmented navigation, not a second sidebar. */
+.ares-embedded #tabs {
+  position:sticky;
+  inset:auto;
+  top:0;
+  left:auto;
+  bottom:auto;
+  transform:none;
+  z-index:30;
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  width:min(100%,1080px);
+  max-width:none;
+  margin:0 auto;
+  padding:11px 25px;
+  gap:7px;
+  border:0;
+  border-bottom:1px solid rgba(31,52,55,.09);
+  border-radius:0;
+  background:rgba(244,246,244,.93);
+  box-shadow:none;
+  -webkit-backdrop-filter:blur(22px) saturate(130%);
+  backdrop-filter:blur(22px) saturate(130%);
+}
+.ares-embedded #tabs a {
+  display:flex;
+  flex-direction:row;
+  align-items:center;
+  justify-content:center;
+  gap:9px;
+  min-height:43px;
+  padding:8px 11px;
+  font-size:12px;
+  font-weight:660;
+  color:#647882;
+  border-radius:12px;
+  box-shadow:none;
+  transition:background .2s,color .2s,box-shadow .2s;
+}
+.ares-embedded #tabs a svg{width:17px;height:17px;flex:none}
+.ares-embedded #tabs a:hover{background:#e8ede9;color:#2b4752}
+.ares-embedded #tabs a[aria-current=page],
+.ares-embedded #tabs a[href="#/laboratorio"][aria-current=page] {
+  background:#fff;
+  color:#253e48;
+  box-shadow:0 4px 17px rgba(27,49,48,.07),inset 0 0 0 1px rgba(31,52,55,.11);
+}
+
+/* Original Pulsr-inspired contrast: a single dark, instrumental
+   recovery panel above a pale, readable scientific workbench. */
+.ares-embedded .home-night {
+  --txt:#f4f7f4;
+  --mut:#b8c5c3;
+  --mut2:#8ea19f;
+  --sig:#edd1a0;
+  --line:rgba(255,255,255,.09);
+  --line2:rgba(255,255,255,.16);
+  position:relative;
+  overflow:hidden;
+  padding:29px 35px 26px;
+  border:1px solid rgba(227,238,233,.09);
+  border-radius:26px;
+  background:
+    radial-gradient(ellipse 65% 110% at 78% 42%,rgba(47,101,83,.24),transparent 75%),
+    radial-gradient(ellipse 52% 90% at 5% 10%,rgba(198,151,81,.15),transparent 80%),
+    linear-gradient(132deg,#1a2b31 0%,#102126 55%,#101c23 100%);
+  color:var(--txt);
+  box-shadow:0 18px 46px -29px rgba(20,41,44,.52);
+}
+.ares-embedded .home-night::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(145deg,rgba(255,255,255,.055),transparent 37%);
+  opacity:.8;
+}
+.ares-embedded .home-night > *{position:relative;z-index:1}
+.ares-embedded .home-night-head .eyebrow{color:#e5c68f;font-size:10px}
+.ares-embedded .home-night-date{color:#b6c2bb;font-size:11px}
+.ares-embedded .ares-recovery-feature {
+  gap:44px;
+  padding:30px 0 29px;
+}
+.ares-embedded .ares-recovery-orb {
+  width:176px;
+  height:176px;
+  flex:0 0 176px;
+}
+.ares-embedded .ares-recovery-explainer .eyebrow {
+  color:#e0c191;font-size:10px;letter-spacing:.15em;
+}
+.ares-embedded .ares-recovery-explainer>strong{
+  color:#fff;
+  font-size:clamp(24px,3vw,38px);
+  letter-spacing:-.05em;
+}
+.ares-embedded .ares-recovery-explainer>small{color:#c4cfca;opacity:1;font-size:12px;max-width:42ch}
+.ares-embedded .home-night-data {
+  border-top:1px solid rgba(255,255,255,.15);
+  padding-top:22px;
+  margin-top:3px;
+  gap:0;
+}
+.ares-embedded .home-night-data>div{padding:0 19px}
+.ares-embedded .home-night-data>div:first-child{padding-left:0}
+.ares-embedded .home-night-data>div>span{font-size:11px;color:#c3d0ca}
+.ares-embedded .home-night-data strong{
+  color:#fff;
+  font-size:clamp(28px,3.6vw,47px);
+}
+.ares-embedded .home-night-data strong small{color:#bbc9c4}
+.ares-embedded .home-night-foot{margin-top:22px}
+.ares-embedded .home-night-foot>span{color:#94aaa3}
+.ares-embedded .home-night-foot a,.ares-embedded .home-night-head a{color:#f0c98a}
+.ares-embedded .home-night-empty{padding:29px 35px 31px}
+.ares-embedded .home-night-empty p{color:#c2cfca;margin:26px 0}
+
+/* Light workbench, with visible hierarchy and unboxed trends. */
+.ares-embedded .atelier-section,
+.ares-embedded .home-steps,
+.ares-embedded .atelier-extras,
+.ares-embedded .phys-overview,
+.ares-embedded .phys-header {color:var(--txt)}
+.ares-embedded .atelier-section-head{padding:10px 0 13px}
+.ares-embedded .atelier-section-head .eyebrow{font-size:10px;color:var(--sig)}
+.ares-embedded .atelier-section-head a{color:#946b39}
+.ares-embedded .atelier-row-list,
+.ares-embedded .workout-list{border-color:var(--line2)}
+.ares-embedded .atelier-row-list .sig-row:hover,
+.ares-embedded .workout-list .workout-tile:hover{background:rgba(196,213,204,.22)}
+.ares-embedded .card,.ares-embedded .sig-row,.ares-embedded .gauge{
+  background:#fff;
+  border-color:var(--line2);
+  box-shadow:0 6px 24px rgba(25,56,52,.035);
+}
+.ares-embedded .hero,
+.ares-embedded .baseline-profile {
+  background:linear-gradient(145deg,#fff,#f8f9f6);
+}
+.ares-embedded .home-capture,
+.ares-embedded .lab-capture{
+  background:#fff;
+  border-color:var(--line2);
+}
+.ares-embedded .home-capture-btn,
+.ares-embedded .lab-action {background:#f5f7f4}
+.ares-embedded .plan-day,
+.ares-embedded .phys-featured,
+.ares-embedded .atelier-extras,
+.ares-embedded .atelier-section,
+.ares-embedded .plan-head,
+.ares-embedded .lab-head {border-color:var(--line2)}
+.ares-embedded .plan-day-summary:hover{color:var(--sig)}
+.ares-embedded .phys-chart{color:rgba(25,54,60,.13)}
+.ares-embedded .phys-guide{stroke:rgba(25,54,60,.11)}
+.ares-embedded .phys-cursor-dot,.ares-embedded .phys-endpoint{stroke:#f4f6f4}
+.ares-embedded .bars i.zero{background:rgba(25,54,60,.1)}
+.ares-embedded .base .bar{background:rgba(25,54,60,.08)}
+.ares-embedded .sync-note{background:#fff}
+.ares-embedded .training-comparison{background:#fff}
+.ares-embedded .sheet-back{background:rgba(25,43,47,.40)}
+.ares-embedded .sheet-panel {
+  background:#fff;
+  color:var(--txt);
+  border:1px solid var(--line2);
+  box-shadow:0 14px 60px rgba(29,51,48,.20);
+}
+.ares-embedded .sheet .close{background:#f1f4f1}
+.ares-embedded .chip{background:#fff}
+.ares-embedded .lab-field,
+.ares-embedded .plan-select{background:#fff;color:var(--txt);border-color:var(--line2)}
+.ares-embedded .lab-primary{background:#284c49;color:#fff}
+
+/* Responsive: preserve a real touch-friendly mobile bottom bar. */
+@media(min-width:920px){
+  .ares-embedded .home-night{
+    display:grid;
+    grid-template-columns:minmax(0,1.1fr) minmax(280px,.9fr);
+    column-gap:34px;
+    align-items:center;
+  }
+  .ares-embedded .home-night-head,
+  .ares-embedded .home-night-foot {grid-column:1/-1}
+  .ares-embedded .ares-recovery-feature{grid-column:1;gap:25px}
+  .ares-embedded .ares-recovery-orb{width:154px;height:154px;flex-basis:154px}
+  .ares-embedded .home-night-data{
+    grid-column:2;
+    display:flex;
+    flex-direction:column;
+    border-top:0;
+    border-left:1px solid rgba(255,255,255,.14);
+    padding:0 0 0 26px;
+    margin:0;
+  }
+  .ares-embedded .home-night-data>div,
+  .ares-embedded .home-night-data>div:first-child{
+    padding:9px 0 11px;
+    border:0;
+    border-bottom:1px solid rgba(255,255,255,.10);
+  }
+  .ares-embedded .home-night-data>div:last-child{border-bottom:0}
+  .ares-embedded .home-night-data>div>span{min-height:0}
+  .ares-embedded .home-night-data strong{margin-top:3px;font-size:30px}
+  .ares-embedded .home-night-empty{display:block}
+}
+@media(max-width:760px){
+  .ares-embedded #app{padding:0 14px 98px}
+  .ares-embedded #tabs{
+    position:sticky;
+    top:0;
+    width:100%;
+    padding:9px 9px;
+    gap:2px;
+  }
+  .ares-embedded #tabs a{flex-direction:column;gap:3px;min-height:48px;padding:7px 2px;font-size:9px}
+  .ares-embedded #tabs a svg{width:18px;height:18px}
+  .ares-embedded .top{padding:17px 0 13px}
+  .ares-embedded .home-night{padding:23px 20px 20px;border-radius:22px}
+  .ares-embedded .ares-recovery-feature{gap:19px;padding:25px 0 22px}
+  .ares-embedded .ares-recovery-orb{width:126px;height:126px;flex-basis:126px}
+  .ares-embedded .ares-recovery-explainer>strong{font-size:clamp(20px,6vw,29px)}
+  .ares-embedded .home-night-data>div{padding:0 9px}
+  .ares-embedded .home-night-data>div:first-child{padding-left:0}
+  .ares-embedded .home-night-data strong{font-size:clamp(25px,7vw,36px)}
+  .ares-embedded .home-night-foot{gap:12px}
+}
+@media(max-width:430px){
+  .ares-embedded #tabs a{font-size:8.5px}
+  .ares-embedded .ares-recovery-feature{flex-wrap:wrap}
+  .ares-embedded .ares-recovery-orb{width:136px;height:136px;flex-basis:136px}
+  .ares-embedded .home-night-data strong{font-size:25px}
+  .ares-embedded .home-night-data strong small{font-size:10px}
+}
+@media(prefers-reduced-motion:reduce){
+  .ares-embedded .sync,.ares-embedded #tabs a{transition:none}
+}
