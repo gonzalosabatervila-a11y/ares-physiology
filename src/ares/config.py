@@ -19,6 +19,11 @@ KNOWN_SECRETS = (
     "polar_access_token",
     "polar_refresh_token",
     "polar_token_expiry",
+    "whoop_client_id",
+    "whoop_client_secret",
+    "whoop_access_token",
+    "whoop_refresh_token",
+    "whoop_token_expiry",
     "ingest_token",
 )
 
@@ -34,6 +39,7 @@ class Settings:
     backfill_max_days: int
     migrations_dir: Path
     polar_redirect_uri: str
+    whoop_redirect_uri: str = "https://gonzaloos.es/whoop/callback"
     app_bind: str = "127.0.0.1:8443"
     wellness_source: str = "loop"  # loop | intervals
 
@@ -66,6 +72,7 @@ def load_settings(env_file: Path | None = None) -> Settings:
         backfill_max_days=int(_clean(env.get("BACKFILL_MAX_DAYS", "30"))),
         migrations_dir=migrations.expanduser(),
         polar_redirect_uri=_clean(env.get("POLAR_REDIRECT_URI", "http://localhost:8765/callback")),
+        whoop_redirect_uri=_clean(env.get("WHOOP_REDIRECT_URI", "https://gonzaloos.es/whoop/callback")),
         app_bind=_clean(env.get("APP_BIND", "127.0.0.1:8443")),
         wellness_source=(
             "intervals"
